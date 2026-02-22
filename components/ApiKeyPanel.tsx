@@ -94,7 +94,8 @@ const ApiKeyPanel: React.FC<Props> = ({
       countBg: 'bg-blue-100 text-blue-800'
   };
 
-  const const inputClass = `w-full h-8 text-xs px-2 py-1.5 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
+  // DIPERBAIKI: Menghapus typo "const const" dan mengecilkan ukuran h-9 -> h-8
+  const inputClass = `w-full h-8 text-xs px-2 py-1.5 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
 
   useEffect(() => {
     const checkPuterAuth = async () => {
@@ -259,7 +260,8 @@ const ApiKeyPanel: React.FC<Props> = ({
     }
   };
 
-  const addActionLabel = provider === 'PUTER' ? 'Add Slot' : provider === 'GEMINI' ? 'Add Slot' : 'Add Key';
+  // DIPERBAIKI: Mengubah "Add Account" menjadi "Add Slot" untuk Gemini
+  const addActionLabel = (provider === 'PUTER' || provider === 'GEMINI') ? 'Add Slot' : 'Add Key';
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-sm border ${theme.border} transition-colors flex flex-col`}>
@@ -281,7 +283,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                     onChange={(e) => setProvider?.(e.target.value as ApiProvider)}
                     disabled={isProcessing}
                   >
-                    {/* Google Login diletakkan paling atas & kini menjadi default */}
                     <option value="GEMINI" className="font-bold text-blue-600">Login Google (Gemini)</option>
                     <option value="MISTRAL">Mistral AI</option>
                     <option value="GROQ">Groq Cloud</option>
@@ -359,7 +360,6 @@ const ApiKeyPanel: React.FC<Props> = ({
 
              <div className="flex flex-col">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Workers</label>
-                {/* Bagian ini diperbaiki: Tombol Link dibuat permanen agar layout tidak goyang */}
                 <div className="flex gap-2">
                     <div className="relative flex-1">
                         <input 
@@ -372,17 +372,18 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
+                    {/* DIPERBAIKI: Tombol Link menjadi h-8 w-8 agar sejajar dengan input di sebelahnya */}
                     <button 
                         onClick={() => window.open(getConnectLink(), '_blank')}
                         disabled={isProcessing || provider === 'GEMINI'}
-                        className={`h-9 w-9 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm ${
+                        className={`h-8 w-8 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm ${
                             provider === 'GEMINI'
                             ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
                         }`}
                         title="Get API Key / Connect"
                     >
-                        <ExternalLink size={16} />
+                        <ExternalLink size={14} />
                     </button>
                 </div>
              </div>
@@ -394,8 +395,8 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* Consistent height container h-[88px] - ANTI LAYOUT SHIFT */}
-      <div className="mt-1 h-[88px] flex flex-col overflow-hidden">
+      {/* DIPERBAIKI: Tinggi diturunkan dari 88px ke 76px karena tombol di dalamnya sudah mengecil */}
+      <div className="mt-1 h-[76px] flex flex-col overflow-hidden">
           {provider === 'GEMINI' ? (
             <div className="flex flex-col animate-in fade-in duration-300">
                 <div className="flex items-center justify-between leading-none mb-[4px]">
@@ -403,7 +404,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     Google Authentication
                     </label>
                 </div>
-                <div className="w-full h-[70px] flex items-center justify-center rounded-md bg-white p-1">
+                {/* DIPERBAIKI: Kotak dalam menjadi h-[60px] */}
+                <div className="w-full h-[60px] flex items-center justify-center rounded-md bg-white p-1">
                     <button 
                         onClick={handleGoogleLogin}
                         disabled={isProcessing}
@@ -421,8 +423,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     Authentication
                     </label>
                 </div>
-                
-                <div className="w-full h-[70px] flex items-center justify-center rounded-md bg-white p-1">
+                {/* DIPERBAIKI: Kotak dalam menjadi h-[60px] */}
+                <div className="w-full h-[60px] flex items-center justify-center rounded-md bg-white p-1">
                     {isPuterAuthenticated ? (
                         <button 
                             onClick={handlePuterLogin}
@@ -450,8 +452,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     {provider} API Keys
                     </label>
                 </div>
-                
-                <div className="w-full h-[70px] flex gap-2 p-1">
+                {/* DIPERBAIKI: Kotak dalam menjadi h-[60px] */}
+                <div className="w-full h-[60px] flex gap-2 p-1">
                     <textarea 
                         placeholder="Keys (one per line)..."
                         className="flex-1 h-full p-2 text-[10px] font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200"
@@ -481,26 +483,26 @@ const ApiKeyPanel: React.FC<Props> = ({
       </div>
       
       <div className="grid grid-cols-3 gap-2 mt-2">
-          <div className={`flex items-center justify-center gap-1 p-2 rounded border ${theme.border} ${theme.countBg}`}>
+          {/* DIPERBAIKI: Padding px-2 py-1.5 pada tombol utama bawah */}
+          <div className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded border ${theme.border} ${theme.countBg}`}>
              <span className="text-[11px] font-bold uppercase opacity-70">Slots:</span>
-             <span className="text-sm font-bold leading-none">{apiKeys.length}</span>
+             <span className="text-xs font-bold leading-none">{apiKeys.length}</span>
           </div>
           <button 
              onClick={handleAddKeys}
-             // PERHATIAN: provider === 'GEMINI' ditambahkan agar tombol ini mati saat mode Login Google
              disabled={isProcessing || provider === 'GEMINI' || (provider === 'PUTER' && !isPuterAuthenticated) || (provider !== 'PUTER' && provider !== 'GEMINI' && !bulkInput.trim())}
-             className={`flex flex-row items-center justify-center gap-1.5 p-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
+             className={`flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
           >
-            <Plus size={16} />
-            <span className="text-sm font-bold uppercase tracking-wide">{addActionLabel}</span>
+            <Plus size={14} />
+            <span className="text-xs font-bold uppercase tracking-wide">{addActionLabel}</span>
           </button>
           <button 
              onClick={handleClearAll} 
              disabled={isProcessing || apiKeys.length === 0}
-             className="flex flex-row items-center justify-center gap-1.5 p-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm"
+             className="flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm"
           >
-            <Trash2 size={16} />
-            <span className="text-sm font-bold uppercase tracking-wide">Clear All</span>
+            <Trash2 size={14} />
+            <span className="text-xs font-bold uppercase tracking-wide">Clear All</span>
           </button>
       </div>
 
