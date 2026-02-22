@@ -94,7 +94,7 @@ const ApiKeyPanel: React.FC<Props> = ({
       countBg: 'bg-blue-100 text-blue-800'
   };
 
-  const inputClass = `w-full h-9 text-sm p-2 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
+  const const inputClass = `w-full h-8 text-xs px-2 py-1.5 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
 
   useEffect(() => {
     const checkPuterAuth = async () => {
@@ -259,7 +259,7 @@ const ApiKeyPanel: React.FC<Props> = ({
     }
   };
 
-  const addActionLabel = provider === 'PUTER' ? 'Add Slot' : provider === 'GEMINI' ? 'Add Account' : 'Add Key';
+  const addActionLabel = provider === 'PUTER' ? 'Add Slot' : provider === 'GEMINI' ? 'Add Slot' : 'Add Key';
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-sm border ${theme.border} transition-colors flex flex-col`}>
@@ -374,7 +374,12 @@ const ApiKeyPanel: React.FC<Props> = ({
                     </div>
                     <button 
                         onClick={() => window.open(getConnectLink(), '_blank')}
-                        className="h-9 w-9 flex items-center justify-center rounded border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shrink-0 shadow-sm"
+                        disabled={isProcessing || provider === 'GEMINI'}
+                        className={`h-9 w-9 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm ${
+                            provider === 'GEMINI'
+                            ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
+                        }`}
                         title="Get API Key / Connect"
                     >
                         <ExternalLink size={16} />
