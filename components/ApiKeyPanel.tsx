@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Key, Plus, Trash2, XCircle, ListOrdered, Search, LogIn, ShieldCheck, Save, FileText, ExternalLink, Sparkles, RefreshCw } from 'lucide-react';
+import { Key, Plus, Trash2, XCircle, ListOrdered, Search, LogIn, ShieldCheck, Save, FileText, ExternalLink } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
 import { PUTER_MODELS } from '../constants';
 
@@ -56,7 +56,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   apiKeys, 
   setApiKeys, 
   isProcessing, 
-  provider = 'AUTO',
+  provider = 'GEMINI', // Default langsung ke GEMINI
   setProvider,
   geminiModel,
   setGeminiModel,
@@ -115,7 +115,6 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const getCurrentModel = () => {
     switch(provider) {
-        case 'AUTO': return 'gemini-2.5-flash';
         case 'GEMINI': return geminiModel;
         case 'MISTRAL': return mistralModel;
         case 'GROQ': return groqModel;
@@ -169,11 +168,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   };
 
   const handleAddKeys = () => {
-    if (provider === 'GEMINI') {
-        handleGoogleLogin();
-        return;
-    }
-
+    // Tombol di-disable untuk Gemini, jadi fungsi ini murni untuk Puter & Provider Lain
     if (provider === 'PUTER') {
         if (!isPuterAuthenticated) return;
         setApiKeys([...apiKeys, `Slot_${apiKeys.length + 1}`]);
@@ -235,7 +230,6 @@ const ApiKeyPanel: React.FC<Props> = ({
   
   const getBaseUrl = () => {
     switch(provider) {
-        case 'AUTO': return "Internal (Google Server)";
         case 'GEMINI': return "https://generativelanguage.googleapis.com";
         case 'MISTRAL': return "https://api.mistral.ai";
         case 'GROQ': return "https://api.groq.com/openai/v1/chat/completions";
@@ -246,7 +240,8 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const getConnectLink = () => {
     switch(provider) {
-        case 'GEMINI': return "https://aistudio.google.com/app/api-keys";
+        // Karena sekarang login Google, diarahkan ke Google Cloud Console
+        case 'GEMINI': return "https://console.cloud.google.com/apis/credentials";
         case 'MISTRAL': return "https://console.mistral.ai/api-keys";
         case 'GROQ': return "https://console.groq.com/keys";
         case 'PUTER': return "https://puter.com";
@@ -264,7 +259,6 @@ const ApiKeyPanel: React.FC<Props> = ({
     }
   };
 
-  // Dinamis label tombol Add berdasarkan provider
   const addActionLabel = provider === 'PUTER' ? 'Add Slot' : provider === 'GEMINI' ? 'Add Account' : 'Add Key';
 
   return (
@@ -287,9 +281,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     onChange={(e) => setProvider?.(e.target.value as ApiProvider)}
                     disabled={isProcessing}
                   >
-                    {/* Google Login diletakkan paling atas */}
+                    {/* Google Login diletakkan paling atas & kini menjadi default */}
                     <option value="GEMINI" className="font-bold text-blue-600">Login Google (Gemini)</option>
-                    <option value="AUTO">Auto (System Key)</option>
                     <option value="MISTRAL">Mistral AI</option>
                     <option value="GROQ">Groq Cloud</option>
                     <option value="PUTER">Puter.js</option>
@@ -314,23 +307,14 @@ const ApiKeyPanel: React.FC<Props> = ({
              <div className="flex flex-col relative">
                 <div className="flex items-center justify-between mb-0.5">
                     <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Model Name</div>
-                    {provider !== 'AUTO' && (
-                        <button 
-                        onClick={() => setIsManualModel(!isManualModel)} 
-                        className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium"
-                        >
-                        {isManualModel ? 'List' : 'Manual'}
-                        </button>
-                    )}
+                    <button 
+                    onClick={() => setIsManualModel(!isManualModel)} 
+                    className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium"
+                    >
+                    {isManualModel ? 'List' : 'Manual'}
+                    </button>
                 </div>
-                {provider === 'AUTO' ? (
-                    <div className="relative">
-                      <input type="text" className={`${inputClass} !text-blue-600 !font-bold pr-8`} value="Auto-Update" disabled />
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                         <RefreshCw size={12} className="text-blue-400 animate-spin" style={{ animationDuration: '3s' }} />
-                      </div>
-                    </div>
-                ) : isManualModel ? (
+                {isManualModel ? (
                     <div className="relative">
                       <input 
                           type="text" 
@@ -375,6 +359,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
              <div className="flex flex-col">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Workers</label>
+                {/* Bagian ini diperbaiki: Tombol Link dibuat permanen agar layout tidak goyang */}
                 <div className="flex gap-2">
                     <div className="relative flex-1">
                         <input 
@@ -387,15 +372,13 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
-                    {provider !== 'AUTO' && provider !== 'GEMINI' && (
-                        <button 
-                            onClick={() => window.open(getConnectLink(), '_blank')}
-                            className="h-9 w-9 flex items-center justify-center rounded border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shrink-0 shadow-sm"
-                            title="Get API Key / Connect"
-                        >
-                            <ExternalLink size={16} />
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => window.open(getConnectLink(), '_blank')}
+                        className="h-9 w-9 flex items-center justify-center rounded border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shrink-0 shadow-sm"
+                        title="Get API Key / Connect"
+                    >
+                        <ExternalLink size={16} />
+                    </button>
                 </div>
              </div>
           </div>
@@ -408,13 +391,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       {/* Consistent height container h-[88px] - ANTI LAYOUT SHIFT */}
       <div className="mt-1 h-[88px] flex flex-col overflow-hidden">
-          {provider === 'AUTO' ? (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50/50 border border-blue-100 rounded-lg p-3 animate-in fade-in duration-300">
-                  <Sparkles size={24} className="text-blue-500 mb-1" />
-                  <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Always Up-To-Date Active</span>
-                  <p className="text-[10px] text-blue-400 mt-1">Sistem otomatis menggunakan versi Gemini terbaru</p>
-              </div>
-          ) : provider === 'GEMINI' ? (
+          {provider === 'GEMINI' ? (
             <div className="flex flex-col animate-in fade-in duration-300">
                 <div className="flex items-center justify-between leading-none mb-[4px]">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
@@ -505,7 +482,8 @@ const ApiKeyPanel: React.FC<Props> = ({
           </div>
           <button 
              onClick={handleAddKeys}
-             disabled={isProcessing || provider === 'AUTO' || (provider === 'PUTER' && !isPuterAuthenticated) || (provider !== 'PUTER' && provider !== 'AUTO' && provider !== 'GEMINI' && !bulkInput.trim())}
+             // PERHATIAN: provider === 'GEMINI' ditambahkan agar tombol ini mati saat mode Login Google
+             disabled={isProcessing || provider === 'GEMINI' || (provider === 'PUTER' && !isPuterAuthenticated) || (provider !== 'PUTER' && provider !== 'GEMINI' && !bulkInput.trim())}
              className={`flex flex-row items-center justify-center gap-1.5 p-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
           >
             <Plus size={16} />
@@ -513,7 +491,7 @@ const ApiKeyPanel: React.FC<Props> = ({
           </button>
           <button 
              onClick={handleClearAll} 
-             disabled={isProcessing || provider === 'AUTO' || apiKeys.length === 0}
+             disabled={isProcessing || apiKeys.length === 0}
              className="flex flex-row items-center justify-center gap-1.5 p-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm"
           >
             <Trash2 size={16} />
@@ -538,12 +516,7 @@ const ApiKeyPanel: React.FC<Props> = ({
             </div>
         </div>
         <div className="overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-200 flex-1">
-            {provider === 'AUTO' ? (
-                <div className="h-full flex flex-col items-center justify-center text-blue-400 gap-2 opacity-60">
-                    <Sparkles size={24} />
-                    <span className="text-[11px] font-medium uppercase tracking-widest">Auto Update Enabled</span>
-                </div>
-            ) : filteredKeys.length === 0 ? (
+            {filteredKeys.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 opacity-60">
                     <ListOrdered size={24} />
                     <span className="text-[11px] font-medium">No active slots found.</span>
