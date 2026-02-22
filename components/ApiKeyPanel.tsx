@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Key, Plus, Trash2, XCircle, ListOrdered, Search, LogIn, ShieldCheck, Save, FileText, ExternalLink, Sparkles, RefreshCw } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
@@ -49,7 +48,8 @@ const GROQ_PRESETS = [
 
 const GEMINI_PRESETS = [
   { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
-  { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro' }
+  { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
 ];
 
 const ApiKeyPanel: React.FC<Props> = ({ 
@@ -115,7 +115,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const getCurrentModel = () => {
     switch(provider) {
-        case 'AUTO': return 'gemini-3-flash-preview';
+        case 'AUTO': return 'gemini-2.5-flash';
         case 'GEMINI': return geminiModel;
         case 'MISTRAL': return mistralModel;
         case 'GROQ': return groqModel;
@@ -146,7 +146,34 @@ const ApiKeyPanel: React.FC<Props> = ({
     }
   };
 
+  // FUNGSI UTAMA LOGIN GOOGLE
+  const handleGoogleLogin = () => {
+    try {
+      // @ts-ignore
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: 'PASTE_CLIENT_ID_ANDA_DISINI.apps.googleusercontent.com', // GANTI DENGAN CLIENT ID ASLI
+        scope: 'https://www.googleapis.com/auth/generative-language.retriever',
+        callback: (response: any) => {
+          if (response.access_token) {
+            // Memasukkan Token langsung ke dalam antrean Slots
+            setApiKeys([...apiKeys, response.access_token]);
+          }
+        },
+      });
+      // Memaksa muncul popup pilih akun agar bisa Multi-Email
+      client.requestAccessToken({ prompt: 'select_account' }); 
+    } catch (error) {
+      console.error("Google Login Error:", error);
+      alert("Script Google belum siap. Pastikan sudah ada di index.html");
+    }
+  };
+
   const handleAddKeys = () => {
+    if (provider === 'GEMINI') {
+        handleGoogleLogin();
+        return;
+    }
+
     if (provider === 'PUTER') {
         if (!isPuterAuthenticated) return;
         setApiKeys([...apiKeys, `Slot_${apiKeys.length + 1}`]);
@@ -237,7 +264,8 @@ const ApiKeyPanel: React.FC<Props> = ({
     }
   };
 
-  const addActionLabel = provider === 'PUTER' ? 'Add Slot' : 'Add Key';
+  // Dinamis label tombol Add berdasarkan provider
+  const addActionLabel = provider === 'PUTER' ? 'Add Slot' : provider === 'GEMINI' ? 'Add Account' : 'Add Key';
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-sm border ${theme.border} transition-colors flex flex-col`}>
@@ -259,8 +287,9 @@ const ApiKeyPanel: React.FC<Props> = ({
                     onChange={(e) => setProvider?.(e.target.value as ApiProvider)}
                     disabled={isProcessing}
                   >
+                    {/* Google Login diletakkan paling atas */}
+                    <option value="GEMINI" className="font-bold text-blue-600">Login Google (Gemini)</option>
                     <option value="AUTO">Auto (System Key)</option>
-                    <option value="GEMINI">Google Gemini</option>
                     <option value="MISTRAL">Mistral AI</option>
                     <option value="GROQ">Groq Cloud</option>
                     <option value="PUTER">Puter.js</option>
@@ -358,7 +387,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
-                    {provider !== 'AUTO' && (
+                    {provider !== 'AUTO' && provider !== 'GEMINI' && (
                         <button 
                             onClick={() => window.open(getConnectLink(), '_blank')}
                             className="h-9 w-9 flex items-center justify-center rounded border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shrink-0 shadow-sm"
@@ -377,7 +406,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* Consistent height container h-[88px] */}
+      {/* Consistent height container h-[88px] - ANTI LAYOUT SHIFT */}
       <div className="mt-1 h-[88px] flex flex-col overflow-hidden">
           {provider === 'AUTO' ? (
               <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50/50 border border-blue-100 rounded-lg p-3 animate-in fade-in duration-300">
@@ -385,6 +414,24 @@ const ApiKeyPanel: React.FC<Props> = ({
                   <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Always Up-To-Date Active</span>
                   <p className="text-[10px] text-blue-400 mt-1">Sistem otomatis menggunakan versi Gemini terbaru</p>
               </div>
+          ) : provider === 'GEMINI' ? (
+            <div className="flex flex-col animate-in fade-in duration-300">
+                <div className="flex items-center justify-between leading-none mb-[4px]">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    Google Authentication
+                    </label>
+                </div>
+                <div className="w-full h-[70px] flex items-center justify-center rounded-md bg-white p-1">
+                    <button 
+                        onClick={handleGoogleLogin}
+                        disabled={isProcessing}
+                        className="w-full h-full py-1.5 border-2 border-dashed rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-inner"
+                    >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#4A90E2" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/></svg>
+                        <span>Sign In with Google</span>
+                    </button>
+                </div>
+            </div>
           ) : provider === 'PUTER' ? (
             <div className="flex flex-col animate-in fade-in duration-300">
                 <div className="flex items-center justify-between leading-none mb-[4px]">
@@ -458,7 +505,7 @@ const ApiKeyPanel: React.FC<Props> = ({
           </div>
           <button 
              onClick={handleAddKeys}
-             disabled={isProcessing || provider === 'AUTO' || (provider === 'PUTER' && !isPuterAuthenticated) || (provider !== 'PUTER' && provider !== 'AUTO' && !bulkInput.trim())}
+             disabled={isProcessing || provider === 'AUTO' || (provider === 'PUTER' && !isPuterAuthenticated) || (provider !== 'PUTER' && provider !== 'AUTO' && provider !== 'GEMINI' && !bulkInput.trim())}
              className={`flex flex-row items-center justify-center gap-1.5 p-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
           >
             <Plus size={16} />
@@ -507,7 +554,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                         <div className={`w-2 h-2 rounded-full shrink-0 bg-green-500`} />
                         <span className="w-6 h-6 flex items-center justify-center bg-gray-50 text-[10px] font-bold text-gray-500 rounded shrink-0 select-none border border-gray-200">{idx + 1}</span>
                         <div className="flex-1 min-w-0 font-mono text-[11px] text-gray-600 truncate px-1 select-all">
-                            {provider === 'PUTER' ? k : k.substring(0, 8) + '...' + k.substring(k.length - 4)}
+                            {/* Memotong token akses Google yang sangat panjang agar rapi di layar */}
+                            {provider === 'PUTER' ? k : k.substring(0, 15) + '...' + k.substring(k.length - 8)}
                         </div>
                         <button onClick={() => handleDeleteOne(k)} disabled={isProcessing} className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><XCircle size={14} /></button>
                     </div>
