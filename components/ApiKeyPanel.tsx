@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Key, Plus, Trash2, XCircle, ListOrdered, Search, LogIn, ShieldCheck, Save, FileText, ExternalLink } from 'lucide-react';
+import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
 
 interface Props {
@@ -14,6 +14,12 @@ interface Props {
   // Specific model props
   geminiModel?: string;
   setGeminiModel?: (m: string) => void;
+  groqModel?: string;
+  setGroqModel?: (m: string) => void;
+  mistralModel?: string;
+  setMistralModel?: (m: string) => void;
+  mistralBaseUrl?: string;
+  setMistralBaseUrl?: (url: string) => void;
   
   cooldownKeys?: Map<string, number>;
 
@@ -23,20 +29,37 @@ interface Props {
 }
 
 const GEMINI_PRESETS = [
-  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro' },
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' }
+];
+
+const MISTRAL_PRESETS = [
+  { value: 'pixtral-large-latest', label: 'Pixtral Large' },
+  { value: 'pixtral-12b-2409', label: 'Pixtral 12B' },
+  { value: 'mistral-large-latest', label: 'Mistral Large' }
+];
+
+const GROQ_PRESETS = [
+  { value: 'llama-4-maverick-17b-128e-instruct', label: 'Llama 4 Maverick' },
+  { value: 'llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout' }
 ];
 
 const ApiKeyPanel: React.FC<Props> = ({ 
   apiKeys, 
   setApiKeys, 
   isProcessing, 
-  // 1. DEFAULT DIUBAH MENJADI GOOGLE
-  provider = 'GOOGLE', 
+  provider = 'GEMINI',
   setProvider,
   geminiModel,
   setGeminiModel,
+  groqModel,
+  setGroqModel,
+  mistralModel,
+  setMistralModel,
+  mistralBaseUrl,
+  setMistralBaseUrl,
   workerCount,
   setWorkerCount
 }) => {
@@ -71,11 +94,20 @@ const ApiKeyPanel: React.FC<Props> = ({
   }, [userModels]);
 
   const getCurrentModel = () => {
-    return geminiModel;
+    switch(provider) {
+        case 'GEMINI': return geminiModel;
+        case 'MISTRAL': return mistralModel;
+        case 'GROQ': return groqModel;
+        default: return geminiModel;
+    }
   };
 
   const setCurrentModel = (val: string) => {
-    setGeminiModel?.(val);
+    switch(provider) {
+        case 'GEMINI': setGeminiModel?.(val); break;
+        case 'MISTRAL': setMistralModel?.(val); break;
+        case 'GROQ': setGroqModel?.(val); break;
+    }
   };
 
   const currentModelName = getCurrentModel();
@@ -88,28 +120,6 @@ const ApiKeyPanel: React.FC<Props> = ({
       setUserModels(prev => prev.filter(m => m !== name));
     } else {
       setUserModels(prev => [...prev, name]);
-    }
-  };
-
-  // FUNGSI UTAMA LOGIN GOOGLE (Multi-Account Supported)
-  const handleGoogleLogin = () => {
-    try {
-      // @ts-ignore
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: '151782765319-5klk78b5lqrcnaaqqu7k0mqiqhbmonf1.apps.googleusercontent.com',
-        scope: 'https://www.googleapis.com/auth/generative-language.retriever',
-        callback: (response: any) => {
-          if (response.access_token) {
-            // Memasukkan Token langsung ke dalam antrean Slots
-            setApiKeys([...apiKeys, response.access_token]);
-          }
-        },
-      });
-      // Memaksa muncul popup pilih akun agar bisa Multi-Email
-      client.requestAccessToken({ prompt: 'select_account' }); 
-    } catch (error) {
-      console.error("Google Login Error:", error);
-      alert("Script Google belum siap. Pastikan sudah ada di index.html");
     }
   };
 
@@ -158,21 +168,31 @@ const ApiKeyPanel: React.FC<Props> = ({
   const filteredKeys = useMemo(() => apiKeys.filter(k => k.toLowerCase().includes(searchTerm.toLowerCase())), [apiKeys, searchTerm]);
   
   const getBaseUrl = () => {
-    return "https://proxy-gemini-anda.vercel.app/";
+    switch(provider) {
+        case 'GEMINI': return "https://generativelanguage.googleapis.com";
+        case 'MISTRAL': return mistralBaseUrl || "https://api.mistral.ai/v1/";
+        case 'GROQ': return "https://api.groq.com/openai/v1/";
+        default: return "";
+    }
   };
 
   const getConnectLink = () => {
-    if (provider === 'GOOGLE') {
-        return "https://console.cloud.google.com/apis/credentials";
+    switch(provider) {
+        case 'GEMINI': return "https://aistudio.google.com/app/api-keys";
+        case 'MISTRAL': return "https://console.mistral.ai/api-keys";
+        case 'GROQ': return "https://console.groq.com/keys";
+        default: return "#";
     }
-    return "https://aistudio.google.com/app/api-keys";
   };
 
   const getModelPresets = () => {
-    return GEMINI_PRESETS;
+    switch(provider) {
+        case 'GEMINI': return GEMINI_PRESETS;
+        case 'MISTRAL': return MISTRAL_PRESETS;
+        case 'GROQ': return GROQ_PRESETS;
+        default: return GEMINI_PRESETS;
+    }
   };
-
-  const addActionLabel = provider === 'GOOGLE' ? 'Add Slot' : 'Add Key';
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-sm border ${theme.border} transition-colors flex flex-col`}>
@@ -194,8 +214,9 @@ const ApiKeyPanel: React.FC<Props> = ({
                     onChange={(e) => setProvider?.(e.target.value as ApiProvider)}
                     disabled={isProcessing}
                   >
-                    <option value="GOOGLE" className="font-bold text-blue-600">Login Google (OAuth)</option>
-                    <option value="GEMINI">Google Gemini API</option>
+                    <option value="GEMINI" className="font-bold text-blue-600">Google Gemini API</option>
+                    <option value="MISTRAL">Mistral AI</option>
+                    <option value="GROQ">Groq Cloud</option>
                   </select>
                </div>
                <div className="flex flex-col">
@@ -204,7 +225,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     type="text" 
                     className={inputClass} 
                     value={getBaseUrl()}
-                    disabled={true} 
+                    onChange={(e) => provider === 'MISTRAL' ? setMistralBaseUrl?.(e.target.value) : undefined}
+                    disabled={provider !== 'MISTRAL'} 
                   />
                </div>
             </div>
@@ -281,15 +303,11 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
-                    {/* Tombol Link Connect - Tetap h-8 menyesuaikan tinggi input worker */}
+                    {/* Tombol Link Connect */}
                     <button 
                         onClick={() => window.open(getConnectLink(), '_blank')}
-                        disabled={isProcessing || provider === 'GOOGLE'}
-                        className={`h-8 w-8 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm ${
-                            provider === 'GOOGLE'
-                            ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
-                        }`}
+                        disabled={isProcessing}
+                        className="h-8 w-8 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
                         title="Get API Key / Connect"
                     >
                         <ExternalLink size={14} />
@@ -304,65 +322,43 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* Container h-[76px] untuk konsistensi layout */}
+      {/* Container h-[76px] untuk Input Textarea API */}
       <div className="mt-1 h-[76px] flex flex-col overflow-hidden">
-          {provider === 'GOOGLE' ? (
-            <div className="flex flex-col animate-in fade-in duration-300">
-                <div className="flex items-center justify-between leading-none mb-[4px]">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    Google Authentication
-                    </label>
-                </div>
-                <div className="w-full h-[60px] flex items-center justify-center rounded-md bg-white p-1">
+        <div className="flex flex-col animate-in fade-in duration-300">
+            <div className="flex items-center justify-between leading-none mb-[4px]">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {provider} API Keys
+                </label>
+            </div>
+            
+            <div className="w-full h-[60px] flex gap-2 p-1">
+                <textarea 
+                    placeholder="Keys (one per line)..."
+                    className="flex-1 h-full p-2 text-[10px] font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200"
+                    value={bulkInput}
+                    onChange={(e) => setBulkInput(e.target.value)}
+                />
+                <div className="flex flex-col shrink-0">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      accept=".txt" 
+                      className="hidden" 
+                      onChange={handleLoadTxt} 
+                    />
                     <button 
-                        onClick={handleGoogleLogin}
+                        onClick={() => fileInputRef.current?.click()}
                         disabled={isProcessing}
-                        className="w-full h-full py-1.5 border-2 border-dashed rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-inner"
+                        className="w-[60px] h-[60px] border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner"
                     >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#4A90E2" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/></svg>
-                        <span>Sign In with Google</span>
+                        <FileText size={18} />
+                        <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Load</span>
                     </button>
                 </div>
             </div>
-          ) : (
-            <div className="flex flex-col animate-in fade-in duration-300">
-                <div className="flex items-center justify-between leading-none mb-[4px]">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    {provider} API Keys
-                    </label>
-                </div>
-                
-                <div className="w-full h-[60px] flex gap-2 p-1">
-                    <textarea 
-                        placeholder="Keys (one per line)..."
-                        className="flex-1 h-full p-2 text-[10px] font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200"
-                        value={bulkInput}
-                        onChange={(e) => setBulkInput(e.target.value)}
-                    />
-                    <div className="flex flex-col shrink-0">
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          accept=".txt" 
-                          className="hidden" 
-                          onChange={handleLoadTxt} 
-                        />
-                        {/* 2. TOMBOL LOAD DIBUAT BUJUR SANGKAR: w-[60px] h-[60px] agar pas dengan kontainernya */}
-                        <button 
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isProcessing}
-                            className="w-[60px] h-[60px] border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner"
-                        >
-                            <FileText size={18} />
-                            <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Load</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-          )}
+        </div>
       </div>
       
-      {/* 3. TINGGI BARIS INI DISAMAKAN DENGAN TINGGI INPUT (h-8) */}
       <div className="grid grid-cols-3 gap-2 mt-2">
           <div className={`flex items-center justify-center gap-1 h-8 px-2 rounded border ${theme.border} ${theme.countBg}`}>
              <span className="text-[11px] font-bold uppercase opacity-70">Slots:</span>
@@ -370,11 +366,11 @@ const ApiKeyPanel: React.FC<Props> = ({
           </div>
           <button 
              onClick={handleAddKeys}
-             disabled={isProcessing || provider === 'GOOGLE' || (!bulkInput.trim())}
+             disabled={isProcessing || (!bulkInput.trim())}
              className={`flex flex-row items-center justify-center gap-1.5 h-8 px-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
           >
             <Plus size={14} />
-            <span className="text-xs font-bold uppercase tracking-wide">{addActionLabel}</span>
+            <span className="text-xs font-bold uppercase tracking-wide">Add Key</span>
           </button>
           <button 
              onClick={handleClearAll} 
@@ -414,7 +410,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                         <div className={`w-2 h-2 rounded-full shrink-0 bg-green-500`} />
                         <span className="w-6 h-6 flex items-center justify-center bg-gray-50 text-[10px] font-bold text-gray-500 rounded shrink-0 select-none border border-gray-200">{idx + 1}</span>
                         <div className="flex-1 min-w-0 font-mono text-[11px] text-gray-600 truncate px-1 select-all">
-                            {/* Memotong token akses Google yang sangat panjang agar rapi di layar */}
                             {k.length > 50 ? k.substring(0, 15) + '...' + k.substring(k.length - 8) : k}
                         </div>
                         <button onClick={() => handleDeleteOne(k)} disabled={isProcessing} className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><XCircle size={14} /></button>
