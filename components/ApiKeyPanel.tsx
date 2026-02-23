@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Key, Plus, Trash2, XCircle, ListOrdered, Search, LogIn, ShieldCheck, Save, FileText, ExternalLink } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
-import { PUTER_MODELS } from '../constants';
 
 interface Props {
   apiKeys: string[];
@@ -15,18 +14,6 @@ interface Props {
   // Specific model props
   geminiModel?: string;
   setGeminiModel?: (m: string) => void;
-  groqModel?: string;
-  setGroqModel?: (m: string) => void;
-  puterModel?: string;
-  setPuterModel?: (m: string) => void;
-  mistralBaseUrl?: string;
-  setMistralBaseUrl?: (url: string) => void;
-  mistralModel?: string;
-  setMistralModel?: (m: string) => void;
-  customBaseUrl?: string;
-  setCustomBaseUrl?: (url: string) => void;
-  customModel?: string;
-  setCustomModel?: (model: string) => void;
   
   cooldownKeys?: Map<string, number>;
 
@@ -34,17 +21,6 @@ interface Props {
   workerCount?: number;
   setWorkerCount?: (count: number) => void;
 }
-
-const MISTRAL_PRESETS = [
-  { value: 'pixtral-large-latest', label: 'Pixtral Large' },
-  { value: 'pixtral-12b-2409', label: 'Pixtral 12B' },
-  { value: 'mistral-large-latest', label: 'Mistral Large' }
-];
-
-const GROQ_PRESETS = [
-  { value: 'meta-llama/llama-4-maverick-17b-128e-instruct', label: 'Llama 4 Maverick' },
-  { value: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout' }
-];
 
 const GEMINI_PRESETS = [
   { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
@@ -60,17 +36,10 @@ const ApiKeyPanel: React.FC<Props> = ({
   setProvider,
   geminiModel,
   setGeminiModel,
-  puterModel,
-  setPuterModel,
-  groqModel,
-  setGroqModel,
-  mistralModel,
-  setMistralModel,
   workerCount,
   setWorkerCount
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isPuterAuthenticated, setIsPuterAuthenticated] = useState(false);
   const [isManualModel, setIsManualModel] = useState(false);
   const [bulkInput, setBulkInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,43 +63,18 @@ const ApiKeyPanel: React.FC<Props> = ({
       countBg: 'bg-blue-100 text-blue-800'
   };
 
-  // DIPERBAIKI: Menghapus typo "const const" dan mengecilkan ukuran h-9 -> h-8
   const inputClass = `w-full h-8 text-xs px-2 py-1.5 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
-
-  useEffect(() => {
-    const checkPuterAuth = async () => {
-      const puter = (window as any).puter;
-      if (puter) {
-        const isSignedIn = await puter.auth.isSignedIn();
-        setIsPuterAuthenticated(isSignedIn);
-      }
-    };
-    checkPuterAuth();
-    const interval = setInterval(checkPuterAuth, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     localStorage.setItem('ISA_USER_MODELS', JSON.stringify(userModels));
   }, [userModels]);
 
   const getCurrentModel = () => {
-    switch(provider) {
-        case 'GEMINI': return geminiModel;
-        case 'MISTRAL': return mistralModel;
-        case 'GROQ': return groqModel;
-        case 'PUTER': return puterModel;
-        default: return '';
-    }
+    return geminiModel;
   };
 
   const setCurrentModel = (val: string) => {
-    switch(provider) {
-        case 'GEMINI': setGeminiModel?.(val); break;
-        case 'MISTRAL': setMistralModel?.(val); break;
-        case 'GROQ': setGroqModel?.(val); break;
-        case 'PUTER': setPuterModel?.(val); break;
-    }
+    setGeminiModel?.(val);
   };
 
   const currentModelName = getCurrentModel();
@@ -169,13 +113,6 @@ const ApiKeyPanel: React.FC<Props> = ({
   };
 
   const handleAddKeys = () => {
-    // Tombol di-disable untuk Gemini, jadi fungsi ini murni untuk Puter & Provider Lain
-    if (provider === 'PUTER') {
-        if (!isPuterAuthenticated) return;
-        setApiKeys([...apiKeys, `Slot_${apiKeys.length + 1}`]);
-        return;
-    }
-
     if (bulkInput.trim()) {
         const newKeys = bulkInput
             .split(/[\n,]+/)
@@ -205,16 +142,6 @@ const ApiKeyPanel: React.FC<Props> = ({
       setWorkerCount(num);
   };
 
-  const handlePuterLogin = async () => {
-    const puter = (window as any).puter;
-    if (!puter) return;
-    try {
-      await puter.auth.signIn();
-      const isSignedIn = await puter.auth.isSignedIn();
-      setIsPuterAuthenticated(isSignedIn);
-    } catch (e) { console.error("Puter login failed", e); }
-  };
-
   const handleLoadTxt = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -230,38 +157,21 @@ const ApiKeyPanel: React.FC<Props> = ({
   const filteredKeys = useMemo(() => apiKeys.filter(k => k.toLowerCase().includes(searchTerm.toLowerCase())), [apiKeys, searchTerm]);
   
   const getBaseUrl = () => {
-    switch(provider) {
-        case 'GEMINI': return "https://generativelanguage.googleapis.com";
-        case 'MISTRAL': return "https://api.mistral.ai";
-        case 'GROQ': return "https://api.groq.com/openai/v1/chat/completions";
-        case 'PUTER': return "js.puter.com/v2/";
-        default: return "";
-    }
+    return "https://generativelanguage.googleapis.com";
   };
 
   const getConnectLink = () => {
-    switch(provider) {
-        // Karena sekarang login Google, diarahkan ke Google Cloud Console
-        case 'GEMINI': return "https://console.cloud.google.com/apis/credentials";
-        case 'MISTRAL': return "https://console.mistral.ai/api-keys";
-        case 'GROQ': return "https://console.groq.com/keys";
-        case 'PUTER': return "https://puter.com";
-        default: return "#";
+    if (provider === 'GOOGLE') {
+        return "https://console.cloud.google.com/apis/credentials";
     }
+    return "https://aistudio.google.com/app/api-keys";
   };
 
   const getModelPresets = () => {
-    switch(provider) {
-        case 'GEMINI': return GEMINI_PRESETS;
-        case 'MISTRAL': return MISTRAL_PRESETS;
-        case 'GROQ': return GROQ_PRESETS;
-        case 'PUTER': return PUTER_MODELS.filter(m => m.group === 'MULTI');
-        default: return [];
-    }
+    return GEMINI_PRESETS;
   };
 
-  // DIPERBAIKI: Mengubah "Add Account" menjadi "Add Slot" untuk Gemini
-  const addActionLabel = (provider === 'PUTER' || provider === 'GEMINI') ? 'Add Slot' : 'Add Key';
+  const addActionLabel = provider === 'GOOGLE' ? 'Add Slot' : 'Add Key';
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-sm border ${theme.border} transition-colors flex flex-col`}>
@@ -283,10 +193,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     onChange={(e) => setProvider?.(e.target.value as ApiProvider)}
                     disabled={isProcessing}
                   >
-                    <option value="GEMINI" className="font-bold text-blue-600">Login Google (Gemini)</option>
-                    <option value="MISTRAL">Mistral AI</option>
-                    <option value="GROQ">Groq Cloud</option>
-                    <option value="PUTER">Puter.js</option>
+                    <option value="GOOGLE" className="font-bold text-blue-600">Login Google (OAuth)</option>
+                    <option value="GEMINI">Google Gemini API</option>
                   </select>
                </div>
                <div className="flex flex-col">
@@ -320,7 +228,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                       <input 
                           type="text" 
                           className={`${inputClass} pr-8`} 
-                          placeholder="e.g. gpt-4o" 
+                          placeholder="e.g. gemini-2.5-pro" 
                           value={currentModelName} 
                           onChange={(e) => setCurrentModel(e.target.value)} 
                           disabled={isProcessing} 
@@ -372,12 +280,12 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
-                    {/* DIPERBAIKI: Tombol Link menjadi h-8 w-8 agar sejajar dengan input di sebelahnya */}
+                    {/* Tombol Link Connect */}
                     <button 
                         onClick={() => window.open(getConnectLink(), '_blank')}
-                        disabled={isProcessing || provider === 'GEMINI'}
+                        disabled={isProcessing || provider === 'GOOGLE'}
                         className={`h-8 w-8 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm ${
-                            provider === 'GEMINI'
+                            provider === 'GOOGLE'
                             ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100'
                         }`}
@@ -395,16 +303,15 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* DIPERBAIKI: Tinggi diturunkan dari 88px ke 76px karena tombol di dalamnya sudah mengecil */}
+      {/* Consistent height container h-[76px] */}
       <div className="mt-1 h-[76px] flex flex-col overflow-hidden">
-          {provider === 'GEMINI' ? (
+          {provider === 'GOOGLE' ? (
             <div className="flex flex-col animate-in fade-in duration-300">
                 <div className="flex items-center justify-between leading-none mb-[4px]">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     Google Authentication
                     </label>
                 </div>
-                {/* DIPERBAIKI: Kotak dalam menjadi h-[60px] */}
                 <div className="w-full h-[60px] flex items-center justify-center rounded-md bg-white p-1">
                     <button 
                         onClick={handleGoogleLogin}
@@ -416,35 +323,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                     </button>
                 </div>
             </div>
-          ) : provider === 'PUTER' ? (
-            <div className="flex flex-col animate-in fade-in duration-300">
-                <div className="flex items-center justify-between leading-none mb-[4px]">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    Authentication
-                    </label>
-                </div>
-                {/* DIPERBAIKI: Kotak dalam menjadi h-[60px] */}
-                <div className="w-full h-[60px] flex items-center justify-center rounded-md bg-white p-1">
-                    {isPuterAuthenticated ? (
-                        <button 
-                            onClick={handlePuterLogin}
-                            className="w-full h-full py-1.5 border-2 border-dashed rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-green-50 border-green-300 text-green-700 hover:bg-green-100 shadow-inner"
-                        >
-                            <ShieldCheck size={18} />
-                            <span>Puter Active</span>
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={handlePuterLogin}
-                            disabled={isProcessing}
-                            className="w-full h-full py-1.5 border-2 border-dashed rounded-lg text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 shadow-inner"
-                        >
-                            <LogIn size={18} />
-                            <span>Login Puter</span>
-                        </button>
-                    )}
-                </div>
-            </div>
           ) : (
             <div className="flex flex-col animate-in fade-in duration-300">
                 <div className="flex items-center justify-between leading-none mb-[4px]">
@@ -452,7 +330,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                     {provider} API Keys
                     </label>
                 </div>
-                {/* DIPERBAIKI: Kotak dalam menjadi h-[60px] */}
+                
                 <div className="w-full h-[60px] flex gap-2 p-1">
                     <textarea 
                         placeholder="Keys (one per line)..."
@@ -483,14 +361,13 @@ const ApiKeyPanel: React.FC<Props> = ({
       </div>
       
       <div className="grid grid-cols-3 gap-2 mt-2">
-          {/* DIPERBAIKI: Padding px-2 py-1.5 pada tombol utama bawah */}
           <div className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded border ${theme.border} ${theme.countBg}`}>
              <span className="text-[11px] font-bold uppercase opacity-70">Slots:</span>
              <span className="text-xs font-bold leading-none">{apiKeys.length}</span>
           </div>
           <button 
              onClick={handleAddKeys}
-             disabled={isProcessing || provider === 'GEMINI' || (provider === 'PUTER' && !isPuterAuthenticated) || (provider !== 'PUTER' && provider !== 'GEMINI' && !bulkInput.trim())}
+             disabled={isProcessing || provider === 'GOOGLE' || (!bulkInput.trim())}
              className={`flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
           >
             <Plus size={14} />
@@ -535,7 +412,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                         <span className="w-6 h-6 flex items-center justify-center bg-gray-50 text-[10px] font-bold text-gray-500 rounded shrink-0 select-none border border-gray-200">{idx + 1}</span>
                         <div className="flex-1 min-w-0 font-mono text-[11px] text-gray-600 truncate px-1 select-all">
                             {/* Memotong token akses Google yang sangat panjang agar rapi di layar */}
-                            {provider === 'PUTER' ? k : k.substring(0, 15) + '...' + k.substring(k.length - 8)}
+                            {k.length > 50 ? k.substring(0, 15) + '...' + k.substring(k.length - 8) : k}
                         </div>
                         <button onClick={() => handleDeleteOne(k)} disabled={isProcessing} className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><XCircle size={14} /></button>
                     </div>
