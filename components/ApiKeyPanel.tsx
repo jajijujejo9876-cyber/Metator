@@ -32,7 +32,8 @@ const ApiKeyPanel: React.FC<Props> = ({
   apiKeys, 
   setApiKeys, 
   isProcessing, 
-  provider = 'GEMINI', // Default langsung ke GEMINI
+  // 1. DEFAULT DIUBAH MENJADI GOOGLE
+  provider = 'GOOGLE', 
   setProvider,
   geminiModel,
   setGeminiModel,
@@ -90,7 +91,7 @@ const ApiKeyPanel: React.FC<Props> = ({
     }
   };
 
-  // FUNGSI UTAMA LOGIN GOOGLE
+  // FUNGSI UTAMA LOGIN GOOGLE (Multi-Account Supported)
   const handleGoogleLogin = () => {
     try {
       // @ts-ignore
@@ -280,7 +281,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
-                    {/* Tombol Link Connect */}
+                    {/* Tombol Link Connect - Tetap h-8 menyesuaikan tinggi input worker */}
                     <button 
                         onClick={() => window.open(getConnectLink(), '_blank')}
                         disabled={isProcessing || provider === 'GOOGLE'}
@@ -303,7 +304,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* Consistent height container h-[76px] */}
+      {/* Container h-[76px] untuk konsistensi layout */}
       <div className="mt-1 h-[76px] flex flex-col overflow-hidden">
           {provider === 'GOOGLE' ? (
             <div className="flex flex-col animate-in fade-in duration-300">
@@ -346,13 +347,14 @@ const ApiKeyPanel: React.FC<Props> = ({
                           className="hidden" 
                           onChange={handleLoadTxt} 
                         />
+                        {/* 2. TOMBOL LOAD DIBUAT BUJUR SANGKAR: w-[60px] h-[60px] agar pas dengan kontainernya */}
                         <button 
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isProcessing}
-                            className="h-full px-4 border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner"
+                            className="w-[60px] h-[60px] border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner"
                         >
                             <FileText size={18} />
-                            <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Load TXT</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Load</span>
                         </button>
                     </div>
                 </div>
@@ -360,15 +362,16 @@ const ApiKeyPanel: React.FC<Props> = ({
           )}
       </div>
       
+      {/* 3. TINGGI BARIS INI DISAMAKAN DENGAN TINGGI INPUT (h-8) */}
       <div className="grid grid-cols-3 gap-2 mt-2">
-          <div className={`flex items-center justify-center gap-1 py-1.5 px-2 rounded border ${theme.border} ${theme.countBg}`}>
+          <div className={`flex items-center justify-center gap-1 h-8 px-2 rounded border ${theme.border} ${theme.countBg}`}>
              <span className="text-[11px] font-bold uppercase opacity-70">Slots:</span>
              <span className="text-xs font-bold leading-none">{apiKeys.length}</span>
           </div>
           <button 
              onClick={handleAddKeys}
              disabled={isProcessing || provider === 'GOOGLE' || (!bulkInput.trim())}
-             className={`flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
+             className={`flex flex-row items-center justify-center gap-1.5 h-8 px-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
           >
             <Plus size={14} />
             <span className="text-xs font-bold uppercase tracking-wide">{addActionLabel}</span>
@@ -376,7 +379,7 @@ const ApiKeyPanel: React.FC<Props> = ({
           <button 
              onClick={handleClearAll} 
              disabled={isProcessing || apiKeys.length === 0}
-             className="flex flex-row items-center justify-center gap-1.5 py-1.5 px-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm"
+             className="flex flex-row items-center justify-center gap-1.5 h-8 px-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm"
           >
             <Trash2 size={14} />
             <span className="text-xs font-bold uppercase tracking-wide">Clear All</span>
