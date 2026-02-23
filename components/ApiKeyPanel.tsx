@@ -405,8 +405,8 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* TINGGI TEXTAREA DITAMBAH MENJADI h-[120px] */}
-      <div className="mt-1 h-[120px] flex flex-col overflow-hidden">
+      {/* TINGGI TEXTAREA DITAMBAH MENJADI h-[76px] */}
+      <div className="mt-1 h-[76px] flex flex-col overflow-hidden">
         <div className="flex flex-col animate-in fade-in duration-300 h-full">
             <div className="flex items-center justify-between leading-none mb-[4px]">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
