@@ -96,7 +96,7 @@ const ApiKeyPanel: React.FC<Props> = ({
     try {
       // @ts-ignore
       const client = google.accounts.oauth2.initTokenClient({
-        client_id: '151782765319-5klk78b5lqrcnaaqqu7k0mqiqhbmonf1.apps.googleusercontent.com, // GANTI DENGAN CLIENT ID ASLI
+        client_id: '151782765319-5klk78b5lqrcnaaqqu7k0mqiqhbmonf1.apps.googleusercontent.com',
         scope: 'https://www.googleapis.com/auth/generative-language.retriever',
         callback: (response: any) => {
           if (response.access_token) {
