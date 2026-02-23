@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, ApiProvider, ChatMessage, ProcessingStatus } from "../types";
 import { DEFAULT_PROMPT_TEMPLATE, CATEGORIES, SHUTTERSTOCK_CATEGORIES, APP_CODE_CONTEXT, BLEND_CATEGORIES, BLEND_CRITERIA } from "../constants";
@@ -150,95 +149,6 @@ ASSIGN CATEGORY:
 - Pilih tepat SATU kategori dari list yang diberikan berdasarkan subjek literal utama.
 `;
 
-const callPuterApi = async (
-  messages: any[], 
-  apiKey: string, 
-  model: string,
-  responseSchema?: any,
-  temperature: number = 0.1
-): Promise<any> => {
-  const puter = (window as any).puter;
-  if (!puter) throw new Error("Puter.js library not found on page.");
-
-  try {
-    const response = await puter.ai.chat(messages, {
-        model: model,
-        temperature: temperature,
-        stream: false
-    });
-    
-    const content = response?.toString() || "";
-    if (!content) throw new Error("Empty response from Puter AI");
-
-    if (responseSchema) {
-        let cleanJson = content.replace(/```json\n?|```/g, "");
-        const firstBrace = cleanJson.indexOf('{');
-        const lastBrace = cleanJson.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
-        }
-        return JSON.parse(cleanJson);
-    }
-    return content;
-  } catch (error: any) {
-    throw error; 
-  }
-};
-
-const callCompatibleApi = async (
-  parts: any[], 
-  systemInstruction: string, 
-  apiKey: string, 
-  baseUrl: string, 
-  model: string,
-  provider: ApiProvider,
-  responseSchema?: any,
-  temperature: number = 0.1,
-  chatHistory?: ChatMessage[]
-): Promise<any> => {
-  const messages: any[] = [];
-  if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
-  const hasImages = parts.some(p => p.inlineData);
-  let userContent: any;
-  if (hasImages) {
-      userContent = parts.map(part => {
-        if (part.text) return { type: "text", text: part.text };
-        if (part.inlineData) return { type: "image_url", image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` } };
-        return null;
-      }).filter(Boolean);
-  } else {
-      userContent = parts.map(p => p.text).filter(Boolean).join("\n\n");
-  }
-  messages.push({ role: "user", content: userContent });
-  const payload: any = { model: model, messages: messages, temperature: temperature };
-  if (responseSchema) payload.response_format = { type: "json_object" };
-
-  let endpoint = baseUrl;
-  if (!endpoint.includes('/chat/completions')) {
-      endpoint = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
-  }
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify(payload)
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`API Error ${response.status}: ${errText}`);
-  }
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Empty response content from API");
-  if (responseSchema) {
-      let cleanJson = content.replace(/```json\n?|```/g, "");
-      const firstBrace = cleanJson.indexOf('{');
-      const lastBrace = cleanJson.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1) cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
-      return JSON.parse(cleanJson);
-  }
-  return content;
-};
-
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
@@ -247,8 +157,6 @@ export const generateMetadataForFile = async (
 ): Promise<GenerationResult> => {
   const provider = settings.apiProvider || 'AUTO';
   const actualApiKey = provider === 'AUTO' ? process.env.API_KEY || '' : apiKey;
-  const puter = (window as any).puter;
-  const tempFiles: string[] = [];
 
   try {
     const multilingualInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.`;
@@ -305,90 +213,69 @@ export const generateMetadataForFile = async (
 
     let parsed: any;
 
-    if (provider === 'PUTER') {
-        const contentParts: any[] = [];
-        let combinedSystemText = `### SYSTEM INSTRUCTION\n${systemInstruction}\n\n`;
-        if (outputSchema) {
-            combinedSystemText += `### RESPONSE SCHEMA (JSON ONLY)\nReturn ONLY valid JSON following this schema:\n${JSON.stringify(outputSchema, null, 2)}\n\n`;
-        }
-        contentParts.push({ type: "text", text: combinedSystemText });
+    let parts: any[] = [];
+    if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+      parts = [{ text: promptText }];
+    } else if (fileItem.type === FileType.Video) {
+      const requestedFrames = settings.videoFrameCount || 3;
+      const frames = await extractVideoFrames(fileItem.file, requestedFrames);
+      parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+      parts.push({ text: promptText });
+    } else {
+      const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+        ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+        : await compressImage(fileItem.file);
+      parts = [mediaPart, { text: promptText }];
+    }
 
-        if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-            contentParts.push({ type: "text", text: promptText });
-        } else if (fileItem.type === FileType.Video) {
-            const requestedFrames = settings.videoFrameCount || 3;
-            const frames = await extractVideoFrames(fileItem.file, requestedFrames);
-            for (const f of frames) {
-                const blob = base64ToBlob(f, 'image/jpeg');
-                const path = `isa_tmp_${uuidv4()}.jpeg`;
-                await puter.fs.write(path, blob);
-                tempFiles.push(path);
-                contentParts.push({ type: "file", puter_path: path });
+    const modelToUse = provider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
+
+    if (provider === 'GOOGLE') {
+        // PENANGANAN KHUSUS GOOGLE LOGIN (OAUTH) AGAR TIDAK ERROR 401
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent`;
+        const formattedParts = parts.map(p => {
+            if (p.text) return { text: p.text };
+            if (p.inlineData) return { inline_data: { mime_type: p.inlineData.mimeType, data: p.inlineData.data } };
+            return p;
+        });
+
+        const payload = {
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ parts: formattedParts }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: outputSchema,
+                temperature: temperature
             }
-            contentParts.push({ type: "text", text: promptText });
-        } else {
-            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-              : await compressImage(fileItem.file);
-              
-            const blob = base64ToBlob(mediaPart.inlineData.data, mediaPart.inlineData.mimeType);
-            const path = `isa_tmp_${uuidv4()}.jpeg`;
-            await puter.fs.write(path, blob);
-            tempFiles.push(path);
-            contentParts.push({ type: "file", puter_path: path });
-            contentParts.push({ type: "text", text: promptText });
+        };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${actualApiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.text();
+            throw new Error(`Google API Error: ${response.status} - ${errData}`);
         }
 
-        const messages = [{ role: "user", content: contentParts }];
-        parsed = await callPuterApi(messages, actualApiKey, settings.puterModel || 'gemini-2.5-flash', outputSchema, temperature);
+        const data = await response.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        parsed = JSON.parse(responseText);
 
-        for (const path of tempFiles) {
-            await puter.fs.delete(path).catch(() => {});
-        }
-
-    } else if (provider === 'GEMINI' || provider === 'AUTO') {
-        let parts: any[] = [];
-        if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-          parts = [{ text: promptText }];
-        } else if (fileItem.type === FileType.Video) {
-          const requestedFrames = settings.videoFrameCount || 3;
-          const frames = await extractVideoFrames(fileItem.file, requestedFrames);
-          parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-          parts.push({ text: promptText });
-        } else {
-          const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-            ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-            : await compressImage(fileItem.file);
-          parts = [mediaPart, { text: promptText }];
-        }
-
+    } else {
+        // PENGGUNAAN API KEY MANUAL STANDAR
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
-        const modelToUse = provider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
         const response: any = await ai.models.generateContent({
           model: modelToUse,
           contents: { parts },
           config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
         });
         parsed = JSON.parse(response.text);
-    } else {
-        let parts: any[] = [];
-        if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-          parts = [{ text: promptText }];
-        } else if (fileItem.type === FileType.Video) {
-          const requestedFrames = settings.videoFrameCount || 3;
-          const frames = await extractVideoFrames(fileItem.file, requestedFrames);
-          parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-          parts.push({ text: promptText });
-        } else {
-          const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-            ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-            : await compressImage(fileItem.file);
-          parts = [mediaPart, { text: promptText }];
-        }
-
-        let baseUrl = provider === 'GROQ' ? 'https://api.groq.com/openai/v1' : provider === 'MISTRAL' ? settings.mistralBaseUrl : settings.customBaseUrl;
-        let model = provider === 'GROQ' ? settings.groqModel : provider === 'MISTRAL' ? settings.mistralModel : settings.customModel;
-        parsed = await callCompatibleApi(parts, systemInstruction, actualApiKey, baseUrl, model, provider, outputSchema, temperature);
     }
 
     if (mode === 'idea') {
@@ -409,17 +296,36 @@ export const generateMetadataForFile = async (
       }
     };
   } catch (error: any) {
-    if (provider === 'PUTER' && tempFiles.length > 0) {
-        for (const path of tempFiles) {
-            await puter.fs.delete(path).catch(() => {});
-        }
-    }
     throw error;
   }
 };
 
-export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, apiKey: string): Promise<{ title: string; keywords: string }> => {
+export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, apiKey: string, settings?: AppSettings): Promise<{ title: string; keywords: string }> => {
   const actualApiKey = apiKey || process.env.API_KEY || '';
+  const provider = settings?.apiProvider || 'GEMINI';
+
+  if (provider === 'GOOGLE') {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`;
+      const payload = {
+          contents: [{ parts: [{ text: `Translate to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}: ${content.title}` }] }],
+          generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: { type: "object", properties: { title: { type: "string" } } }
+          }
+      };
+      const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${actualApiKey}` },
+          body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+          const data = await response.json();
+          const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{"title":""}';
+          return { title: JSON.parse(responseText).title, keywords: content.keywords };
+      }
+      return content;
+  }
+
   const ai = new GoogleGenAI({ apiKey: actualApiKey });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -431,8 +337,27 @@ export const translateMetadataContent = async (content: { title: string; keyword
 
 export const translateText = async (text: string, targetLang: string, apiKey: string, settings: AppSettings): Promise<string> => {
     const actualApiKey = apiKey || process.env.API_KEY || '';
-    const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
+    
+    if (settings.apiProvider === 'GOOGLE') {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent`;
+        const payload = {
+            contents: [{ parts: [{ text: `Translate text to ${targetLang}: ${text}` }] }],
+            generationConfig: { temperature: 0.1 }
+        };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${actualApiKey}` },
+            body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
+        }
+        return text;
+    }
+
+    const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response = await ai.models.generateContent({
       model: modelToUse,
       contents: `Translate text to ${targetLang}: ${text}`,
@@ -443,18 +368,38 @@ export const translateText = async (text: string, targetLang: string, apiKey: st
 
 export const generateChatResponse = async (history: ChatMessage[], newMessage: string, settings: AppSettings, apiKey: string): Promise<string> => {
     const actualApiKey = apiKey || process.env.API_KEY || '';
-    if (settings.apiProvider === 'PUTER') {
-        const messages = history.map(msg => ({
-            role: msg.role === 'assistant' ? 'assistant' : 'user',
-            content: msg.content
+    const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
+
+    if (settings.apiProvider === 'GOOGLE') {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent`;
+        const formattedContents = history.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
         }));
-        messages.push({ role: 'user', content: newMessage });
-        return await callPuterApi(messages, actualApiKey, settings.puterModel || 'gemini-2.5-flash', undefined, 0.7);
+        formattedContents.push({ role: 'user', parts: [{ text: newMessage }] });
+
+        const payload = {
+            system_instruction: { parts: [{ text: `IsaProject Chat Assistant.` }] },
+            contents: formattedContents,
+            generationConfig: { temperature: 0.7 }
+        };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${actualApiKey}` },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        }
+        return "";
     }
+
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const contents = history.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
     contents.push({ role: 'user', parts: [{ text: newMessage }] });
-    const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
     const response = await ai.models.generateContent({ model: modelToUse, contents, config: { systemInstruction: `IsaProject Chat Assistant.`, temperature: 0.7 } });
     return response.text || "";
 };
