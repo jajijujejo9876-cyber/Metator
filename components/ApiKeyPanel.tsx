@@ -8,8 +8,8 @@ interface Props {
   isProcessing: boolean;
   mode?: AppMode | 'logs'; 
   
-  provider?: ApiProvider;
-  setProvider?: (provider: ApiProvider) => void;
+  provider?: ApiProvider | 'CUSTOM';
+  setProvider?: (provider: ApiProvider | 'CUSTOM') => void;
   
   // Specific model props
   geminiModel?: string;
@@ -18,8 +18,12 @@ interface Props {
   setGroqModel?: (m: string) => void;
   mistralModel?: string;
   setMistralModel?: (m: string) => void;
-  mistralBaseUrl?: string;
-  setMistralBaseUrl?: (url: string) => void;
+  
+  // Custom props
+  customBaseUrl?: string;
+  setCustomBaseUrl?: (url: string) => void;
+  customModel?: string;
+  setCustomModel?: (m: string) => void;
   
   cooldownKeys?: Map<string, number>;
 
@@ -58,13 +62,16 @@ const ApiKeyPanel: React.FC<Props> = ({
   setGroqModel,
   mistralModel,
   setMistralModel,
-  mistralBaseUrl,
-  setMistralBaseUrl,
+  customBaseUrl,
+  setCustomBaseUrl,
+  customModel,
+  setCustomModel,
   workerCount,
   setWorkerCount
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isManualModel, setIsManualModel] = useState(false);
+  const [isManualBaseUrl, setIsManualBaseUrl] = useState(false);
   const [bulkInput, setBulkInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -72,6 +79,14 @@ const ApiKeyPanel: React.FC<Props> = ({
   const [userModels, setUserModels] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('ISA_USER_MODELS');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  // Custom user base URLs list persistence
+  const [userBaseUrls, setUserBaseUrls] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ISA_USER_BASEURLS');
       return saved ? JSON.parse(saved) : [];
     } catch (e) { return []; }
   });
@@ -93,11 +108,16 @@ const ApiKeyPanel: React.FC<Props> = ({
     localStorage.setItem('ISA_USER_MODELS', JSON.stringify(userModels));
   }, [userModels]);
 
+  useEffect(() => {
+    localStorage.setItem('ISA_USER_BASEURLS', JSON.stringify(userBaseUrls));
+  }, [userBaseUrls]);
+
   const getCurrentModel = () => {
     switch(provider) {
         case 'GEMINI': return geminiModel;
         case 'MISTRAL': return mistralModel;
         case 'GROQ': return groqModel;
+        case 'CUSTOM': return customModel;
         default: return geminiModel;
     }
   };
@@ -107,6 +127,7 @@ const ApiKeyPanel: React.FC<Props> = ({
         case 'GEMINI': setGeminiModel?.(val); break;
         case 'MISTRAL': setMistralModel?.(val); break;
         case 'GROQ': setGroqModel?.(val); break;
+        case 'CUSTOM': setCustomModel?.(val); break;
     }
   };
 
@@ -120,6 +141,18 @@ const ApiKeyPanel: React.FC<Props> = ({
       setUserModels(prev => prev.filter(m => m !== name));
     } else {
       setUserModels(prev => [...prev, name]);
+    }
+  };
+
+  const currentCustomUrl = (customBaseUrl || '').trim();
+  const isCurrentUrlCustomSaved = userBaseUrls.includes(currentCustomUrl);
+
+  const handleToggleCustomUrl = () => {
+    if (!currentCustomUrl) return;
+    if (isCurrentUrlCustomSaved) {
+        setUserBaseUrls(prev => prev.filter(u => u !== currentCustomUrl));
+    } else {
+        setUserBaseUrls(prev => [...prev, currentCustomUrl]);
     }
   };
 
@@ -170,7 +203,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   const getBaseUrl = () => {
     switch(provider) {
         case 'GEMINI': return "https://generativelanguage.googleapis.com";
-        case 'MISTRAL': return mistralBaseUrl || "https://api.mistral.ai/v1/";
+        case 'MISTRAL': return "https://api.mistral.ai/v1/";
         case 'GROQ': return "https://api.groq.com/openai/v1/";
         default: return "";
     }
@@ -190,6 +223,7 @@ const ApiKeyPanel: React.FC<Props> = ({
         case 'GEMINI': return GEMINI_PRESETS;
         case 'MISTRAL': return MISTRAL_PRESETS;
         case 'GROQ': return GROQ_PRESETS;
+        case 'CUSTOM': return []; 
         default: return GEMINI_PRESETS;
     }
   };
@@ -211,23 +245,70 @@ const ApiKeyPanel: React.FC<Props> = ({
                   <select 
                     className={inputClass}
                     value={provider}
-                    onChange={(e) => setProvider?.(e.target.value as ApiProvider)}
+                    onChange={(e) => setProvider?.(e.target.value as ApiProvider | 'CUSTOM')}
                     disabled={isProcessing}
                   >
                     <option value="GEMINI" className="font-bold text-blue-600">Google Gemini API</option>
                     <option value="MISTRAL">Mistral AI</option>
                     <option value="GROQ">Groq Cloud</option>
+                    <option value="CUSTOM">Custom Provider</option>
                   </select>
                </div>
-               <div className="flex flex-col">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Base URL</label>
-                  <input 
-                    type="text" 
-                    className={inputClass} 
-                    value={getBaseUrl()}
-                    onChange={(e) => provider === 'MISTRAL' ? setMistralBaseUrl?.(e.target.value) : undefined}
-                    disabled={provider !== 'MISTRAL'} 
-                  />
+               
+               {/* KOLOM BASE URL DENGAN LOGIKA CUSTOM */}
+               <div className="flex flex-col relative">
+                  <div className="flex items-center justify-between mb-0.5">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Base URL</label>
+                      {provider === 'CUSTOM' && (
+                          <button 
+                          onClick={() => setIsManualBaseUrl(!isManualBaseUrl)} 
+                          className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium"
+                          >
+                          {isManualBaseUrl ? 'List' : 'Manual'}
+                          </button>
+                      )}
+                  </div>
+                  
+                  {provider === 'CUSTOM' ? (
+                      isManualBaseUrl ? (
+                          <div className="relative">
+                              <input 
+                                  type="text" 
+                                  className={`${inputClass} pr-8`} 
+                                  placeholder="https://your-api..." 
+                                  value={customBaseUrl || ''} 
+                                  onChange={(e) => setCustomBaseUrl?.(e.target.value)} 
+                                  disabled={isProcessing} 
+                              />
+                              <button 
+                                  onClick={handleToggleCustomUrl}
+                                  title={isCurrentUrlCustomSaved ? "Delete from list" : "Save to list"}
+                                  className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${isCurrentUrlCustomSaved ? 'text-red-500 hover:text-red-700' : 'text-blue-500 hover:text-blue-700'}`}
+                              >
+                                  {isCurrentUrlCustomSaved ? <Trash2 size={14} /> : <Save size={14} />}
+                              </button>
+                          </div>
+                      ) : (
+                          <select 
+                              className={inputClass}
+                              value={customBaseUrl || ''}
+                              onChange={(e) => setCustomBaseUrl?.(e.target.value)}
+                              disabled={isProcessing}
+                          >
+                              <option value="">-- Select Saved URL --</option>
+                              {userBaseUrls.map(url => (
+                                  <option key={url} value={url}>{url}</option>
+                              ))}
+                          </select>
+                      )
+                  ) : (
+                      <input 
+                        type="text" 
+                        className={inputClass} 
+                        value={getBaseUrl()}
+                        disabled={true} 
+                      />
+                  )}
                </div>
             </div>
         </div>
@@ -271,13 +352,15 @@ const ApiKeyPanel: React.FC<Props> = ({
                         onChange={(e) => setCurrentModel(e.target.value)}
                         disabled={isProcessing}
                     >
-                        <optgroup label="System Models">
-                          {getModelPresets().map(m => (
-                              <option key={m.value} value={m.value}>
-                                  {m.label}
-                              </option>
-                          ))}
-                        </optgroup>
+                        {getModelPresets().length > 0 && (
+                            <optgroup label="System Models">
+                              {getModelPresets().map(m => (
+                                  <option key={m.value} value={m.value}>
+                                      {m.label}
+                                  </option>
+                              ))}
+                            </optgroup>
+                        )}
                         {userModels.length > 0 && (
                           <optgroup label="Custom Models">
                             {userModels.map(m => (
@@ -303,11 +386,11 @@ const ApiKeyPanel: React.FC<Props> = ({
                             disabled={isProcessing}
                         />
                     </div>
-                    {/* Tombol Link Connect */}
+                    {/* Tombol Link Connect - Hanya disabled jika CUSTOM provider dipilih karena tidak ada link spesifik */}
                     <button 
                         onClick={() => window.open(getConnectLink(), '_blank')}
-                        disabled={isProcessing}
-                        className="h-8 w-8 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        disabled={isProcessing || provider === 'CUSTOM'}
+                        className={`h-8 w-8 flex items-center justify-center rounded border transition-all shrink-0 shadow-sm ${provider === 'CUSTOM' ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed' : 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                         title="Get API Key / Connect"
                     >
                         <ExternalLink size={14} />
@@ -322,23 +405,23 @@ const ApiKeyPanel: React.FC<Props> = ({
 
       <div className={`border-t ${theme.divider} mb-2`}></div>
 
-      {/* Container h-[76px] untuk Input Textarea API */}
-      <div className="mt-1 h-[76px] flex flex-col overflow-hidden">
-        <div className="flex flex-col animate-in fade-in duration-300">
+      {/* TINGGI TEXTAREA DITAMBAH MENJADI h-[120px] */}
+      <div className="mt-1 h-[120px] flex flex-col overflow-hidden">
+        <div className="flex flex-col animate-in fade-in duration-300 h-full">
             <div className="flex items-center justify-between leading-none mb-[4px]">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                 {provider} API Keys
                 </label>
             </div>
             
-            <div className="w-full h-[60px] flex gap-2 p-1">
+            <div className="w-full flex-1 flex gap-2 p-1">
                 <textarea 
                     placeholder="Keys (one per line)..."
                     className="flex-1 h-full p-2 text-[10px] font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200"
                     value={bulkInput}
                     onChange={(e) => setBulkInput(e.target.value)}
                 />
-                <div className="flex flex-col shrink-0">
+                <div className="flex flex-col shrink-0 h-full">
                     <input 
                       type="file" 
                       ref={fileInputRef} 
@@ -346,13 +429,15 @@ const ApiKeyPanel: React.FC<Props> = ({
                       className="hidden" 
                       onChange={handleLoadTxt} 
                     />
+                    {/* TINGGI TOMBOL MENGIKUTI CONTAINER (h-full) DENGAN URUTAN TEKS BARU */}
                     <button 
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isProcessing}
-                        className="w-[60px] h-[60px] border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner"
+                        className="w-[60px] h-full border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-0.5 text-blue-700 hover:bg-blue-100 transition-all shadow-inner"
                     >
-                        <FileText size={18} />
+                        <FileText size={18} className="mb-0.5" />
                         <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Load</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap">TXT</span>
                     </button>
                 </div>
             </div>
