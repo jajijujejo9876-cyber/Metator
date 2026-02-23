@@ -158,7 +158,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   const filteredKeys = useMemo(() => apiKeys.filter(k => k.toLowerCase().includes(searchTerm.toLowerCase())), [apiKeys, searchTerm]);
   
   const getBaseUrl = () => {
-    return "https://generativelanguage.googleapis.com";
+    return "https://proxy-gemini-anda.vercel.app/";
   };
 
   const getConnectLink = () => {
