@@ -149,6 +149,67 @@ ASSIGN CATEGORY:
 - Pilih tepat SATU kategori dari list yang diberikan berdasarkan subjek literal utama.
 `;
 
+const callCompatibleApi = async (
+  parts: any[], 
+  systemInstruction: string, 
+  apiKey: string, 
+  baseUrl: string, 
+  model: string,
+  provider: string,
+  responseSchema?: any,
+  temperature: number = 0.1
+): Promise<any> => {
+  const messages: any[] = [];
+  if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
+  
+  const hasImages = parts.some(p => p.inlineData);
+  let userContent: any;
+  
+  if (hasImages) {
+      userContent = parts.map(part => {
+        if (part.text) return { type: "text", text: part.text };
+        if (part.inlineData) return { type: "image_url", image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` } };
+        return null;
+      }).filter(Boolean);
+  } else {
+      userContent = parts.map(p => p.text).filter(Boolean).join("\n\n");
+  }
+  
+  messages.push({ role: "user", content: userContent });
+  
+  const payload: any = { model: model, messages: messages, temperature: temperature };
+  if (responseSchema) payload.response_format = { type: "json_object" };
+
+  let endpoint = baseUrl;
+  if (!endpoint.includes('/chat/completions')) {
+      endpoint = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
+  }
+  
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+    body: JSON.stringify(payload)
+  });
+  
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API Error ${response.status}: ${errText}`);
+  }
+  
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("Empty response content from API");
+  
+  if (responseSchema) {
+      let cleanJson = content.replace(/```json\n?|```/g, "");
+      const firstBrace = cleanJson.indexOf('{');
+      const lastBrace = cleanJson.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+      return JSON.parse(cleanJson);
+  }
+  return content;
+};
+
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
@@ -230,45 +291,8 @@ export const generateMetadataForFile = async (
 
     const modelToUse = provider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
 
-    if (provider === 'GOOGLE') {
-        // PENANGANAN KHUSUS GOOGLE LOGIN (OAUTH) AGAR TIDAK ERROR 401
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent`;
-        const formattedParts = parts.map(p => {
-            if (p.text) return { text: p.text };
-            if (p.inlineData) return { inline_data: { mime_type: p.inlineData.mimeType, data: p.inlineData.data } };
-            return p;
-        });
-
-        const payload = {
-            system_instruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ parts: formattedParts }],
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: outputSchema,
-                temperature: temperature
-            }
-        };
-
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${actualApiKey}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errData = await response.text();
-            throw new Error(`Google API Error: ${response.status} - ${errData}`);
-        }
-
-        const data = await response.json();
-        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        parsed = JSON.parse(responseText);
-
-    } else {
-        // PENGGUNAAN API KEY MANUAL STANDAR
+    if (provider === 'GEMINI' || provider === 'AUTO') {
+        // PENGGUNAAN API KEY GOOGLE GEMINI STANDAR
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
         const response: any = await ai.models.generateContent({
           model: modelToUse,
@@ -276,6 +300,13 @@ export const generateMetadataForFile = async (
           config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
         });
         parsed = JSON.parse(response.text);
+    } else {
+        // PENGGUNAAN GROQ, MISTRAL, ATAU CUSTOM PROVIDER
+        let baseUrl = provider === 'GROQ' ? 'https://api.groq.com/openai/v1/' : (provider === 'MISTRAL' ? 'https://api.mistral.ai/v1/' : (settings.customBaseUrl || ''));
+        // @ts-ignore (Memaksa pembacaan customModel jika ada)
+        let model = provider === 'GROQ' ? (settings.groqModel || 'llama-4-maverick-17b-128e-instruct') : (provider === 'MISTRAL' ? (settings.mistralModel || 'pixtral-large-latest') : (settings.customModel || ''));
+        
+        parsed = await callCompatibleApi(parts, systemInstruction, actualApiKey, baseUrl, model, provider, outputSchema, temperature);
     }
 
     if (mode === 'idea') {
@@ -302,30 +333,6 @@ export const generateMetadataForFile = async (
 
 export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, apiKey: string, settings?: AppSettings): Promise<{ title: string; keywords: string }> => {
   const actualApiKey = apiKey || process.env.API_KEY || '';
-  const provider = settings?.apiProvider || 'GEMINI';
-
-  if (provider === 'GOOGLE') {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`;
-      const payload = {
-          contents: [{ parts: [{ text: `Translate to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}: ${content.title}` }] }],
-          generationConfig: {
-              responseMimeType: "application/json",
-              responseSchema: { type: "object", properties: { title: { type: "string" } } }
-          }
-      };
-      const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${actualApiKey}` },
-          body: JSON.stringify(payload)
-      });
-      if (response.ok) {
-          const data = await response.json();
-          const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{"title":""}';
-          return { title: JSON.parse(responseText).title, keywords: content.keywords };
-      }
-      return content;
-  }
-
   const ai = new GoogleGenAI({ apiKey: actualApiKey });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -339,24 +346,6 @@ export const translateText = async (text: string, targetLang: string, apiKey: st
     const actualApiKey = apiKey || process.env.API_KEY || '';
     const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
     
-    if (settings.apiProvider === 'GOOGLE') {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent`;
-        const payload = {
-            contents: [{ parts: [{ text: `Translate text to ${targetLang}: ${text}` }] }],
-            generationConfig: { temperature: 0.1 }
-        };
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${actualApiKey}` },
-            body: JSON.stringify(payload)
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || text;
-        }
-        return text;
-    }
-
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response = await ai.models.generateContent({
       model: modelToUse,
@@ -369,33 +358,6 @@ export const translateText = async (text: string, targetLang: string, apiKey: st
 export const generateChatResponse = async (history: ChatMessage[], newMessage: string, settings: AppSettings, apiKey: string): Promise<string> => {
     const actualApiKey = apiKey || process.env.API_KEY || '';
     const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
-
-    if (settings.apiProvider === 'GOOGLE') {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent`;
-        const formattedContents = history.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-        }));
-        formattedContents.push({ role: 'user', parts: [{ text: newMessage }] });
-
-        const payload = {
-            system_instruction: { parts: [{ text: `IsaProject Chat Assistant.` }] },
-            contents: formattedContents,
-            generationConfig: { temperature: 0.7 }
-        };
-
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${actualApiKey}` },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        }
-        return "";
-    }
 
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const contents = history.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
