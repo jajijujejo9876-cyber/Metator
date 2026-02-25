@@ -66,14 +66,7 @@ const App: React.FC = () => {
 
   // 2. BARU GUNAKAN VARIABELNYA DI USEEFFECT
   useEffect(() => {
-    // Sisipkan class tema tanpa menghapus class bawaan (font, dll)
-    document.body.classList.add(appColor);
     localStorage.setItem('ISA_APP_COLOR', appColor);
-
-    // Bersihkan class tema lama saat pengguna memilih tema baru
-    return () => {
-      document.body.classList.remove(appColor);
-    };
   }, [appColor]);
 
   useEffect(() => {
@@ -1036,7 +1029,7 @@ const App: React.FC = () => {
     const isConfigReady = settings.apiProvider === 'AUTO' || currentProviderKeys.length > 0;
 
     return (
-      <div className="flex flex-col min-h-screen md:h-screen bg-gray-50 overflow-x-hidden">
+      <div className={`flex flex-col min-h-screen md:h-screen bg-gray-50 overflow-x-hidden ${appColor}`}>
         <header className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 px-6 h-16 flex items-center justify-between shadow-sm z-50">
           <div className="flex items-center">
             <h1 className="text-6xl font-share-tech font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent tracking-tighter leading-none select-none">IsaProject</h1>
