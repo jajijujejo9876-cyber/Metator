@@ -46,15 +46,25 @@ const rawStringify = (val: any): string => {
 };
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
-  const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
+  const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // 1. BUAT VARIABELNYA DULU
   const [appColor, setAppColor] = useState<string>(() => {
     return localStorage.getItem('ISA_APP_COLOR') || 'light-clean';
   });
 
+  const [apiDelay, setApiDelay] = useState<number>(() => {
+    const saved = localStorage.getItem('ISA_API_DELAY');
+    return saved !== null ? parseInt(saved, 10) : 3;
+  });
+
+  const apiDelayRef = useRef(apiDelay);
+
+  // 2. BARU GUNAKAN VARIABELNYA DI USEEFFECT
   useEffect(() => {
     document.body.className = appColor;
     localStorage.setItem('ISA_APP_COLOR', appColor);
@@ -65,33 +75,27 @@ const App: React.FC = () => {
     localStorage.setItem('ISA_API_DELAY', apiDelay.toString());
   }, [apiDelay]);
   
-  const [apiDelay, setApiDelay] = useState<number>(() => {
-    const saved = localStorage.getItem('ISA_API_DELAY');
-    return saved !== null ? parseInt(saved, 10) : 3;
+  // -- KODE API KEY MAP TETAP SAMA DI BAWAH INI --
+  const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
+    try {
+      const saved = localStorage.getItem('ISA_API_KEYS');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+            AUTO: [],
+            GEMINI: parsed.GEMINI || [],
+            GROQ: parsed.GROQ || [],
+            PUTER: parsed.PUTER || [],
+            MISTRAL: parsed.MISTRAL || [],
+            CUSTOM: parsed.CUSTOM || []
+        };
+      }
+      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
+    } catch (e) {
+      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
+    }
   });
-
-  const apiDelayRef = useRef(apiDelay);
-  
-  const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
-    try {
-      const saved = localStorage.getItem('ISA_API_KEYS');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-            AUTO: [],
-            GEMINI: parsed.GEMINI || [],
-            GROQ: parsed.GROQ || [],
-            PUTER: parsed.PUTER || [],
-            MISTRAL: parsed.MISTRAL || [],
-            CUSTOM: parsed.CUSTOM || []
-        };
-      }
-      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
-    } catch (e) {
-      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
-    }
-  });
-
+  
   const [isPaidUnlocked, setIsPaidUnlocked] = useState(false);
 
   const [settings, setSettings] = useState<AppSettings>(() => {
