@@ -51,6 +51,36 @@ const App: React.FC = () => {
   const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [appColor, setAppColor] = useState<string>(() => {
+    return localStorage.getItem('ISA_APP_COLOR') || 'light-clean';
+  });
+
+  const [appColor, setAppColor] = useState<string>(() => {
+    return localStorage.getItem('ISA_APP_COLOR') || 'light-clean';
+  });
+  
+  const [apiDelay, setApiDelay] = useState<number>(() => {
+    const saved = localStorage.getItem('ISA_API_DELAY');
+    return saved !== null ? parseInt(saved, 10) : 3;
+  });
+  const apiDelayRef = useRef(apiDelay);
+
+  useEffect(() => {
+    document.body.className = appColor;
+    localStorage.setItem('ISA_APP_COLOR', appColor);
+  }, [appColor]);
+
+  useEffect(() => {
+    apiDelayRef.current = apiDelay;
+    localStorage.setItem('ISA_API_DELAY', apiDelay.toString());
+  }, [apiDelay]);
+  
+  const [apiDelay, setApiDelay] = useState<number>(() => {
+    const saved = localStorage.getItem('ISA_API_DELAY');
+    return saved !== null ? parseInt(saved, 10) : 3;
+  });
+
+  const apiDelayRef = useRef(apiDelay);
   
   const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
     try {
@@ -93,7 +123,7 @@ const App: React.FC = () => {
       titleMax: 100,
       slideKeyword: 40,
       videoFrameCount: 3,
-      workerCount: 10,
+      workerCount: 5,
       ideaMode: 'free', 
       ideaQuantity: 30, 
       ideaCategory: 'auto',
@@ -211,6 +241,17 @@ const App: React.FC = () => {
   const [hasPromptHistory, setHasPromptHistory] = useState(() => {
     try { return !!localStorage.getItem('ISA_LAST_PROMPT_BATCH'); } catch(e) { return false; }
   });
+
+  useEffect(() => {
+    document.body.className = appColor;
+    localStorage.setItem('ISA_APP_COLOR', appColor);
+  }, [appColor]);
+
+  // Delay Sync Effect
+  useEffect(() => {
+    apiDelayRef.current = apiDelay;
+    localStorage.setItem('ISA_API_DELAY', apiDelay.toString());
+  }, [apiDelay]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -780,7 +821,7 @@ const App: React.FC = () => {
       if (selectedKey === null && (settings.apiProvider !== 'PUTER' && settings.apiProvider !== 'AUTO')) {
         queueRef.current.unshift(fileId);
         activeWorkersRef.current--;
-        setTimeout(() => spawnWorker(workerId, mode, keysPool), 2000); 
+        setTimeout(() => spawnWorker(workerId, mode, keysPool), apiDelayRef.current * 1000); 
         return;
       }
   
@@ -1007,9 +1048,9 @@ const App: React.FC = () => {
         </header>
   
         <main className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative pt-16">
-          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
-            
-            <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
+          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
+            
+            <div className="flex flex-col bg-white shrink-0 border-gray-200">
                <div className="flex items-center gap-1 p-2">
                    <button 
                       onClick={() => handleNavigation('apikeys')} 
@@ -1088,21 +1129,16 @@ const App: React.FC = () => {
                     />
                     )}
                     {activeTab === 'apikeys' && (
-                        <ApiKeyPanel 
-                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
-                            mode='metadata' provider={settings.apiProvider}
-                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
-                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
-                            groqModel={settings.groqModel} setGroqModel={(m) => setSettings(prev => ({ ...prev, groqModel: m }))}
-                            puterModel={settings.puterModel} setPuterModel={(m) => setSettings(prev => ({ ...prev, puterModel: m }))}
-                            mistralBaseUrl={settings.mistralBaseUrl} setMistralBaseUrl={(u) => setSettings(prev => ({ ...prev, mistralBaseUrl: u }))}
-                            mistralModel={settings.mistralModel} setMistralModel={(m) => setSettings(prev => ({ ...prev, mistralModel: m }))}
-                            customBaseUrl={settings.customBaseUrl} setCustomBaseUrl={(u) => setSettings(prev => ({ ...prev, customBaseUrl: u }))}
-                            customModel={settings.customModel} setCustomModel={(m) => setSettings(prev => ({ ...prev, customModel: m }))}
-                            cooldownKeys={cooldownKeysRef.current} workerCount={settings.workerCount}
-                            setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
-                        />
-                    )}
+                        <ApiKeyPanel 
+                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
+                            mode='metadata' provider={settings.apiProvider}
+                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
+                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
+                            workerCount={settings.workerCount} setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                            apiDelay={apiDelay} setApiDelay={setApiDelay}
+                            appColor={appColor} setAppColor={setAppColor}
+                        />
+                    )}
 
                     {activeTab === 'logs' && (
                         <div className="flex flex-col gap-4 animate-in fade-in duration-300">
