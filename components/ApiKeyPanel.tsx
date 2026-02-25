@@ -74,9 +74,9 @@ const ApiKeyPanel: React.FC<Props> = ({
   setProvider,
   geminiModel = 'gemini-3.1-pro', 
   setGeminiModel,
-  workerCount = 5, // Default Worker: 5
+  workerCount,
   setWorkerCount,
-  apiDelay = 3,    // Default Delay: 3
+  apiDelay,
   setApiDelay,
   appColor = 'light-clean',
   setAppColor
@@ -94,10 +94,38 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const inputClass = `w-full h-8 text-xs px-2 py-1.5 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
 
+  // 1. MEMAKSA DEFAULT VALUE SAAT APLIKASI PERTAMA DIBUKA
+  useEffect(() => {
+    // Memaksa default worker ke 5 jika masih kosong
+    if (setWorkerCount && (!workerCount || workerCount === 0)) {
+        setWorkerCount(5);
+    }
+    // Memaksa default delay ke 3 jika masih kosong
+    if (setApiDelay && (!apiDelay || apiDelay === 0)) {
+        setApiDelay(3);
+    }
+
+    // Membaca memori tema yang tersimpan di browser
+    const savedTheme = localStorage.getItem('ISA_APP_THEME') || 'light-clean';
+    if (setAppColor) {
+        setAppColor(savedTheme);
+    }
+    // Langsung terapkan tema ke body website
+    document.body.className = savedTheme;
+  }, []); // Hanya dijalankan 1x saat load awal
+
+  // 2. MENYIMPAN TEMA SECARA REAL-TIME JIKA DIUBAH PENGGUNA
+  useEffect(() => {
+    if (appColor) {
+        localStorage.setItem('ISA_APP_THEME', appColor);
+        document.body.className = appColor;
+    }
+  }, [appColor]);
+
   const handleWorkerChange = (value: string) => {
       if (!setWorkerCount) return;
       if (value === '') {
-          setWorkerCount(0); // 0 digunakan agar input kosong & menampilkan placeholder "Max 10"
+          setWorkerCount(0); // Supaya input bisa dihapus sementara saat mengetik (memunculkan Max 10)
           return;
       }
       let num = parseInt(value);
@@ -110,7 +138,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   const handleDelayChange = (value: string) => {
     if (!setApiDelay) return;
     if (value === '') {
-        setApiDelay(0); // 0 digunakan agar input kosong & menampilkan placeholder "Min 1"
+        setApiDelay(0); // Supaya input bisa dihapus sementara saat mengetik (memunculkan Min 1)
         return;
     }
     let num = parseInt(value);
