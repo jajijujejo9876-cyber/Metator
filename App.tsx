@@ -66,8 +66,14 @@ const App: React.FC = () => {
 
   // 2. BARU GUNAKAN VARIABELNYA DI USEEFFECT
   useEffect(() => {
-    document.body.className = appColor;
+    // Sisipkan class tema tanpa menghapus class bawaan (font, dll)
+    document.body.classList.add(appColor);
     localStorage.setItem('ISA_APP_COLOR', appColor);
+
+    // Bersihkan class tema lama saat pengguna memilih tema baru
+    return () => {
+      document.body.classList.remove(appColor);
+    };
   }, [appColor]);
 
   useEffect(() => {
