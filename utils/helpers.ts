@@ -199,7 +199,7 @@ Keywords: ${f.metadata.ind.keywords}
   return fileName;
 };
 
-// Helper to extract a dynamic number of frames from a video file
+// Helper to extract a dynamic number of frames from a video file with downscaling
 export const extractVideoFrames = async (videoFile: File, frameCount: number = 3): Promise<string[]> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
@@ -208,8 +208,6 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
     const frames: string[] = [];
     
     // Generate timestamps evenly across the duration
-    // If count is 1: [0.5]
-    // If count is 3: [0.1, 0.5, 0.9]
     const timestamps: number[] = [];
     if (frameCount <= 1) {
         timestamps.push(0.5);
@@ -229,8 +227,25 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
     video.crossOrigin = "anonymous";
 
     video.onloadedmetadata = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // SET MAX RESOLUTION TO 1024px TO PREVENT OUT OF MEMORY
+      const MAX_SIZE = 1024;
+      let width = video.videoWidth;
+      let height = video.videoHeight;
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = Math.round(width);
+      canvas.height = Math.round(height);
       video.currentTime = video.duration * timestamps[0];
     };
 
@@ -240,8 +255,10 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
         reject(new Error("Canvas context failed"));
         return;
       }
+      
+      // Draw image with calculated downscaled width and height
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      frames.push(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+      frames.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
 
       currentStep++;
       if (currentStep < timestamps.length) {
