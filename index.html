@@ -125,6 +125,39 @@ input, select, textarea {
 .text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500 {
   color: var(--text) !important;
 }
+
+/* 1. Paksa Header dan Sidebar ikut warna Body */
+header, aside, main {
+  background-color: var(--bg-body) !important;
+  border-color: var(--border) !important;
+}
+
+/* 2. Paksa elemen yang biasanya putih (bg-white) jadi warna Card Tema */
+.bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+/* 3. Paksa elemen latar belakang abu-abu (bg-gray-50/100) jadi warna Body Tema */
+.bg-gray-50, .bg-gray-100 {
+  background-color: var(--bg-body) !important;
+}
+
+/* 4. Paksa teks judul atau teks gelap agar ikut variabel --text */
+.text-gray-900, .text-gray-800, .text-gray-700, .text-blue-700 {
+  color: var(--text) !important;
+}
+
+/* 5. Paksa border agar tidak kaku */
+.border-gray-200, .border-blue-200, .border-blue-100 {
+  border-color: var(--border) !important;
+}
+
+/* 6. Khusus Tombol Utama (Primary) */
+/* Jika kamu ingin tombol biru berubah jadi warna Primary Tema */
+.bg-blue-600, .bg-blue-500 {
+  background-color: var(--primary) !important;
+  color: white !important; /* Biasanya teks di tombol tetap putih agar kontras */
+}
   
 </style>
     
