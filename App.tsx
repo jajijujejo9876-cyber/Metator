@@ -54,12 +54,6 @@ const App: React.FC = () => {
   const [appColor, setAppColor] = useState<string>(() => {
     return localStorage.getItem('ISA_APP_COLOR') || 'light-clean';
   });
-  
-  const [apiDelay, setApiDelay] = useState<number>(() => {
-    const saved = localStorage.getItem('ISA_API_DELAY');
-    return saved !== null ? parseInt(saved, 10) : 3;
-  });
-  const apiDelayRef = useRef(apiDelay);
 
   useEffect(() => {
     document.body.className = appColor;
