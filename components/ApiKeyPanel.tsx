@@ -27,19 +27,58 @@ interface Props {
   setAppColor?: (color: string) => void;
 }
 
+const THEME_OPTIONS = [
+  { value: 'light-clean', label: 'LIGHT CLEAN' },
+  { value: 'luxury-gold', label: 'LUXURY GOLD' },
+  { value: 'dark-pro', label: 'DARK PRO' },
+  { value: 'midnight-navy', label: 'MIDNIGHT NAVY' },
+  { value: 'ocean-breeze', label: 'OCEAN BREEZE' },
+  { value: 'cyberpunk', label: 'CYBERPUNK' },
+  { value: 'deep-forest', label: 'DEEP FOREST' },
+  { value: 'deep-ocean', label: 'DEEP OCEAN' },
+  { value: 'sunset-vibes', label: 'SUNSET VIBES' },
+  { value: 'warm-coffee', label: 'WARM COFFEE' },
+  { value: 'retro-paper', label: 'RETRO PAPER' },
+  { value: 'dracula', label: 'DRACULA' },
+  { value: 'ultra-minimal', label: 'ULTRA MINIMAL' },
+  { value: 'rose-valentine', label: 'ROSE VALENTINE' },
+  { value: 'violet-night', label: 'VIOLET NIGHT' },
+  { value: 'sunset-glow', label: 'SUNSET GLOW' },
+  { value: 'slate-grey', label: 'SLATE GREY' },
+  { value: 'emerald-city', label: 'EMERALD CITY' },
+  { value: 'vaporwave', label: 'VAPORWAVE' },
+  { value: 'pastel-dream', label: 'PASTEL DREAM' },
+  { value: 'neon-lime', label: 'NEON LIME' },
+  { value: 'royal-purple', label: 'ROYAL PURPLE' },
+  { value: 'burning-orange', label: 'BURNING ORANGE' },
+  { value: 'arctic-white', label: 'ARCTIC WHITE' },
+  { value: 'sweet-candy', label: 'SWEET CANDY' },
+  { value: 'military-base', label: 'MILITARY BASE' },
+  { value: 'deep-space', label: 'DEEP SPACE' },
+  { value: 'mint-fresh', label: 'MINT FRESH' },
+  { value: 'volcano-ash', label: 'VOLCANO ASH' },
+  { value: 'electric-blue', label: 'ELECTRIC BLUE' },
+  { value: 'soft-lavender', label: 'SOFT LAVENDER' },
+  { value: 'forest-moss', label: 'FOREST MOSS' },
+  { value: 'nordic-frost', label: 'NORDIC FROST' },
+  { value: 'industrial-rust', label: 'INDUSTRIAL RUST' },
+  { value: 'sakura-night', label: 'SAKURA NIGHT' },
+  { value: 'toxic-neon', label: 'TOXIC NEON' }
+];
+
 const ApiKeyPanel: React.FC<Props> = ({ 
   apiKeys, 
   setApiKeys, 
   isProcessing, 
   provider = 'GEMINI',
   setProvider,
-  geminiModel = 'gemini-3-flash-preview',
+  geminiModel = 'gemini-3.1-pro', // Placeholder if not provided by App
   setGeminiModel,
   workerCount,
   setWorkerCount,
-  apiDelay = 3,
+  apiDelay,
   setApiDelay,
-  appColor = '#3b82f6',
+  appColor = 'light-clean',
   setAppColor
 }) => {
   const theme = { 
@@ -70,14 +109,23 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const handleDelayChange = (value: string) => {
     if (!setApiDelay) return;
+    if (value === '') {
+        setApiDelay(0);
+        return;
+    }
     let num = parseInt(value);
     if (isNaN(num)) return;
-    if (num < 1) num = 1; // Minimal 1 detik
+    if (num < 1) num = 1; 
     setApiDelay(num);
   };
 
   const getBaseUrl = () => {
     return "https://generativelanguage.googleapis.com";
+  };
+
+  // Helper to dynamically get the canvas model version (can be updated centrally later)
+  const getCanvasModel = () => {
+    return geminiModel;
   };
 
   return (
@@ -122,14 +170,12 @@ const ApiKeyPanel: React.FC<Props> = ({
                <div className="flex flex-col relative">
                   <div className="flex items-center justify-between mb-0.5">
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Model Name</div>
-                      <div className="text-[10px] text-green-600 font-bold uppercase tracking-tight">Auto Updated</div>
+                      <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight">Auto Updated</div>
                   </div>
-                  <input 
-                      type="text" 
-                      className={`${inputClass} bg-gray-50 font-medium`} 
-                      value={geminiModel} 
-                      disabled={true} 
-                  />
+                  {/* Model name is now a span reading real-time from the parent/canvas context */}
+                  <div className={`${inputClass} flex items-center bg-gray-50 font-medium overflow-hidden text-ellipsis whitespace-nowrap`}>
+                      {getCanvasModel()}
+                  </div>
                </div>
 
                <div className="flex flex-col">
@@ -151,8 +197,9 @@ const ApiKeyPanel: React.FC<Props> = ({
                       <input 
                           type="number" 
                           min="1"
-                          className={`${inputClass} text-center font-bold bg-blue-50 text-blue-700 border-blue-200`}
-                          value={apiDelay}
+                          className={`${inputClass} text-center font-bold`}
+                          placeholder="Min 1"
+                          value={apiDelay === 0 ? '' : apiDelay}
                           onChange={(e) => handleDelayChange(e.target.value)}
                           disabled={isProcessing}
                       />
@@ -161,7 +208,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                </div>
             </div>
           </div>
-          <div className={`border-t ${theme.divider} w-full`}></div>
+          {/* Garis bawah tipis dihapus sesuai instruksi */}
         </div>
       </div>
 
@@ -175,27 +222,20 @@ const ApiKeyPanel: React.FC<Props> = ({
         
         <div className="flex items-center gap-4">
           <div className="flex flex-col flex-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Accent Color</label>
-            <div className="flex gap-2 items-center">
-              <input 
-                type="color" 
-                value={appColor}
-                onChange={(e) => setAppColor?.(e.target.value)}
-                className="h-8 w-12 cursor-pointer rounded border border-gray-200"
-                disabled={isProcessing}
-              />
-              <input 
-                type="text"
-                value={appColor.toUpperCase()}
-                onChange={(e) => setAppColor?.(e.target.value)}
-                className={`${inputClass} font-mono`}
-                placeholder="#000000"
-                disabled={isProcessing}
-              />
-            </div>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Select Theme</label>
+            <select 
+              className={inputClass}
+              value={appColor}
+              onChange={(e) => setAppColor?.(e.target.value)}
+              disabled={isProcessing}
+            >
+              {THEME_OPTIONS.map(theme => (
+                <option key={theme.value} value={theme.value}>{theme.label}</option>
+              ))}
+            </select>
           </div>
           <div className="flex-1">
-            <p className="text-[10px] text-gray-400 italic">Gunakan ini untuk merubah warna utama tombol dan elemen dekorasi aplikasi.</p>
+            <p className="text-[10px] text-gray-400 italic">Pilih tema untuk merubah skema warna keseluruhan aplikasi.</p>
           </div>
         </div>
       </div>
