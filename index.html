@@ -85,6 +85,47 @@
   body.industrial-rust { --primary: #a0522d; --bg-body: #2b2b2b; --card-bg: #383838; --text: #e0d5c1; --input-bg: #262626; --border: #cd853f; }
   body.sakura-night { --primary: #ffb7c5; --bg-body: #1c1c1c; --card-bg: #2d2d2d; --text: #ffb7c5; --input-bg: #383838; --border: #ffb7c5; }
   body.toxic-neon { --primary: #39ff14; --bg-body: #0a0a0a; --card-bg: #151515; --text: #39ff14; --input-bg: #000000; --border: #39ff14; }
+  /* Tambahkan ini di dalam tag <style> setelah daftar tema warna */
+
+:root {
+  /* Default warna jika belum ada tema yang terpilih */
+  --primary: #3b82f6;
+  --bg-body: #f3f4f6;
+  --card-bg: #ffffff;
+  --text: #111827;
+  --input-bg: #ffffff;
+  --border: #e5e7eb;
+}
+
+body {
+  background-color: var(--bg-body) !important;
+  color: var(--text) !important;
+  transition: all 0.3s ease; /* Biar perpindahan warnanya halus */
+}
+
+/* Pastikan class Tailwind menggunakan variabel warna kita */
+.bg-card { background-color: var(--card-bg) !important; }
+.text-primary { color: var(--primary) !important; }
+.border-theme { border-color: var(--border) !important; }
+.bg-input { background-color: var(--input-bg) !important; }
+  
+/* Tambahkan ini di bawah .bg-input agar teks lain ikut berubah */
+body * {
+  border-color: var(--border);
+}
+
+/* Supaya teks di tombol atau input tidak nabrak warna background */
+input, select, textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Kalau kamu pakai class text-gray-xxx di Tailwind, ini akan memaksa mereka ikut warna tema */
+.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500 {
+  color: var(--text) !important;
+}
+  
 </style>
     
 </head>
