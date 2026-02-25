@@ -236,8 +236,14 @@ const App: React.FC = () => {
   });
 
   useEffect(() => {
-    document.body.className = appColor;
+    // Menggunakan classList.add agar TIDAK menghapus class font bawaan
+    document.body.classList.add(appColor);
     localStorage.setItem('ISA_APP_COLOR', appColor);
+
+    // Membersihkan tema lama saat pengguna mengganti tema
+    return () => {
+      document.body.classList.remove(appColor);
+    };
   }, [appColor]);
 
   // Delay Sync Effect
