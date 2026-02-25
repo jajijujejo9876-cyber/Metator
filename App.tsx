@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Download, Trash2, Wand2, UploadCloud, FolderOutput, FilePlus, CheckCircle, XCircle, Clock, Database, Activity, Coffee, FolderPlus, Sparkles, Eraser, Lightbulb, Command, Filter, Lock, Key, Menu, ChevronRight, Info, Check, Bot, Settings, Pause, Play, Copy, Languages, RefreshCw, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,6 +51,18 @@ const App: React.FC = () => {
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
   const [currentTime, setCurrentTime] = useState(new Date());
   
+  // Theme and Delay States
+  const [appColor, setAppColor] = useState<string>(() => {
+    return localStorage.getItem('ISA_APP_COLOR') || 'light-clean';
+  });
+  
+  const [apiDelay, setApiDelay] = useState<number>(() => {
+    const saved = localStorage.getItem('ISA_API_DELAY');
+    return saved !== null ? parseInt(saved, 10) : 3;
+  });
+
+  const apiDelayRef = useRef(apiDelay);
+
   const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
     try {
       const saved = localStorage.getItem('ISA_API_KEYS');
@@ -77,7 +88,7 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
       apiProvider: 'AUTO', 
-      geminiModel: 'gemini-3-flash-preview', 
+      geminiModel: 'gemini-3.1-pro', 
       groqModel: 'openai/gpt-oss-120b', 
       puterModel: 'gemini-3-flash-preview',
       mistralBaseUrl: '',
@@ -93,7 +104,7 @@ const App: React.FC = () => {
       titleMax: 100,
       slideKeyword: 40,
       videoFrameCount: 3,
-      workerCount: 10,
+      workerCount: 5, // Default Worker diubah menjadi 5
       ideaMode: 'free', 
       ideaQuantity: 30, 
       ideaCategory: 'auto',
@@ -211,6 +222,18 @@ const App: React.FC = () => {
   const [hasPromptHistory, setHasPromptHistory] = useState(() => {
     try { return !!localStorage.getItem('ISA_LAST_PROMPT_BATCH'); } catch(e) { return false; }
   });
+
+  // Theme Sync Effect
+  useEffect(() => {
+    document.body.className = appColor;
+    localStorage.setItem('ISA_APP_COLOR', appColor);
+  }, [appColor]);
+
+  // Delay Sync Effect
+  useEffect(() => {
+    apiDelayRef.current = apiDelay;
+    localStorage.setItem('ISA_API_DELAY', apiDelay.toString());
+  }, [apiDelay]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -719,7 +742,7 @@ const App: React.FC = () => {
       const providerName = settings.apiProvider === 'AUTO' ? 'Auto Mode' : settings.apiProvider;
       addLog(`Mulai Antrian: ${queueRef.current.length} item di ${mode.toUpperCase()} menggunakan ${providerName}.`, 'info', mode);
   
-      const userMaxWorkers = settings.workerCount || 10;
+      const userMaxWorkers = settings.workerCount || 5;
       
       const maxConcurrency = (settings.apiProvider === 'PUTER' || settings.apiProvider === 'AUTO')
         ? Math.min(userMaxWorkers, 10)
@@ -846,7 +869,8 @@ const App: React.FC = () => {
       }
   
       activeWorkersRef.current--;
-      setTimeout(() => spawnWorker(workerId, mode, keysPool), 500);
+      // Using User Defined Delay (in milliseconds)
+      setTimeout(() => spawnWorker(workerId, mode, keysPool), apiDelayRef.current * 1000);
     };
   
     const checkCompletion = (mode: AppMode) => {
@@ -1007,9 +1031,9 @@ const App: React.FC = () => {
         </header>
   
         <main className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative pt-16">
-          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
+          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
             
-            <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
+            <div className="flex flex-col bg-white shrink-0 border-b md:border-b-0 border-gray-200">
                <div className="flex items-center gap-1 p-2">
                    <button 
                       onClick={() => handleNavigation('apikeys')} 
@@ -1093,14 +1117,9 @@ const App: React.FC = () => {
                             mode='metadata' provider={settings.apiProvider}
                             setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
                             geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
-                            groqModel={settings.groqModel} setGroqModel={(m) => setSettings(prev => ({ ...prev, groqModel: m }))}
-                            puterModel={settings.puterModel} setPuterModel={(m) => setSettings(prev => ({ ...prev, puterModel: m }))}
-                            mistralBaseUrl={settings.mistralBaseUrl} setMistralBaseUrl={(u) => setSettings(prev => ({ ...prev, mistralBaseUrl: u }))}
-                            mistralModel={settings.mistralModel} setMistralModel={(m) => setSettings(prev => ({ ...prev, mistralModel: m }))}
-                            customBaseUrl={settings.customBaseUrl} setCustomBaseUrl={(u) => setSettings(prev => ({ ...prev, customBaseUrl: u }))}
-                            customModel={settings.customModel} setCustomModel={(m) => setSettings(prev => ({ ...prev, customModel: m }))}
-                            cooldownKeys={cooldownKeysRef.current} workerCount={settings.workerCount}
-                            setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                            workerCount={settings.workerCount} setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                            apiDelay={apiDelay} setApiDelay={setApiDelay}
+                            appColor={appColor} setAppColor={setAppColor}
                         />
                     )}
 
