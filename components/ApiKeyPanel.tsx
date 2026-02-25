@@ -72,11 +72,11 @@ const ApiKeyPanel: React.FC<Props> = ({
   isProcessing, 
   provider = 'GEMINI',
   setProvider,
-  geminiModel = 'gemini-3.1-pro', // Placeholder if not provided by App
+  geminiModel = 'gemini-3.1-pro', 
   setGeminiModel,
-  workerCount,
+  workerCount = 5, // Default set to 5
   setWorkerCount,
-  apiDelay,
+  apiDelay = 3,   // Default set to 3
   setApiDelay,
   appColor = 'light-clean',
   setAppColor
@@ -97,25 +97,25 @@ const ApiKeyPanel: React.FC<Props> = ({
   const handleWorkerChange = (value: string) => {
       if (!setWorkerCount) return;
       if (value === '') {
-          setWorkerCount(0);
+          setWorkerCount(0); // Set to 0 temporarily to show placeholder
           return;
       }
       let num = parseInt(value);
       if (isNaN(num)) return;
+      if (num < 1) num = 1; // Strict constraint: min 1
       if (num > 10) num = 10;
-      if (num < 0) num = 0;
       setWorkerCount(num);
   };
 
   const handleDelayChange = (value: string) => {
     if (!setApiDelay) return;
     if (value === '') {
-        setApiDelay(0);
+        setApiDelay(0); // Set to 0 temporarily to show placeholder
         return;
     }
     let num = parseInt(value);
     if (isNaN(num)) return;
-    if (num < 1) num = 1; 
+    if (num < 1) num = 1; // Strict constraint: min 1
     setApiDelay(num);
   };
 
@@ -123,7 +123,6 @@ const ApiKeyPanel: React.FC<Props> = ({
     return "https://generativelanguage.googleapis.com";
   };
 
-  // Helper to dynamically get the canvas model version (can be updated centrally later)
   const getCanvasModel = () => {
     return geminiModel;
   };
@@ -141,7 +140,8 @@ const ApiKeyPanel: React.FC<Props> = ({
         
         <div className="flex flex-col gap-0">
           <div className="pt-3 pb-0 mb-[7px]">
-              <div className="grid grid-cols-2 gap-3">
+              {/* Changed grid to flex-col on mobile, grid on sm+ to prevent border overlap issues on small screens */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                  <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Provider</label>
                     <div className={`${inputClass} flex items-center bg-gray-50 font-bold text-gray-700 border-solid`}>
@@ -165,14 +165,14 @@ const ApiKeyPanel: React.FC<Props> = ({
 
           <div className={`border-t ${theme.divider} w-full`}></div>
 
-          <div className="pt-3 pb-0 mb-[7px]">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="pt-3 pb-0">
+            {/* Same here, responsive grid to prevent UI breaks on mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                <div className="flex flex-col relative">
                   <div className="flex items-center justify-between mb-0.5">
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Model Name</div>
                       <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight">Auto Updated</div>
                   </div>
-                  {/* Model name is now a span reading real-time from the parent/canvas context */}
                   <div className={`${inputClass} flex items-center bg-gray-50 font-medium overflow-hidden text-ellipsis whitespace-nowrap`}>
                       {getCanvasModel()}
                   </div>
@@ -184,7 +184,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Workers</label>
                       <input 
                           type="number" 
-                          min="1" max="10" 
                           className={`${inputClass} text-center font-bold`}
                           placeholder="Max 10"
                           value={workerCount === 0 ? '' : workerCount}
@@ -196,7 +195,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Delay (s)</label>
                       <input 
                           type="number" 
-                          min="1"
                           className={`${inputClass} text-center font-bold`}
                           placeholder="Min 1"
                           value={apiDelay === 0 ? '' : apiDelay}
@@ -208,7 +206,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                </div>
             </div>
           </div>
-          {/* Garis bawah tipis dihapus sesuai instruksi */}
         </div>
       </div>
 
@@ -220,8 +217,8 @@ const ApiKeyPanel: React.FC<Props> = ({
         </div>
         <div className={`border-t ${theme.divider} mb-3`}></div>
         
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col flex-1">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex flex-col w-full sm:flex-1">
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Select Theme</label>
             <select 
               className={inputClass}
@@ -234,7 +231,7 @@ const ApiKeyPanel: React.FC<Props> = ({
               ))}
             </select>
           </div>
-          <div className="flex-1">
+          <div className="w-full sm:flex-1 mt-2 sm:mt-0">
             <p className="text-[10px] text-gray-400 italic">Pilih tema untuk merubah skema warna keseluruhan aplikasi.</p>
           </div>
         </div>
