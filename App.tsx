@@ -1320,7 +1320,3 @@ const App: React.FC = () => {
   };
   
   export default App;
-
----
-
-tolong jangan gannggu kode yang tidak saya inginkan, yang itu dapat merusak kode aplikasi lainnya aplikasi
