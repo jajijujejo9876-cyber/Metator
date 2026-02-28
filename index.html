@@ -158,6 +158,59 @@ header, aside, main {
   background-color: var(--primary) !important;
   color: white !important; /* Biasanya teks di tombol tetap putih agar kontras */
 }
+
+/* =========================================
+   PERBAIKAN TAMPILAN (Tempel di index.html)
+   ========================================= */
+
+/* 1 & 2. PERBAIKI WARNA KOLOM INPUT & SELECT AGAR SERAGAM */
+input, select, textarea {
+    background-color: var(--input-bg) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    /* appearance: none ini penting agar tampilan Select di HP tidak pakai style bawaan OS */
+}
+
+/* PERBAIKI GARIS BIRU SAAT KOLOM/TOMBOL DIKLIK (Focus Ring) */
+input:focus, select:focus, textarea:focus, button:focus {
+    outline: none !important;
+    border-color: var(--primary) !important;
+    /* Ini menimpa efek cahaya biru bawaan Tailwind menjadi warna Primary tema */
+    box-shadow: 0 0 0 2px var(--primary) !important; 
+}
+
+/* 3. PERBAIKI TOMBOL HALAMAN & BACKGROUND YANG MASIH PUTIH */
+/* Paksa semua yang hardcode 'bg-white' berubah jadi warna Card tema */
+.bg-white {
+    background-color: var(--card-bg) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+/* Paksa text abu-abu bawaan Tailwind mengikuti warna Text tema */
+.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600 {
+    color: var(--text) !important;
+}
+
+/* PERBAIKI TOMBOL MENU NAVIGASI YANG SEDANG AKTIF (Menu Atas) */
+/* Karena di kodenya pakai bg-blue-50/bg-red-50, kita ubah jadi warna Primary Tema */
+aside .bg-blue-50, aside .bg-green-50, aside .bg-red-50 {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #ffffff !important; /* Text di tombol aktif dipaksa putih agar kontras */
+}
+
+/* Matikan text biru/merah/hijau di tombol yang sedang aktif */
+aside .text-blue-700, aside .text-green-700, aside .text-red-700 {
+    color: #ffffff !important;
+}
+
+/* Perbaiki background header pembatas di atas (Active Workspace) */
+aside .bg-blue-50.border-blue-100 {
+    background-color: var(--bg-body) !important;
+    border-color: var(--border) !important;
+}
+aside .text-blue-400 { color: var(--text) !important; opacity: 0.7; }  
   
 </style>
     
