@@ -49,6 +49,9 @@
 </script>
 
 <style>
+/* =========================================
+   1. DAFTAR WARNA TEMA
+   ========================================= */
   body.light-clean { --primary: #2563eb; --bg-body: #f0f2f5; --card-bg: #ffffff; --text: #1f2937; --input-bg: #ffffff; --border: #d1d5db; }
   body.luxury-gold { --primary: #d4af37; --bg-body: #1a1a1a; --card-bg: #2d2d2d; --text: #d4af37; --input-bg: #3d3d3d; --border: #d4af37; }
   body.dark-pro { --primary: #3b82f6; --bg-body: #050505; --card-bg: #121212; --text: #e0e0e0; --input-bg: #1e1e1e; --border: #333; }
@@ -85,133 +88,59 @@
   body.industrial-rust { --primary: #a0522d; --bg-body: #2b2b2b; --card-bg: #383838; --text: #e0d5c1; --input-bg: #262626; --border: #cd853f; }
   body.sakura-night { --primary: #ffb7c5; --bg-body: #1c1c1c; --card-bg: #2d2d2d; --text: #ffb7c5; --input-bg: #383838; --border: #ffb7c5; }
   body.toxic-neon { --primary: #39ff14; --bg-body: #0a0a0a; --card-bg: #151515; --text: #39ff14; --input-bg: #000000; --border: #39ff14; }
-  /* Tambahkan ini di dalam tag <style> setelah daftar tema warna */
 
 :root {
-  /* Default warna jika belum ada tema yang terpilih */
-  --primary: #3b82f6;
-  --bg-body: #f3f4f6;
-  --card-bg: #ffffff;
-  --text: #111827;
-  --input-bg: #ffffff;
-  --border: #e5e7eb;
-}
-
-body {
-  background-color: var(--bg-body) !important;
-  color: var(--text) !important;
-  transition: all 0.3s ease; /* Biar perpindahan warnanya halus */
-}
-
-/* Pastikan class Tailwind menggunakan variabel warna kita */
-.bg-card { background-color: var(--card-bg) !important; }
-.text-primary { color: var(--primary) !important; }
-.border-theme { border-color: var(--border) !important; }
-.bg-input { background-color: var(--input-bg) !important; }
-  
-/* Tambahkan ini di bawah .bg-input agar teks lain ikut berubah */
-body * {
-  border-color: var(--border);
-}
-
-/* Supaya teks di tombol atau input tidak nabrak warna background */
-input, select, textarea {
-  background-color: var(--input-bg) !important;
-  color: var(--text) !important;
-  border-color: var(--border) !important;
-}
-
-/* Kalau kamu pakai class text-gray-xxx di Tailwind, ini akan memaksa mereka ikut warna tema */
-.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500 {
-  color: var(--text) !important;
-}
-
-/* 1. Paksa Header dan Sidebar ikut warna Body */
-header, aside, main {
-  background-color: var(--bg-body) !important;
-  border-color: var(--border) !important;
-}
-
-/* 2. Paksa elemen yang biasanya putih (bg-white) jadi warna Card Tema */
-.bg-white {
-  background-color: var(--card-bg) !important;
-}
-
-/* 3. Paksa elemen latar belakang abu-abu (bg-gray-50/100) jadi warna Body Tema */
-.bg-gray-50, .bg-gray-100 {
-  background-color: var(--bg-body) !important;
-}
-
-/* 4. Paksa teks judul atau teks gelap agar ikut variabel --text */
-.text-gray-900, .text-gray-800, .text-gray-700, .text-blue-700 {
-  color: var(--text) !important;
-}
-
-/* 5. Paksa border agar tidak kaku */
-.border-gray-200, .border-blue-200, .border-blue-100 {
-  border-color: var(--border) !important;
-}
-
-/* 6. Khusus Tombol Utama (Primary) */
-/* Jika kamu ingin tombol biru berubah jadi warna Primary Tema */
-.bg-blue-600, .bg-blue-500 {
-  background-color: var(--primary) !important;
-  color: white !important; /* Biasanya teks di tombol tetap putih agar kontras */
+  --primary: #3b82f6; --bg-body: #f3f4f6; --card-bg: #ffffff; --text: #111827; --input-bg: #ffffff; --border: #e5e7eb;
 }
 
 /* =========================================
-   PERBAIKAN TAMPILAN (Tempel di index.html)
+   2. ATURAN WAJIB (BACKGROUND, KARTU, TEKS)
    ========================================= */
+body { background-color: var(--bg-body) !important; color: var(--text) !important; }
+header, main, aside, .bg-gray-50, .bg-gray-100 { background-color: var(--bg-body) !important; }
+.bg-white { background-color: var(--card-bg) !important; border-color: var(--border) !important; }
 
-/* 1 & 2. PERBAIKI WARNA KOLOM INPUT & SELECT AGAR SERAGAM */
+/* Mengubah text yang tadinya abu-abu menjadi sesuai tema */
+.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--text) !important; }
+/* Mengubah border yang tadinya abu-abu menjadi sesuai tema */
+.border-gray-100, .border-gray-200 { border-color: var(--border) !important; }
+
+/* =========================================
+   3. ATURAN INPUT & SELECT (Menjawab Gambar 1 & 2)
+   ========================================= */
 input, select, textarea {
     background-color: var(--input-bg) !important;
     color: var(--text) !important;
     border-color: var(--border) !important;
-    /* appearance: none ini penting agar tampilan Select di HP tidak pakai style bawaan OS */
 }
 
-/* PERBAIKI GARIS BIRU SAAT KOLOM/TOMBOL DIKLIK (Focus Ring) */
-input:focus, select:focus, textarea:focus, button:focus {
+/* Memperbaiki garis (ring) biru muda bawaan Tailwind saat diklik */
+input:focus, select:focus, textarea:focus {
     outline: none !important;
     border-color: var(--primary) !important;
-    /* Ini menimpa efek cahaya biru bawaan Tailwind menjadi warna Primary tema */
     box-shadow: 0 0 0 2px var(--primary) !important; 
 }
 
-/* 3. PERBAIKI TOMBOL HALAMAN & BACKGROUND YANG MASIH PUTIH */
-/* Paksa semua yang hardcode 'bg-white' berubah jadi warna Card tema */
-.bg-white {
-    background-color: var(--card-bg) !important;
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-}
-
-/* Paksa text abu-abu bawaan Tailwind mengikuti warna Text tema */
-.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600 {
-    color: var(--text) !important;
-}
-
-/* PERBAIKI TOMBOL MENU NAVIGASI YANG SEDANG AKTIF (Menu Atas) */
-/* Karena di kodenya pakai bg-blue-50/bg-red-50, kita ubah jadi warna Primary Tema */
-aside .bg-blue-50, aside .bg-green-50, aside .bg-red-50 {
+/* =========================================
+   4. ATURAN TOMBOL NAVIGASI MENU (Menjawab Gambar 3)
+   ========================================= */
+/* Tombol menu yang AKTIF (Logo, Idea, Prompt, dll) */
+aside button.bg-blue-50 {
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
-    color: #ffffff !important; /* Text di tombol aktif dipaksa putih agar kontras */
-}
-
-/* Matikan text biru/merah/hijau di tombol yang sedang aktif */
-aside .text-blue-700, aside .text-green-700, aside .text-red-700 {
     color: #ffffff !important;
 }
 
-/* Perbaiki background header pembatas di atas (Active Workspace) */
+/* Supaya ikon SVG di dalam tombol menu yang aktif juga ikutan putih */
+aside button.bg-blue-50 svg, aside button.bg-blue-50 span {
+    color: #ffffff !important;
+}
+
+/* Memperbaiki teks "Active Workspace" yang nabrak */
 aside .bg-blue-50.border-blue-100 {
     background-color: var(--bg-body) !important;
     border-color: var(--border) !important;
 }
-aside .text-blue-400 { color: var(--text) !important; opacity: 0.7; }  
-  
 </style>
     
 </head>
