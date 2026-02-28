@@ -1051,17 +1051,17 @@ const App: React.FC = () => {
             
             <div className="flex flex-col bg-white shrink-0 border-gray-200">
                <div className="flex items-center gap-1 p-2">
-                   <button 
-                      onClick={() => handleNavigation('apikeys')} 
-                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
-                          activeTab === 'apikeys' 
-                          ? (isConfigReady ? 'bg-green-50 text-green-700 border-green-300' : 'bg-red-50 text-red-700 border-red-300')
-                          : (isConfigReady ? 'bg-white text-green-600 border-green-200 hover:bg-green-50' : 'bg-white text-red-600 border-red-200 hover:bg-red-50')
-                      }`}
-                      title="API Configuration"
-                   >
-                      <Settings className="w-5 h-5" />
-                   </button>
+                   <button 
+                      onClick={() => handleNavigation('apikeys')} 
+                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
+                          activeTab === 'apikeys' 
+                          ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      }`}
+                      title="API Configuration"
+                   >
+                      <Settings className="w-5 h-5" />
+                   </button>
                    
                    <button 
                       onClick={() => handleNavigation('idea' as any)} 
@@ -1199,8 +1199,8 @@ const App: React.FC = () => {
                     {activeTab !== 'logs' && activeTab !== 'apikeys' && (
                         <div className="flex flex-col gap-4 mt-2">
                             {/* ACTIVITY STATUS */}
-                            <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
-                                <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2 bg-gray-50">
+                            <div className={`rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`} style={{ backgroundColor: 'var(--card-bg)' }}>
+                                <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2">
                                     <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-2.5 shadow-sm transition-all">
                                         <div className="flex items-center gap-1 mb-1 text-blue-600">
                                             <Clock size={13} className="shrink-0" />
@@ -1224,7 +1224,7 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="p-3 bg-white flex items-center justify-between gap-3">
+                                <div className="p-3 flex items-center justify-between gap-3">
                                     <button 
                                         onClick={handleClearAll} 
                                         disabled={currentFiles.length === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
