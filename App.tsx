@@ -1049,7 +1049,7 @@ const App: React.FC = () => {
         <main className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative pt-16">
           <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
             
-            <div className="flex flex-col bg-white shrink-0 border-gray-200">
+            <div className="flex flex-col shrink-0 border-gray-200" style={{ backgroundColor: 'var(--card-bg)' }}>
                <div className="flex items-center gap-1 p-2">
                    <button 
                       onClick={() => handleNavigation('apikeys')} 
@@ -1098,12 +1098,6 @@ const App: React.FC = () => {
                    >
                       <Activity className="w-5 h-5" />
                    </button>
-               </div>
-               
-               <div className="px-2 pb-2 h-9">
-                  <div className="bg-blue-50 border border-blue-100 rounded px-3 py-1.5 flex items-center justify-between">      
-                       <span className="text-xs font-bold text-blue-700 uppercase flex items-center gap-1 truncate max-w-[150px]">{activeModeLabel} <ChevronRight size={12} className="shrink-0" /></span>
-                  </div>
                </div>
             </div>
   
