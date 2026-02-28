@@ -1101,7 +1101,7 @@ const App: React.FC = () => {
                </div>
                
                <div className="px-2 pb-2 h-9">
-                  <div className="bg-blue-50 border border-blue-100 rounded px-3 py-1.5 flex items-center justify-between"      
+                  <div className="bg-blue-50 border border-blue-100 rounded px-3 py-1.5 flex items-center justify-between">      
                        <span className="text-xs font-bold text-blue-700 uppercase flex items-center gap-1 truncate max-w-[150px]">{activeModeLabel} <ChevronRight size={12} className="shrink-0" /></span>
                   </div>
                </div>
