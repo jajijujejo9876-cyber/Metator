@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Download, Trash2, Wand2, UploadCloud, FolderOutput, FilePlus, CheckCircle, XCircle, Clock, Database, Activity, Coffee, FolderPlus, Sparkles, Eraser, Lightbulb, Command, Filter, Lock, Key, Menu, ChevronRight, Info, Check, Bot, Settings, Pause, Play, Copy, Languages, RefreshCw, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -93,7 +92,7 @@ const App: React.FC = () => {
       titleMax: 100,
       slideKeyword: 40,
       videoFrameCount: 3,
-      workerCount: 5,
+      workerCount: 10,
       ideaMode: 'free', 
       ideaQuantity: 30, 
       ideaCategory: 'auto',
@@ -1088,17 +1087,22 @@ const App: React.FC = () => {
                     />
                     )}
                     {activeTab === 'apikeys' && (
-                        <ApiKeyPanel 
-                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
-                            mode='metadata' provider={settings.apiProvider}
-                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
-                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
-                            workerCount={settings.workerCount} setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
-                            apiDelay={apiDelay} setApiDelay={setApiDelay}
-                            appColor={appColor} setAppColor={setAppColor}
-                        />
-                    )}
-                  
+                        <ApiKeyPanel 
+                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
+                            mode='metadata' provider={settings.apiProvider}
+                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
+                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
+                            groqModel={settings.groqModel} setGroqModel={(m) => setSettings(prev => ({ ...prev, groqModel: m }))}
+                            puterModel={settings.puterModel} setPuterModel={(m) => setSettings(prev => ({ ...prev, puterModel: m }))}
+                            mistralBaseUrl={settings.mistralBaseUrl} setMistralBaseUrl={(u) => setSettings(prev => ({ ...prev, mistralBaseUrl: u }))}
+                            mistralModel={settings.mistralModel} setMistralModel={(m) => setSettings(prev => ({ ...prev, mistralModel: m }))}
+                            customBaseUrl={settings.customBaseUrl} setCustomBaseUrl={(u) => setSettings(prev => ({ ...prev, customBaseUrl: u }))}
+                            customModel={settings.customModel} setCustomModel={(m) => setSettings(prev => ({ ...prev, customModel: m }))}
+                            cooldownKeys={cooldownKeysRef.current} workerCount={settings.workerCount}
+                            setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                        />
+                    )}
+
                     {activeTab === 'logs' && (
                         <div className="flex flex-col gap-4 animate-in fade-in duration-300">
                             <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
@@ -1316,3 +1320,5 @@ const App: React.FC = () => {
   };
   
   export default App;
+
+atau kau cukup kasih tau mana saja yang perlu dirubah dan diganti apa, biar saya yang edit
