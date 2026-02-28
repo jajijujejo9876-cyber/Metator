@@ -50,7 +50,13 @@ const App: React.FC = () => {
   const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
   const [currentTime, setCurrentTime] = useState(new Date());
-  
+
+  const [apiDelay, setApiDelay] = useState<number>(() => {
+    const saved = localStorage.getItem('ISA_API_DELAY');
+    return saved !== null ? parseInt(saved, 10) : 3;
+  });
+  const apiDelayRef = useRef(apiDelay);
+  
   const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
     try {
       const saved = localStorage.getItem('ISA_API_KEYS');
@@ -779,7 +785,7 @@ const App: React.FC = () => {
       if (selectedKey === null && (settings.apiProvider !== 'PUTER' && settings.apiProvider !== 'AUTO')) {
         queueRef.current.unshift(fileId);
         activeWorkersRef.current--;
-        setTimeout(() => spawnWorker(workerId, mode, keysPool), 2000); 
+        setTimeout(() => spawnWorker(workerId, mode, keysPool), 1000);
         return;
       }
   
@@ -1087,21 +1093,16 @@ const App: React.FC = () => {
                     />
                     )}
                     {activeTab === 'apikeys' && (
-                        <ApiKeyPanel 
-                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
-                            mode='metadata' provider={settings.apiProvider}
-                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
-                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
-                            groqModel={settings.groqModel} setGroqModel={(m) => setSettings(prev => ({ ...prev, groqModel: m }))}
-                            puterModel={settings.puterModel} setPuterModel={(m) => setSettings(prev => ({ ...prev, puterModel: m }))}
-                            mistralBaseUrl={settings.mistralBaseUrl} setMistralBaseUrl={(u) => setSettings(prev => ({ ...prev, mistralBaseUrl: u }))}
-                            mistralModel={settings.mistralModel} setMistralModel={(m) => setSettings(prev => ({ ...prev, mistralModel: m }))}
-                            customBaseUrl={settings.customBaseUrl} setCustomBaseUrl={(u) => setSettings(prev => ({ ...prev, customBaseUrl: u }))}
-                            customModel={settings.customModel} setCustomModel={(m) => setSettings(prev => ({ ...prev, customModel: m }))}
-                            cooldownKeys={cooldownKeysRef.current} workerCount={settings.workerCount}
-                            setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
-                        />
-                    )}
+                        <ApiKeyPanel 
+                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
+                            mode='metadata' provider={settings.apiProvider}
+                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
+                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
+                            workerCount={settings.workerCount} setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                            apiDelay={apiDelay} setApiDelay={setApiDelay}
+                            appColor={appColor} setAppColor={setAppColor}
+                        />
+                    )}
 
                     {activeTab === 'logs' && (
                         <div className="flex flex-col gap-4 animate-in fade-in duration-300">
