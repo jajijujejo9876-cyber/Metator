@@ -1194,21 +1194,21 @@ const App: React.FC = () => {
                             {/* ACTIVITY STATUS */}
                             <div className={`rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`} style={{ backgroundColor: 'var(--card-bg)' }}>
                                 <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2">
-                                    <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-2.5 shadow-sm transition-all">
+                                    <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-transparent py-2.5 shadow-sm transition-all">
                                         <div className="flex items-center gap-1 mb-1 text-blue-600">
                                             <Clock size={13} className="shrink-0" />
                                             <span className="text-sm font-normal capitalize leading-none">Selected</span>
                                         </div>
                                         <span className="text-xs font-black text-blue-600 tabular-nums">{displayTotalFiles}</span>
                                     </div>
-                                    <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-green-50 py-2.5 shadow-sm transition-all">
+                                    <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-transparent py-2.5 shadow-sm transition-all">
                                         <div className="flex items-center gap-1 mb-1 text-green-600">
                                             <CheckCircle size={13} className="shrink-0" />
                                             <span className="text-sm font-normal capitalize leading-none">Completed</span>
                                         </div>
                                         <span className="text-xs font-black text-green-700 tabular-nums">{completedCount}</span>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-red-50 py-2.5 shadow-sm transition-all">
+                                    <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-transparent py-2.5 shadow-sm transition-all">
                                         <div className="flex items-center gap-1 mb-1 text-red-600">
                                             <XCircle size={13} className="shrink-0" />
                                             <span className="text-sm font-normal capitalize leading-none">Failed</span>
