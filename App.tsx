@@ -1320,5 +1320,3 @@ const App: React.FC = () => {
   };
   
   export default App;
-
-atau kau cukup kasih tau mana saja yang perlu dirubah dan diganti apa, biar saya yang edit
