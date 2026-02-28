@@ -1036,7 +1036,7 @@ const App: React.FC = () => {
 
     return (
       <div className={`flex flex-col min-h-screen md:h-screen bg-gray-50 overflow-x-hidden ${appColor}`}>
-        <header className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 px-6 h-16 flex items-center justify-between shadow-sm z-50">
+        <header className="fixed top-0 left-0 w-full border-b border-gray-200 px-6 h-16 flex items-center justify-between shadow-sm z-50">
           <div className="flex items-center">
             <h1 className="text-6xl font-share-tech font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent tracking-tighter leading-none select-none">IsaProject</h1>
           </div>
@@ -1279,7 +1279,7 @@ const App: React.FC = () => {
           <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
             {isSidebarOnlyMode ? (
                 <div className="flex h-full flex-col items-center justify-center bg-gray-50 p-8">
-                    <div className="flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+                    <div className="flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 p-6 text-center shadow-sm">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
                             {activeTab === 'apikeys' ? <Key size={32} /> : <Activity size={32} />}
                         </div>
@@ -1289,7 +1289,7 @@ const App: React.FC = () => {
                 </div>
             ) : (
                 <>
-                  <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-gray-200 bg-white p-4 shadow-sm md:static">
+                  <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-gray-200 p-4 shadow-sm md:static">
                     <div className="flex items-center gap-2 text-gray-700">
                         <FolderOutput className={`w-5 h-5 ${getThemeColor()}`} />
                         <h2 className="text-xl font-bold tracking-tight uppercase">OUTPUT RESULTS</h2>
