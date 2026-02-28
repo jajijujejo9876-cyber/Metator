@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Download, Trash2, Wand2, UploadCloud, FolderOutput, FilePlus, CheckCircle, XCircle, Clock, Database, Activity, Coffee, FolderPlus, Sparkles, Eraser, Lightbulb, Command, Filter, Lock, Key, Menu, ChevronRight, Info, Check, Bot, Settings, Pause, Play, Copy, Languages, RefreshCw, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
