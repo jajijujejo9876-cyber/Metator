@@ -45,37 +45,43 @@ const rawStringify = (val: any): string => {
 };
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
-  const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
+  const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const [apiDelay, setApiDelay] = useState<number>(() => {
     const saved = localStorage.getItem('ISA_API_DELAY');
     return saved !== null ? parseInt(saved, 10) : 3;
   });
+
   const apiDelayRef = useRef(apiDelay);
+
+  useEffect(() => {
+    apiDelayRef.current = apiDelay;
+    localStorage.setItem('ISA_API_DELAY', apiDelay.toString());
+  }, [apiDelay]);
   
-  const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
-    try {
-      const saved = localStorage.getItem('ISA_API_KEYS');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-            AUTO: [],
-            GEMINI: parsed.GEMINI || [],
-            GROQ: parsed.GROQ || [],
-            PUTER: parsed.PUTER || [],
-            MISTRAL: parsed.MISTRAL || [],
-            CUSTOM: parsed.CUSTOM || []
-        };
-      }
-      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
-    } catch (e) {
-      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
-    }
-  });
+  const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
+    try {
+      const saved = localStorage.getItem('ISA_API_KEYS');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+            AUTO: [],
+            GEMINI: parsed.GEMINI || [],
+            GROQ: parsed.GROQ || [],
+            PUTER: parsed.PUTER || [],
+            MISTRAL: parsed.MISTRAL || [],
+            CUSTOM: parsed.CUSTOM || []
+        };
+      }
+      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
+    } catch (e) {
+      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
+    }
+  });
 
   const [isPaidUnlocked, setIsPaidUnlocked] = useState(false);
 
@@ -114,35 +120,6 @@ const App: React.FC = () => {
       promptJsonOutput: false,
       promptPlatform: 'Photo/Image', 
       promptSourceFiles: [],
-      imageGenMode: 'T2I',
-      imageGenT2ISubMode: 'single',
-      imageGenT2I: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenT2IBatch: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenI2I: { prompt: '', quantity: 1, aspectRatio: 'auto', zipFilename: '' },
-      imageGenBlend: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenAds: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenBlendCategory: 'aesthetic_fusion',
-      imageGenAdsSubHeadings: {
-        auto: true,
-        media: 'NO',
-        history: 'NO',
-        photo: 'NO',
-        digital: 'NO',
-        pop: 'NO',
-        material: 'NO',
-        core: 'NO',
-        print: 'NO'
-      },
-      imageGenAdsTexts: [],
-      imageGenSourceFile: null,
-      imageGenBatchFile: null,
-      imageGenReferenceFiles: [],
-      imageGenAdsObjectFiles: [],
-      imageGenAdsStyleFiles: [],
-      eduSourceType: 'YouTube' as any,
-      eduInputUrl: '',
-      eduSourceFiles: [],
-      selectedFileType: FileType.Image,
       csvFilename: '',
       outputFormat: 'csv',
     };
