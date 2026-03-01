@@ -51,7 +51,7 @@
       }
 
       body {
-        background-color: #f9fafb; /* Warna latar belakang */
+        background-color: #f9fafb;
         opacity: 0;
         visibility: hidden;
         margin: 0;
@@ -62,6 +62,22 @@
         opacity: 1;
         visibility: visible;
         transition: opacity 0.3s ease-in-out;
+      }
+
+      #root header {
+        height: 64px !important;
+        max-height: 64px !important;
+        min-height: 64px !important;
+        box-sizing: border-box !important;
+      }
+
+      #root header h1 {
+        font-size: 3rem !important; /* Setara text-5xl */
+        line-height: 1 !important;
+      }
+
+      #root main {
+        padding-top: 64px !important;
       }
     </style>      
 
