@@ -11,8 +11,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Share+Tech&display=swap" rel="stylesheet">
 
     <style>
+      /* 1. Mencegah kedipan font (FOUT) */
       body {
         font-family: 'Share Tech', sans-serif !important;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* 2. Mencegah Layout Lompat / Bergeser (FOUC) saat baru dimuat */
+      /* Kunci posisi Header agar selalu melayang di atas sejak awal */
+      header {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 64px !important; /* Mengunci tinggi, setara class h-16 Tailwind */
+        box-sizing: border-box;
+      }
+
+      /* Kunci jarak konten utama agar tidak melompat menabrak header */
+      main {
+        padding-top: 64px !important; /* Mengunci jarak, setara class pt-16 Tailwind */
+        box-sizing: border-box;
       }
     </style>
 
