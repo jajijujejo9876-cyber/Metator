@@ -56,20 +56,20 @@ const App: React.FC = () => {
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-            GEMINI CANVAS: parsed.GEMINI CANVAS || []
+            GEMINI: parsed.GEMINI || []
         };
       }
-      return { GEMINI CANVAS: [] };
+      return { GEMINI: [] };
     } catch (e) {
-      return { GEMINI CANVAS: [] };
-    }
+      return { GEMINI: [] };
+    }
   });
 
   const [isPaidUnlocked, setIsPaidUnlocked] = useState(false);
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
-      apiProvider: 'GEMINI CANVAS', 
+      apiProvider: 'GEMINI', 
       geminiModel: 'gemini-3-flash-preview', 
       customModel: '',
       customTitle: '',
@@ -1054,20 +1054,20 @@ const App: React.FC = () => {
                                 </div>
                                 <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
                                     <button
+                                        onClick={() => setLogViewMode('transparent')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
+                                            logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        Transparent
+                                    </button>
+                                    <button
                                         onClick={() => setLogViewMode('clipped')}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
                                             logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                         }`}
                                     >
                                         Clipped
-                                    </button>
-                                    <button
-                                        onClick={() => setLogViewMode('transparent')} 
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
-                                            logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                                        }`}
-                                    >
-                                        Transparent  
                                     </button>
                                 </div>
 
