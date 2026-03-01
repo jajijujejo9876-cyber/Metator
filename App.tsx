@@ -93,7 +93,8 @@ const App: React.FC = () => {
       slideKeyword: 40,
       videoFrameCount: 3,
       workerCount: 10,
-      ideaMode: 'free', 
+      apiDelay: 3,      
+      ideaMode: '', 
       ideaQuantity: 30, 
       ideaCategory: 'auto',
       ideaCustomInput: '',
@@ -108,35 +109,6 @@ const App: React.FC = () => {
       promptJsonOutput: false,
       promptPlatform: 'Photo/Image', 
       promptSourceFiles: [],
-      imageGenMode: 'T2I',
-      imageGenT2ISubMode: 'single',
-      imageGenT2I: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenT2IBatch: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenI2I: { prompt: '', quantity: 1, aspectRatio: 'auto', zipFilename: '' },
-      imageGenBlend: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenAds: { prompt: '', quantity: 1, aspectRatio: '1:1', zipFilename: '' },
-      imageGenBlendCategory: 'aesthetic_fusion',
-      imageGenAdsSubHeadings: {
-        auto: true,
-        media: 'NO',
-        history: 'NO',
-        photo: 'NO',
-        digital: 'NO',
-        pop: 'NO',
-        material: 'NO',
-        core: 'NO',
-        print: 'NO'
-      },
-      imageGenAdsTexts: [],
-      imageGenSourceFile: null,
-      imageGenBatchFile: null,
-      imageGenReferenceFiles: [],
-      imageGenAdsObjectFiles: [],
-      imageGenAdsStyleFiles: [],
-      eduSourceType: 'YouTube' as any,
-      eduInputUrl: '',
-      eduSourceFiles: [],
-      selectedFileType: FileType.Image,
       csvFilename: '',
       outputFormat: 'csv',
     };
@@ -1069,78 +1041,80 @@ const App: React.FC = () => {
                     />
                     )}
                     {activeTab === 'apikeys' && (
-                        <ApiKeyPanel 
-                            apiKeys={currentProviderKeys} setApiKeys={handleUpdateCurrentProviderKeys} isProcessing={isProcessing} 
-                            mode='metadata' provider={settings.apiProvider}
-                            setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p }))}
-                            geminiModel={settings.geminiModel} setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
-                            groqModel={settings.groqModel} setGroqModel={(m) => setSettings(prev => ({ ...prev, groqModel: m }))}
-                            puterModel={settings.puterModel} setPuterModel={(m) => setSettings(prev => ({ ...prev, puterModel: m }))}
-                            mistralBaseUrl={settings.mistralBaseUrl} setMistralBaseUrl={(u) => setSettings(prev => ({ ...prev, mistralBaseUrl: u }))}
-                            mistralModel={settings.mistralModel} setMistralModel={(m) => setSettings(prev => ({ ...prev, mistralModel: m }))}
-                            customBaseUrl={settings.customBaseUrl} setCustomBaseUrl={(u) => setSettings(prev => ({ ...prev, customBaseUrl: u }))}
-                            customModel={settings.customModel} setCustomModel={(m) => setSettings(prev => ({ ...prev, customModel: m }))}
-                            cooldownKeys={cooldownKeysRef.current} workerCount={settings.workerCount}
-                            setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
-                        />
-                    )}
+                        <div className="flex flex-col gap-4 animate-in fade-in duration-300 pb-4">
+                            {/* BAGIAN ATAS: API SETTINGS */}
+                            <ApiKeyPanel 
+                                apiKeys={currentProviderKeys} 
+                                setApiKeys={handleUpdateCurrentProviderKeys} 
+                                isProcessing={isProcessing} 
+                                mode='metadata' 
+                                provider='GEMINI CANVAS'
+                                geminiModel={settings.geminiModel} 
+                                setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
+                                workerCount={settings.workerCount}
+                                setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                                apiDelay={settings.apiDelay}
+                                setApiDelay={(num) => setSettings(prev => ({ ...prev, apiDelay: num }))}
+                            />
 
-                    {activeTab === 'logs' && (
-                        <div className="flex flex-col gap-4 animate-in fade-in duration-300">
-                            <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
-                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">Logs Perspective</label>
-                            <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
-                                <button
-                                    onClick={() => setLogViewMode('transparent')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
-                                        logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    Transparent
-                                </button>
-                                <button
-                                    onClick={() => setLogViewMode('clipped')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
-                                        logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    Clipped
-                                </button>
-                            </div>
-                            </div>
+                            {/* BAGIAN BAWAH: SYSTEM LOGS */}
+                            <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Activity className="w-4 h-4 text-blue-500" />
+                                    <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">System Logs</h2>
+                                </div>
+                                <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+                                    <button
+                                        onClick={() => setLogViewMode('transparent')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
+                                            logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        Transparent
+                                    </button>
+                                    <button
+                                        onClick={() => setLogViewMode('clipped')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
+                                            logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        Clipped
+                                    </button>
+                                </div>
 
-                            <div className={`relative flex h-[540px] shrink-0 flex-col overflow-hidden rounded-lg border transition-all duration-500 ${
-                                logViewMode === 'transparent' 
-                                    ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
-                                    : 'bg-white border-blue-200 shadow-sm'
-                            }`}>
-                                <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
-                                    <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
-                                    <button onClick={handleCopyLogs} className="flex-1 flex items-center justify-center gap-2 bg-blue-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-red-100"><Copy size={14} /> COPY LOGS</button>
-                                </div>
-                                <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200/50">
-                                    {filteredLogs.length === 0 ? (
-                                    <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400 opacity-40"><Activity size={32} /> <p>No logs found.</p></div>
-                                    ) : (
-                                    <div className="flex flex-col gap-2">
-                                        {filteredLogs.map(log => (
-                                        <div key={log.id} className="flex items-start gap-2 break-all border-b border-gray-50/50 pb-1 last:border-0">
-                                            <span className={`mt-0.5 shrink-0 rounded px-1 text-[10px] font-medium ${log.mode === 'idea' ? 'bg-amber-100/80 text-amber-700' : log.mode === 'prompt' ? 'bg-fuchsia-100/80 text-fuchsia-700' : log.mode === 'metadata' ? 'bg-blue-100/80 text-blue-700' : 'bg-gray-100/80 text-gray-600'}`}>{log.mode?.substring(0,4).toUpperCase()}</span>
-                                            <div className="flex min-w-0 flex-1 flex-col">
-                                                <span className="font-mono text-[10px] text-gray-400/80">{log.time}</span>
-                                                <span className={`text-xs ${log.type === 'error' ? 'text-red-600 font-bold' : log.type === 'success' ? 'text-green-600 font-semibold' : log.type === 'warning' ? 'text-orange-600 font-semibold' : 'text-gray-700'} ${logViewMode === 'clipped' ? 'line-clamp-2 overflow-hidden' : 'break-words whitespace-pre-wrap'}`}>
-                                                    {log.message}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        ))}
-                                    </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
+                                <div className={`relative flex h-[350px] shrink-0 flex-col overflow-hidden rounded-lg border transition-all duration-500 mt-2 ${
+                                    logViewMode === 'transparent' 
+                                        ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
+                                        : 'bg-white border-blue-200 shadow-sm'
+                                }`}>
+                                    <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
+                                        <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
+                                        <button onClick={handleCopyLogs} className="flex-1 flex items-center justify-center gap-2 bg-blue-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-red-100"><Copy size={14} /> COPY LOGS</button>
+                                    </div>
+                                    <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200/50">
+                                        {filteredLogs.length === 0 ? (
+                                        <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400 opacity-40"><Activity size={32} /> <p>No logs found.</p></div>
+                                        ) : (
+                                        <div className="flex flex-col gap-2">
+                                            {filteredLogs.map(log => (
+                                            <div key={log.id} className="flex items-start gap-2 break-all border-b border-gray-50/50 pb-1 last:border-0">
+                                                <span className={`mt-0.5 shrink-0 rounded px-1 text-[10px] font-medium ${log.mode === 'idea' ? 'bg-amber-100/80 text-amber-700' : log.mode === 'prompt' ? 'bg-fuchsia-100/80 text-fuchsia-700' : log.mode === 'metadata' ? 'bg-blue-100/80 text-blue-700' : 'bg-gray-100/80 text-gray-600'}`}>{log.mode?.substring(0,4).toUpperCase()}</span>
+                                                <div className="flex min-w-0 flex-1 flex-col">
+                                                    <span className="font-mono text-[10px] text-gray-400/80">{log.time}</span>
+                                                    <span className={`text-xs ${log.type === 'error' ? 'text-red-600 font-bold' : log.type === 'success' ? 'text-green-600 font-semibold' : log.type === 'warning' ? 'text-orange-600 font-semibold' : 'text-gray-700'} ${logViewMode === 'clipped' ? 'line-clamp-2 overflow-hidden' : 'break-words whitespace-pre-wrap'}`}>
+                                                        {log.message}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            ))}
+                                        </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                        
                     {/* ACTIVITY & ACTIONS INSIDE SCROLLABLE AREA */}
                     {activeTab !== 'logs' && activeTab !== 'apikeys' && (
                         <div className="flex flex-col gap-4 mt-2">
