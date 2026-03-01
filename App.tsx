@@ -803,11 +803,12 @@ const App: React.FC = () => {
           }
           addLog(`[Gagal] ${rawErrorMsg}`, 'error', mode);
         }
-      }
-  
-      activeWorkersRef.current--;
-      setTimeout(() => spawnWorker(workerId, mode, keysPool), 500);
-    };
+      }
+      
+      activeWorkersRef.current--;
+      const delayInMs = (settings.apiDelay && settings.apiDelay >= 1 ? settings.apiDelay : 1) * 1000;
+      setTimeout(() => spawnWorker(workerId, mode, keysPool), delayInMs);
+    };
   
     const checkCompletion = (mode: AppMode) => {
       if (activeWorkersRef.current === 0) {
@@ -1044,12 +1045,7 @@ const App: React.FC = () => {
                             />
 
                             {/* BAGIAN BAWAH: SYSTEM LOGS */}
-                            <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Activity className="w-4 h-4 text-blue-500" />
-                                    <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">System Logs</h2>
-                                </div>
-                                <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+                            <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
                                     <button
                                         onClick={() => setLogViewMode('clipped')}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-none ${
