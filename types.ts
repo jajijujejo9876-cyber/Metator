@@ -12,7 +12,7 @@ export enum ProcessingStatus {
   Failed = 'failed',
 }
 
-export type ApiProvider = 'AUTO' | 'GEMINI' | 'GROQ' | 'PUTER' | 'CUSTOM' | 'MISTRAL';
+export type ApiProvider = 'GEMINI CANVAS';
 
 export interface LocalizedContent {
   title: string;
