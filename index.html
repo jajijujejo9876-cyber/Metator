@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>METATOR by IRS</title>
+    <title>IsaProject</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,46 +48,41 @@
     </script>
 
     <style>
-      body { margin: 0; padding: 0; font-family: 'Share Tech', sans-serif !important; background-color: #f9fafb; }
+      /* 1. Mencegah font bawaan muncul */
+      * {
+        font-family: 'Share Tech', sans-serif !important;
+      }
+
+      /* 2. Sembunyikan total aplikasi saat baru direfresh (Layar Abu-abu) */
+      body {
+        background-color: #f9fafb;
+        opacity: 0;
+        visibility: hidden;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* 3. Class ini akan memunculkan aplikasi dengan halus setelah React siap */
+      body.app-ready {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.3s ease-in-out;
+      }
     </style>
   </head>
   
   <body class="bg-gray-50 text-gray-900 min-h-screen md:h-screen md:overflow-hidden font-share-tech">
-    
-    <div id="root" class="h-full">
-      <div style="display: flex; flex-direction: column; height: 100vh; width: 100%; background-color: #f9fafb; overflow: hidden;">
-        
-        <header style="position: fixed; top: 0; left: 0; width: 100%; height: 64px; background-color: #ffffff; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; padding: 0 24px; box-sizing: border-box; z-index: 50;">
-          <h1 style="font-size: 3.75rem; font-family: 'Share Tech', sans-serif; font-weight: bold; color: #3b82f6; margin: 0; line-height: 1;">IsaProject</h1>
-        </header>
-
-        <main style="display: flex; flex: 1; padding-top: 64px; height: 100vh; box-sizing: border-box;">
-          
-          <aside style="width: 380px; flex-shrink: 0; background-color: #f9fafb; border-right: 1px solid #e5e7eb; display: none; margin-left: 8px;" class="md-skeleton">
-            <div style="background-color: #ffffff; height: 53px; border-bottom: 1px solid #e5e7eb;"></div>
-          </aside>
-          
-          <section style="flex: 1; background-color: #f3f4f6; border-top: 1px solid #e5e7eb;"></section>
-        </main>
-      </div>
-
-      <style>
-        @media (min-width: 768px) {
-          .md-skeleton { display: block !important; }
-        }
-      </style>
-        
-  </head>
-  <body class="bg-gray-50 text-gray-900 min-h-screen md:h-screen md:overflow-hidden font-share-tech">
-    <div id="root" class="h-full"></div>
-    <script type="module" src="/index.tsx"></script>
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/index.tsx"></script>
 
     <script>
+      // Perintah ini akan menunggu sampai SEMUA script (termasuk Tailwind) selesai loading
       window.addEventListener('load', function() {
+        // Beri waktu ekstra 100 milidetik untuk memastikan susunan React sudah rapi
         setTimeout(function() {
           document.body.classList.add('app-ready');
         }, 100);
       });
     </script>
-  </body>
+  </body>
 </html>
