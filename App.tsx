@@ -994,18 +994,20 @@ const App: React.FC = () => {
     const isConfigReady = settings.apiProvider === 'AUTO' || currentProviderKeys.length > 0;
 
     return (
-      <div className="flex flex-col min-h-screen md:h-screen bg-gray-50 overflow-x-hidden">
-        <header className="w-full bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-50 shrink-0">
-          <div className="flex items-center">
-            <h1 className="text-5xl font-share-tech font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent tracking-tighter leading-none select-none">IsaProject</h1>
-          </div>
+      <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden">
+        <header className="w-full bg-white border-b border-gray-200 px-4 h-16 flex items-center justify-between shrink-0 shadow-sm z-50">
+        <div className="flex items-center">
+          <h1 className="text-4xl md:text-5xl font-share-tech font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent tracking-tighter leading-none select-none">
+            IsaProject
+          </h1>
+        </div>
           <div className="flex flex-col items-end justify-center text-gray-800">
              <span className="text-2xl leading-none tracking-tight tabular-nums">{formatTime(currentTime)}</span>
              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-0.5 tabular-nums">{formatDate(currentTime)}</span>
           </div>
         </header>
   
-        <main className="flex-1 flex flex-col md:flex-row md:overflow-hidden relative">
+        <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
           <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
             
             <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
