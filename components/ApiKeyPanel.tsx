@@ -111,7 +111,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                  <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Provider</label>
                     <div className={`${inputClass} flex items-center bg-gray-50 font-bold text-gray-700 border-solid`}>
-                      Api Canvas
+                      GEMINI CANVAS
                     </div>
                  </div>
                  
