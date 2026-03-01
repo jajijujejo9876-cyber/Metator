@@ -46,12 +46,10 @@
 </script>
 
 <style>
-      /* 1. Mencegah font bawaan muncul */
       * {
         font-family: 'Share Tech', sans-serif !important;
       }
 
-      /* 2. Sembunyikan total aplikasi saat baru direfresh */
       body {
         background-color: #f9fafb; /* Warna latar belakang */
         opacity: 0;
@@ -60,7 +58,6 @@
         padding: 0;
       }
 
-      /* 3. Class ini akan memunculkan aplikasi dengan halus */
       body.app-ready {
         opacity: 1;
         visibility: visible;
@@ -80,7 +77,5 @@
         }, 50);
       });
     </script>
-    
   </body>
-
 </html>
