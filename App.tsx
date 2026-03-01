@@ -966,8 +966,8 @@ const App: React.FC = () => {
           </div>
         </header>
   
-        <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full transition-colors duration-300 overflow-hidden`}>
+        <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
+          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full md:overflow-hidden`}>
             
             <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
                <div className="flex items-center gap-1 p-2">
@@ -1010,7 +1010,7 @@ const App: React.FC = () => {
                </div>
             </div>
   
-            <div ref={sidebarContentRef} className="flex-1 bg-gray-50 flex flex-col overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200">
+            <div ref={sidebarContentRef} className="flex-1 bg-gray-50 flex flex-col overflow-y-visible md:overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200">
                 <div className="p-4 flex flex-col gap-4">
                     {activeTab === 'idea' && (
                         <IdeaSettings 
@@ -1030,7 +1030,7 @@ const App: React.FC = () => {
                     />
                     )}
                     {activeTab === 'apikeys' && (
-                        <div className="flex flex-col gap-4 animate-in fade-in duration-300 pb-4">
+                        <div className="flex flex-col gap-4 pb-4">
                             {/* BAGIAN ATAS: API SETTINGS */}
                             <ApiKeyPanel 
                                 apiKeys={currentProviderKeys} 
@@ -1054,24 +1054,24 @@ const App: React.FC = () => {
                                 </div>
                                 <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
                                     <button
-                                        onClick={() => setLogViewMode('transparent')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
-                                            logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                                        }`}
-                                    >
-                                        Transparent
-                                    </button>
-                                    <button
                                         onClick={() => setLogViewMode('clipped')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
-                                            logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-none ${
+                                            logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                         }`}
                                     >
                                         Clipped
                                     </button>
+                                    <button
+                                        onClick={() => setLogViewMode('transparent')}
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-none ${
+                                            logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        Transparent
+                                    </button>
                                 </div>
 
-                                <div className={`relative flex h-[350px] shrink-0 flex-col overflow-hidden rounded-lg border transition-all duration-500 mt-2 ${
+                                <div className={`relative flex h-[350px] shrink-0 flex-col overflow-hidden rounded-lg border mt-2 ${
                                     logViewMode === 'transparent' 
                                         ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
                                         : 'bg-white border-blue-200 shadow-sm'
