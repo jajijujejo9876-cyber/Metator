@@ -967,27 +967,25 @@ const App: React.FC = () => {
           <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full md:overflow-hidden`}>
   
         <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
-                {/* 1. Bar navigasi dipendekkan lagi dengan p-1 */}
-                <div className="flex items-center gap-1 p-1">
+                <div className="flex items-center gap-1 p-1.5">
                     
-                    {/* TOMBOL SETTING (Tinggi jadi h-8) */}
+                    {/* TOMBOL SETTING (Kembali kotak h-9 w-9, tanpa tulisan, ikon w-5 h-5) */}
                     <button 
                         onClick={() => handleNavigation('apikeys')} 
-                        className={`flex-1 h-8 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
                             activeTab === 'apikeys' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                         }`}
                         title="API Configuration"
                     >
-                        <Settings className="w-3.5 h-3.5" />
-                        <span>SETTING</span>
+                        <Settings className="w-5 h-5" />
                     </button>
                     
-                    {/* TOMBOL IDEA (Tinggi jadi h-8) */}
+                    {/* TOMBOL IDEA (Tinggi h-9) */}
                     <button 
                         onClick={() => handleNavigation('idea' as any)} 
-                        className={`flex-1 h-8 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
                             activeTab === 'idea' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -997,10 +995,10 @@ const App: React.FC = () => {
                         <span>IDEA</span>
                     </button>
                     
-                    {/* TOMBOL PROMPT (Tinggi jadi h-8) */}
+                    {/* TOMBOL PROMPT (Tinggi h-9) */}
                     <button 
                         onClick={() => handleNavigation('prompt' as any)} 
-                        className={`flex-1 h-8 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
                             activeTab === 'prompt' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -1010,10 +1008,10 @@ const App: React.FC = () => {
                         <span>PROMPT</span>
                     </button>
 
-                    {/* TOMBOL METADATA (Tinggi jadi h-8) */}
+                    {/* TOMBOL METADATA (Tinggi h-9) */}
                     <button 
                         onClick={() => handleNavigation('metadata' as any)} 
-                        className={`flex-1 h-8 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
                             activeTab === 'metadata' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -1023,15 +1021,15 @@ const App: React.FC = () => {
                         <span>METADATA</span>
                     </button>
 
-                    {/* TOMBOL KOPI (Persegi dikecilkan jadi h-8 w-8) */}
+                    {/* TOMBOL KOPI (Kembali kotak h-9 w-9, ikon w-5 h-5) */}
                     <a 
                         href="https://lynk.id/isaproject/0581ez0729vx" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all shadow-sm"
+                        className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all shadow-sm"
                         title="Buy me a coffee"
                     >
-                        <Coffee className="w-4 h-4" />
+                        <Coffee className="w-5 h-5" />
                     </a>
                 </div>
             </div>
