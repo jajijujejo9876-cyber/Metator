@@ -10,7 +10,42 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Share+Tech&display=swap" rel="stylesheet">
 
-    <style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3b82f6',
+              secondary: '#64748b',
+            },
+            fontFamily: {
+              'bungee': ['Bungee', 'cursive'],
+              'share-tech': ['"Share Tech"', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+      
+<script type="importmap">
+{
+  "imports": {
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.18.5/package/xlsx.mjs",
+    "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
+  }
+}
+</script>
+
+<style>
       /* 1. Mencegah font bawaan muncul */
       * {
         font-family: 'Share Tech', sans-serif !important;
@@ -31,41 +66,7 @@
         visibility: visible;
         transition: opacity 0.3s ease-in-out;
       }
-    </style>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: '#3b82f6',
-              secondary: '#64748b',
-            },
-            fontFamily: {
-              'bungee': ['Bungee', 'cursive'],
-              'share-tech': ['"Share Tech"', 'sans-serif'],
-            }
-          }
-        }
-      }
-    </script>
-<script type="importmap">
-{
-  "imports": {
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.18.5/package/xlsx.mjs",
-    "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
-  }
-}
-</script>
+    </style>      
 
 </head>
   <body class="bg-gray-50 text-gray-900 min-h-screen md:h-screen md:overflow-hidden font-share-tech">
@@ -76,7 +77,7 @@
       window.addEventListener('load', function() {
         setTimeout(function() {
           document.body.classList.add('app-ready');
-        }, 100);
+        }, 50);
       });
     </script>
     
