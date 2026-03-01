@@ -11,23 +11,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Share+Tech&display=swap" rel="stylesheet">
 
     <style>
-      /* 1. Mencegah font berubah-ubah */
-      body {
+      /* 1. Mencegah font bawaan muncul */
+      * {
         font-family: 'Share Tech', sans-serif !important;
-        background-color: #f9fafb; /* Warna latar belakang bawaan */
+      }
+
+      /* 2. Sembunyikan total aplikasi saat baru direfresh */
+      body {
+        background-color: #f9fafb; /* Warna latar belakang */
+        opacity: 0;
+        visibility: hidden;
         margin: 0;
         padding: 0;
       }
 
-      /* 2. TRIK TIRAI SULAP: Sembunyikan aplikasi selama 0.2 detik saat React & Tailwind sedang menyusun layout, lalu munculkan perlahan */
-      #root {
-        opacity: 0;
-        animation: smoothReveal 0.5s ease-out 0.2s forwards;
-      }
-
-      @keyframes smoothReveal {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
+      /* 3. Class ini akan memunculkan aplikasi dengan halus */
+      body.app-ready {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.3s ease-in-out;
       }
     </style>
 
@@ -70,5 +72,15 @@
   <body class="bg-gray-50 text-gray-900 min-h-screen md:h-screen md:overflow-hidden font-share-tech">
     <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>
+
+    <script>
+      // Perintah ini akan menunggu sampai SEMUA script (termasuk Tailwind) selesai loading
+      window.addEventListener('load', function() {
+        // Beri waktu ekstra 150 milidetik untuk memastikan susunan sudah rapi
+        setTimeout(function() {
+          document.body.classList.add('app-ready');
+        }, 150);
+      });
+    </script>  
   </body>
 </html>
