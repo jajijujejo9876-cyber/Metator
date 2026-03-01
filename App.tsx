@@ -962,6 +962,9 @@ const App: React.FC = () => {
              <span className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-0.5 tabular-nums">{formatDate(currentTime)}</span>
           </div>
         </header>
+
+        <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
+          <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full md:overflow-hidden`}>
   
         <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
                 {/* 1. Bar navigasi dipendekkan lagi dengan p-1 */}
