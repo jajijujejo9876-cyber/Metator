@@ -113,7 +113,6 @@ const App: React.FC = () => {
           customKeyword: '',
           ideaSourceFiles: [], 
           promptSourceFiles: [], 
-          eduSourceFiles: [] 
         };
       }
     } catch (e) {
@@ -184,7 +183,7 @@ const App: React.FC = () => {
   }, [apiKeysMap]);
 
   useEffect(() => {
-    const settingsToSave = { ...settings, ideaSourceFiles: [], promptSourceFiles: [], eduSourceFiles: [] };
+    const settingsToSave = { ...settings, ideaSourceFiles: [], promptSourceFiles: [] };
     localStorage.setItem('ISA_APP_SETTINGS', JSON.stringify(settingsToSave));
   }, [settings]);
 
@@ -968,45 +967,74 @@ const App: React.FC = () => {
           <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full md:overflow-hidden`}>
             
             <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
-               <div className="flex items-center gap-1 p-2">
-                   <button 
-                      onClick={() => handleNavigation('apikeys')} 
-                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
-                          activeTab === 'apikeys' 
-                          ? (isConfigReady ? 'bg-green-50 text-green-700 border-green-300' : 'bg-red-50 text-red-700 border-red-300')
-                          : (isConfigReady ? 'bg-white text-green-600 border-green-200 hover:bg-green-50' : 'bg-white text-red-600 border-red-200 hover:bg-red-50')
-                      }`}
-                      title="API Configuration"
-                   >
-                      <Settings className="w-5 h-5" />
-                   </button>
-                   
-                   <button 
-                      onClick={() => handleNavigation('idea' as any)} 
-                      className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${activeTab === 'idea' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-                   >
-                      <Lightbulb className="w-3.5 h-3.5" />
-                      <span>IDEA</span>
-                   </button>
-                   
-                   <button 
-                      onClick={() => handleNavigation('prompt' as any)} 
-                      className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${activeTab === 'prompt' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-                   >
-                      <Command className="w-3.5 h-3.5" />
-                      <span>PROMPT</span>
-                   </button>
+                {/* Bar navigasi dipendekkan dengan p-1.5 */}
+                <div className="flex items-center gap-1 p-1.5">
+                    
+                    {/* TOMBOL SETTING */}
+                    <button 
+                        onClick={() => handleNavigation('apikeys')} 
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                            activeTab === 'apikeys' 
+                            ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                        title="API Configuration"
+                    >
+                        <Settings className="w-3.5 h-3.5" />
+                        <span>SETTING</span>
+                    </button>
+                    
+                    {/* TOMBOL IDEA */}
+                    <button 
+                        onClick={() => handleNavigation('idea' as any)} 
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                            activeTab === 'idea' 
+                            ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Lightbulb className="w-3.5 h-3.5" />
+                        <span>IDEA</span>
+                    </button>
+                    
+                    {/* TOMBOL PROMPT */}
+                    <button 
+                        onClick={() => handleNavigation('prompt' as any)} 
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                            activeTab === 'prompt' 
+                            ? 'bg-blue-50 text-blue-700 border-blue-300' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Command className="w-3.5 h-3.5" />
+                        <span>PROMPT</span>
+                    </button>
 
-                   <button 
-                      onClick={() => handleNavigation('metadata' as any)} 
-                      className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${activeTab === 'metadata' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-                   >
-                      <Database className="w-3.5 h-3.5" />
-                      <span>METADATA</span>
-                   </button>
+                    {/* TOMBOL METADATA */}
+                    <button 
+                        onClick={() => handleNavigation('metadata' as any)} 
+                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                            activeTab === 'metadata' 
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Database className="w-3.5 h-3.5" />
+                        <span>METADATA</span>
+                    </button>
 
-               </div>
-            </div>
+                    {/* TOMBOL KOPI (Persegi h-9 w-9) */}
+                    <a 
+                        href="https://lynk.id/isaproject/0581ez0729vx" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all shadow-sm"
+                        title="Buy me a coffee"
+                    >
+                        <Coffee className="w-5 h-5" />
+                    </a>
+                </div>
+            </div>
   
             <div ref={sidebarContentRef} className="flex-1 bg-gray-50 flex flex-col overflow-y-visible md:overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200">
                 <div className="p-4 flex flex-col gap-4">
