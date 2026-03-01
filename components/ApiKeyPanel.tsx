@@ -22,49 +22,7 @@ interface Props {
   apiDelay?: number;
   setApiDelay?: (delay: number) => void;
 
-  // Theme Props
-  appColor?: string;
-  setAppColor?: (color: string) => void;
 }
-
-const THEME_OPTIONS = [
-  { value: 'light-clean', label: 'LIGHT CLEAN' },
-  { value: 'luxury-gold', label: 'LUXURY GOLD' },
-  { value: 'dark-pro', label: 'DARK PRO' },
-  { value: 'midnight-navy', label: 'MIDNIGHT NAVY' },
-  { value: 'ocean-breeze', label: 'OCEAN BREEZE' },
-  { value: 'cyberpunk', label: 'CYBERPUNK' },
-  { value: 'deep-forest', label: 'DEEP FOREST' },
-  { value: 'deep-ocean', label: 'DEEP OCEAN' },
-  { value: 'sunset-vibes', label: 'SUNSET VIBES' },
-  { value: 'warm-coffee', label: 'WARM COFFEE' },
-  { value: 'retro-paper', label: 'RETRO PAPER' },
-  { value: 'dracula', label: 'DRACULA' },
-  { value: 'ultra-minimal', label: 'ULTRA MINIMAL' },
-  { value: 'rose-valentine', label: 'ROSE VALENTINE' },
-  { value: 'violet-night', label: 'VIOLET NIGHT' },
-  { value: 'sunset-glow', label: 'SUNSET GLOW' },
-  { value: 'slate-grey', label: 'SLATE GREY' },
-  { value: 'emerald-city', label: 'EMERALD CITY' },
-  { value: 'vaporwave', label: 'VAPORWAVE' },
-  { value: 'pastel-dream', label: 'PASTEL DREAM' },
-  { value: 'neon-lime', label: 'NEON LIME' },
-  { value: 'royal-purple', label: 'ROYAL PURPLE' },
-  { value: 'burning-orange', label: 'BURNING ORANGE' },
-  { value: 'arctic-white', label: 'ARCTIC WHITE' },
-  { value: 'sweet-candy', label: 'SWEET CANDY' },
-  { value: 'military-base', label: 'MILITARY BASE' },
-  { value: 'deep-space', label: 'DEEP SPACE' },
-  { value: 'mint-fresh', label: 'MINT FRESH' },
-  { value: 'volcano-ash', label: 'VOLCANO ASH' },
-  { value: 'electric-blue', label: 'ELECTRIC BLUE' },
-  { value: 'soft-lavender', label: 'SOFT LAVENDER' },
-  { value: 'forest-moss', label: 'FOREST MOSS' },
-  { value: 'nordic-frost', label: 'NORDIC FROST' },
-  { value: 'industrial-rust', label: 'INDUSTRIAL RUST' },
-  { value: 'sakura-night', label: 'SAKURA NIGHT' },
-  { value: 'toxic-neon', label: 'TOXIC NEON' }
-];
 
 const ApiKeyPanel: React.FC<Props> = ({ 
   apiKeys, 
@@ -78,8 +36,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   setWorkerCount,
   apiDelay,
   setApiDelay,
-  appColor = 'light-clean',
-  setAppColor
+
 }) => {
   const theme = { 
       border: 'border-blue-200', 
@@ -215,34 +172,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                   </div>
                </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* COLOR SETTING CARD */}
-      <div className={`bg-white p-4 rounded-lg shadow-sm border ${theme.border} transition-colors flex flex-col`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Palette className={`w-4 h-4 ${theme.icon}`} />
-          <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">App Theme</h2>
-        </div>
-        <div className={`border-t ${theme.divider} mb-3`}></div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col flex-1">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Select Theme</label>
-            <select 
-              className={inputClass}
-              value={appColor}
-              onChange={(e) => setAppColor?.(e.target.value)}
-              disabled={isProcessing}
-            >
-              {THEME_OPTIONS.map(theme => (
-                <option key={theme.value} value={theme.value}>{theme.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1">
-            <p className="text-[10px] text-gray-400 italic">Pilih tema untuk merubah skema warna keseluruhan aplikasi.</p>
           </div>
         </div>
       </div>
