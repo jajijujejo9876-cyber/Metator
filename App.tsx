@@ -873,10 +873,7 @@ const App: React.FC = () => {
     const completedCount = currentFiles.filter(f => f.status === ProcessingStatus.Completed).length;
     const failedCount = currentFiles.filter(f => f.status === ProcessingStatus.Failed).length;
     
-    const filteredLogs = logs.filter(log => {
-        if (logFilter === 'ALL') return true;
-        return log.mode === logFilter;
-    });
+    const filteredLogs = logs;
   
     const activeModeLabel = 
           activeTab === 'apikeys' ? 'API Configuration'
