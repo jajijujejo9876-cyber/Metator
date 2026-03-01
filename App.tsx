@@ -1046,17 +1046,6 @@ const App: React.FC = () => {
                       <span>METADATA</span>
                    </button>
 
-                   <button 
-                      onClick={() => handleNavigation('logs')} 
-                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
-                          activeTab === 'logs' 
-                          ? 'bg-blue-50 text-blue-700 border-blue-300'
-                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                      }`}
-                      title="System Logs"
-                   >
-                      <Activity className="w-5 h-5" />
-                   </button>
                </div>
             </div>
   
