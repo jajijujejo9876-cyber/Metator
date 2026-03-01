@@ -1,86 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>METATOR by IRS</title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IsaProject</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Share+Tech&display=swap" rel="stylesheet">
 
-    <style>
-      /* 1. Mencegah font bawaan muncul */
-      * {
-        font-family: 'Share Tech', sans-serif !important;
-      }
+    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-      /* 2. Sembunyikan total aplikasi saat baru direfresh */
-      body {
-        background-color: #f9fafb; /* Warna latar belakang */
-        opacity: 0;
-        visibility: hidden;
+    <style>
+      /* 1. Kunci Font dan Background Dasar */
+      body, html {
         margin: 0;
         padding: 0;
+        background-color: #f9fafb !important; /* Warna bg-gray-50 */
+        font-family: 'Share Tech', sans-serif !important;
+        height: 100%;
       }
 
-      /* 3. Class ini akan memunculkan aplikasi dengan halus */
-      body.app-ready {
-        opacity: 1;
-        visibility: visible;
-        transition: opacity 0.3s ease-in-out;
+      /* 2. Kunci Pembungkus Utama (Root Div) */
+      #root > div {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100vh !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+      }
+
+      /* 3. Kunci Posisi Header (Melayang Sejak Awal) */
+      #root header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 64px !important; /* Sama dengan h-16 Tailwind */
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        z-index: 50 !important;
+        box-sizing: border-box !important;
+      }
+
+      /* 4. Kunci Jarak Konten (Agar tidak menabrak Header) */
+      #root main {
+        display: flex !important;
+        flex: 1 1 0% !important;
+        flex-direction: column !important;
+        padding-top: 64px !important; /* Sama dengan pt-16 Tailwind */
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      /* 5. Kunci Tata Letak Khusus Desktop (Layar Lebar) */
+      @media (min-width: 768px) {
+        #root > div {
+          height: 100vh !important;
+          overflow: hidden !important;
+        }
+        #root main {
+          flex-direction: row !important;
+          overflow: hidden !important;
+        }
+        /* Kunci Lebar Sidebar Kiri */
+        #root aside {
+          width: 380px !important;
+          flex-shrink: 0 !important;
+          height: 100% !important;
+          background-color: #f9fafb !important;
+          border-right: 1px solid #e5e7eb !important;
+          box-sizing: border-box !important;
+        }
+        /* Kunci Lebar Konten Kanan */
+        #root section {
+          display: flex !important;
+          flex: 1 1 0% !important;
+          flex-direction: column !important;
+          height: 100% !important;
+          background-color: #f3f4f6 !important; /* bg-gray-100 */
+          box-sizing: border-box !important;
+        }
       }
     </style>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: '#3b82f6',
-              secondary: '#64748b',
-            },
-            fontFamily: {
-              'bungee': ['Bungee', 'cursive'],
-              'share-tech': ['"Share Tech"', 'sans-serif'],
-            }
-          }
-        }
-      }
-    </script>
-      
-<script type="importmap">
-{
-  "imports": {
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.18.5/package/xlsx.mjs",
-    "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
-  }
-}
-</script>
-
-</head>
-  <body class="bg-gray-50 text-gray-900 min-h-screen md:h-screen md:overflow-hidden font-share-tech">
-    <div id="root" class="h-full"></div>
-    <script type="module" src="/index.tsx"></script>
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Perintah ini akan menunggu sampai SEMUA script (termasuk Tailwind) selesai loading
-      window.addEventListener('load', function() {
-        // Beri waktu ekstra 150 milidetik untuk memastikan susunan sudah rapi
-        setTimeout(function() {
-          document.body.classList.add('app-ready');
-        }, 150);
-      });
-    </script>  
-  </body>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3b82f6',
+              secondary: '#64748b',
+            },
+            fontFamily: {
+              'bungee': ['Bungee', 'cursive'],
+              'share-tech': ['"Share Tech"', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+      
+    <script type="importmap">
+    {
+      "imports": {
+        "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+        "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+        "react/": "https://aistudiocdn.com/react@^19.2.1/",
+        "react": "https://aistudiocdn.com/react@^19.2.1",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+        "vite": "https://aistudiocdn.com/vite@^7.2.6",
+        "xlsx": "https://cdn.sheetjs.com/xlsx-0.18.5/package/xlsx.mjs",
+        "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
+      }
+    }
+    </script>
+
+  </head>
+  <body class="bg-gray-50 text-gray-900 min-h-screen md:h-screen md:overflow-hidden font-share-tech">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>
