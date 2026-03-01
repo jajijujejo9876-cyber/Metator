@@ -47,27 +47,21 @@ const rawStringify = (val: any): string => {
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [logFilter, setLogFilter] = useState<LogFilter>('ALL');
-  const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('transparent');
+  const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('clipped');   
   const [currentTime, setCurrentTime] = useState(new Date());
   
   const [apiKeysMap, setApiKeysMap] = useState<ApiKeyMap>(() => {
-    try {
-      const saved = localStorage.getItem('ISA_API_KEYS');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-            AUTO: [],
-            GEMINI: parsed.GEMINI || [],
-            GROQ: parsed.GROQ || [],
-            PUTER: parsed.PUTER || [],
-            MISTRAL: parsed.MISTRAL || [],
-            CUSTOM: parsed.CUSTOM || []
-        };
-      }
-      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
-    } catch (e) {
-      return { AUTO: [], GEMINI: [], GROQ: [], PUTER: [], CUSTOM: [], MISTRAL: [] };
+    try {
+      const saved = localStorage.getItem('ISA_API_KEYS');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+            GEMINI CANVAS: parsed.GEMINI CANVAS || []
+        };
+      }
+      return { GEMINI CANVAS: [] };
+    } catch (e) {
+      return { GEMINI CANVAS: [] };
     }
   });
 
@@ -75,13 +69,8 @@ const App: React.FC = () => {
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
-      apiProvider: 'AUTO', 
+      apiProvider: 'GEMINI CANVAS', 
       geminiModel: 'gemini-3-flash-preview', 
-      groqModel: 'openai/gpt-oss-120b', 
-      puterModel: 'gemini-3-flash-preview',
-      mistralBaseUrl: '',
-      mistralModel: '',
-      customBaseUrl: '',
       customModel: '',
       customTitle: '',
       customKeyword: '',
@@ -1065,20 +1054,20 @@ const App: React.FC = () => {
                                 </div>
                                 <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
                                     <button
-                                        onClick={() => setLogViewMode('transparent')}
+                                        onClick={() => setLogViewMode('clipped')}
                                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
                                             logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                         }`}
                                     >
-                                        Transparent
+                                        Clipped
                                     </button>
                                     <button
-                                        onClick={() => setLogViewMode('clipped')}
+                                        onClick={() => setLogViewMode('transparent')} 
                                         className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${
                                             logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                         }`}
                                     >
-                                        Clipped
+                                        Transparent  
                                     </button>
                                 </div>
 
