@@ -145,7 +145,7 @@ const IdeaSettings: React.FC<Props> = ({
         <div className="flex items-center gap-2 mb-1">
              <label className={labelClass}>Operating Mode</label>
         </div>
-        <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[38px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
+        <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[48px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
           <button
             onClick={() => handleModeSwitch('free')}
             disabled={isProcessing} 
