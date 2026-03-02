@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Lightbulb, FileText, UploadCloud, Crown, Trash2, List, Loader2, CheckSquare, Square, Eye, X, Image as ImageIcon, History, Sparkles, Library } from 'lucide-react';
 import { read, utils } from 'xlsx';
@@ -146,35 +145,35 @@ const IdeaSettings: React.FC<Props> = ({
         <div className="flex items-center gap-2 mb-1">
              <label className={labelClass}>Operating Mode</label>
         </div>
-        <div className={`flex gap-3 p-1 bg-gray-100 rounded-lg w-full ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
+        <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[38px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
           <button
             onClick={() => handleModeSwitch('free')}
             disabled={isProcessing} 
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${
               settings.ideaMode === 'free' 
-                ? 'bg-white text-blue-600 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
+                : 'text-gray-500 hover:bg-gray-200'
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
-            <Sparkles size={16} className={settings.ideaMode === 'free' ? 'text-blue-500' : 'text-gray-400'} />
+            <Sparkles size={14} className={settings.ideaMode === 'free' ? 'text-blue-500' : 'text-gray-400'} />
             <span>Mode 1</span>
           </button>
 
           <button
             onClick={() => handleModeSwitch('paid')}
             disabled={isProcessing} 
-            className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${
               settings.ideaMode === 'paid' 
-                ? 'bg-white text-blue-600 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
+                : 'text-gray-500 hover:bg-gray-200'
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
-            <Library size={16} className={settings.ideaMode === 'paid' ? 'text-blue-600' : 'text-gray-400'} />
+            <Library size={14} className={settings.ideaMode === 'paid' ? 'text-blue-600' : 'text-gray-400'} />
             <span>Mode 2</span>
           </button>
         </div>
       </div>
-
+      
       {/* === CUSTOM INSTRUCTION INJECTION === */}
       {settings.ideaMode === 'free' && (
          <div className="animate-in fade-in duration-300">
