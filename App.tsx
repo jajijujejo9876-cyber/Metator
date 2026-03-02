@@ -1127,52 +1127,94 @@ const App: React.FC = () => {
                             </div>
                         </div>
                     )}
-           
-                            {/* ACTION BUTTONS */}
-                            <div className="flex gap-1.5 h-12">
-                                {isCurrentTabProcessing ? (
-                                    <div className={`flex-1 bg-gradient-to-r border text-sm font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
-                                        <Sparkles className={`w-4 h-4 ${isPaused ? '' : 'animate-spin'} ${getLoadingIconColor()}`} style={{ animationDuration: '3s' }} />
-                                        <span className="uppercase truncate tracking-wide">{isPaused ? 'Terhenti' : 'Memproses...'}</span>
-                                    </div>
-                                ) : (
-                                    <button 
-                                        onClick={startProcessing} 
-                                        disabled={!canGenerate || isProcessing} 
-                                        className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
-                                    >
-                                        <Wand2 size={14} className="shrink-0" />
-                                        <span className="truncate">{getGenerateButtonText()}</span>
-                                    </button>
-                                )}
-                                
-                                <button 
-                                    onClick={togglePause}
-                                    disabled={!isCurrentTabProcessing}
-                                    title={isCurrentTabPaused ? "Resume Process" : "Pause Process"}
-                                    className={`w-12 h-12 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${
-                                        !isCurrentTabProcessing 
-                                        ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                                        : isCurrentTabPaused 
-                                          ? 'bg-green-600 border-green-700 text-white hover:bg-green-700' 
-                                          : 'bg-amber-100 border-amber-300 text-amber-600 hover:bg-amber-200'
-                                    }`}
-                                >
-                                    {isCurrentTabPaused ? <Play size={18} className="fill-current" /> : <Pause size={18} className="fill-current" />}
-                                </button>
+                </div>
+            </div>
 
-                                <button 
-                                    onClick={() => handleDownload()} 
-                                    disabled={completedCount === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
-                                    className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide ${completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-green-600 hover:bg-green-700 text-white border border-green-700' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
-                                >
-                                    <Download size={14} className="shrink-0" /> 
-                                    <span className="truncate">{getExportLabel()}</span>
-                                </button>
-                            </div> 
-                        </div> 
-                    )} 
-          
+            {/* ACTIVITY & ACTIONS STICKY BOTTOM */}
+            {activeTab !== 'logs' && activeTab !== 'apikeys' && (
+                <div className="shrink-0 p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-4 z-10">
+                    {/* ACTIVITY STATUS */}
+                    <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
+                        <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2 bg-gray-50">
+                            <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-2.5 shadow-sm transition-all">
+                                <div className="flex items-center gap-1 mb-1 text-blue-600">
+                                    <Clock size={13} className="shrink-0" />
+                                    <span className="text-sm font-normal capitalize leading-none">Selected</span>
+                                </div>
+                                <span className="text-xs font-black text-blue-600 tabular-nums">{displayTotalFiles}</span>
+                            </div>
+                            <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-green-50 py-2.5 shadow-sm transition-all">
+                                <div className="flex items-center gap-1 mb-1 text-green-600">
+                                    <CheckCircle size={13} className="shrink-0" />
+                                    <span className="text-sm font-normal capitalize leading-none">Completed</span>
+                                </div>
+                                <span className="text-xs font-black text-green-700 tabular-nums">{completedCount}</span>
+                            </div>
+                            <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-red-50 py-2.5 shadow-sm transition-all">
+                                <div className="flex items-center gap-1 mb-1 text-red-600">
+                                    <XCircle size={13} className="shrink-0" />
+                                    <span className="text-sm font-normal capitalize leading-none">Failed</span>
+                                </div>
+                                <span className="text-xs font-black text-red-700 tabular-nums">{failedCount}</span>
+                            </div>
+                        </div>
+                        
+                        <div className="p-3 bg-white flex items-center justify-between gap-3">
+                            <button 
+                                onClick={handleClearAll} 
+                                disabled={currentFiles.length === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold uppercase tracking-wide rounded border transition-colors ${currentFiles.length > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
+                            >
+                                <Trash2 size={14} /> CLEAR ALL
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ACTION BUTTONS */}
+                    <div className="flex gap-1.5 h-12">
+                        {isCurrentTabProcessing ? (
+                            <div className={`flex-1 bg-gradient-to-r border text-sm font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
+                                <Sparkles className={`w-4 h-4 ${isPaused ? '' : 'animate-spin'} ${getLoadingIconColor()}`} style={{ animationDuration: '3s' }} />
+                                <span className="uppercase truncate tracking-wide">{isPaused ? 'Terhenti' : 'Memproses...'}</span>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={startProcessing} 
+                                disabled={!canGenerate || isProcessing} 
+                                className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
+                            >
+                                <Wand2 size={14} className="shrink-0" />
+                                <span className="truncate">{getGenerateButtonText()}</span>
+                            </button>
+                        )}
+                        
+                        <button 
+                            onClick={togglePause}
+                            disabled={!isCurrentTabProcessing}
+                            title={isCurrentTabPaused ? "Resume Process" : "Pause Process"}
+                            className={`w-12 h-12 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${
+                                !isCurrentTabProcessing 
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                                : isCurrentTabPaused 
+                                  ? 'bg-green-600 border-green-700 text-white hover:bg-green-700' 
+                                  : 'bg-amber-100 border-amber-300 text-amber-600 hover:bg-amber-200'
+                            }`}
+                        >
+                            {isCurrentTabPaused ? <Play size={18} className="fill-current" /> : <Pause size={18} className="fill-current" />}
+                        </button>
+
+                        <button 
+                            onClick={() => handleDownload()} 
+                            disabled={completedCount === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
+                            className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide ${completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-green-600 hover:bg-green-700 text-white border border-green-700' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
+                        >
+                            <Download size={14} className="shrink-0" /> 
+                            <span className="truncate">{getExportLabel()}</span>
+                        </button>
+                    </div>
+                </div>
+            )}
+            
           </aside>
 
           <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
@@ -1186,122 +1228,65 @@ const App: React.FC = () => {
                         <p className="text-sm text-gray-400">Settings and information are displayed in the left panel for easy access while working.</p>
                     </div>
                 </div>
-                            {/* ACTION BUTTONS */}
-                            <div className="flex gap-1.5 h-12">
-                                {isCurrentTabProcessing ? (
-                                    <div className={`flex-1 bg-gradient-to-r border text-sm font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
-                                        <Sparkles className={`w-4 h-4 ${isPaused ? '' : 'animate-spin'} ${getLoadingIconColor()}`} style={{ animationDuration: '3s' }} />
-                                        <span className="uppercase truncate tracking-wide">{isPaused ? 'Terhenti' : 'Memproses...'}</span>
-                                    </div>
-                                ) : (
-                                    <button 
-                                        onClick={startProcessing} 
-                                        disabled={!canGenerate || isProcessing} 
-                                        className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
-                                    >
-                                        <Wand2 size={14} className="shrink-0" />
-                                        <span className="truncate">{getGenerateButtonText()}</span>
-                                    </button>
-                                )}
-                                
-                                <button 
-                                    onClick={togglePause}
-                                    disabled={!isCurrentTabProcessing}
-                                    title={isCurrentTabPaused ? "Resume Process" : "Pause Process"}
-                                    className={`w-12 h-12 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${
-                                        !isCurrentTabProcessing 
-                                        ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                                        : isCurrentTabPaused 
-                                          ? 'bg-green-600 border-green-700 text-white hover:bg-green-700' 
-                                          : 'bg-amber-100 border-amber-300 text-amber-600 hover:bg-amber-200'
-                                    }`}
-                                >
-                                    {isCurrentTabPaused ? <Play size={18} className="fill-current" /> : <Pause size={18} className="fill-current" />}
-                                </button>
+            ) : (
+                <>
+                  <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-gray-200 bg-white p-4 shadow-sm md:static">
+                    <div className="flex items-center gap-2 text-gray-700">
+                        <FolderOutput className={`w-5 h-5 ${getThemeColor()}`} />
+                        <h2 className="text-xl font-bold tracking-tight uppercase">OUTPUT RESULTS</h2>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-blue-50 text-blue-600 border-blue-200`}>{activeTab} MODE</span>
+                  </div>
 
-                                <button 
-                                    onClick={() => handleDownload()} 
-                                    disabled={completedCount === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
-                                    className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide ${completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-green-600 hover:bg-green-700 text-white border border-green-700' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
-                                >
-                                    <Download size={14} className="shrink-0" /> 
-                                    <span className="truncate">{getExportLabel()}</span>
-                                </button>
-                            </div>
-                        </div>
-                    )} 
-          </aside>
-  
-          <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
-            {isSidebarOnlyMode ? (
-                <div className="flex h-full flex-col items-center justify-center bg-gray-50 p-8">
-                    <div className="flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
-                            {activeTab === 'apikeys' ? <Key size={32} /> : <Activity size={32} />}
-                        </div>
-                        <h3 className="mb-2 text-lg font-bold tracking-wide text-gray-700 uppercase">{activeTab.replace('_', ' ').toUpperCase()} VIEWER</h3>
-                        <p className="text-sm text-gray-400">Settings and information are displayed in the left panel for easy access while working.</p>
-                    </div>
-                </div>
-            ) : (
-                <>
-                  <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-gray-200 bg-white p-4 shadow-sm md:static">
-                    <div className="flex items-center gap-2 text-gray-700">
-                        <FolderOutput className={`w-5 h-5 ${getThemeColor()}`} />
-                        <h2 className="text-xl font-bold tracking-tight uppercase">OUTPUT RESULTS</h2>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-blue-50 text-blue-600 border-blue-200`}>{activeTab} MODE</span>
-                  </div>
-  
-                  <div ref={mainContentRef} className={`flex-1 p-4 md:overflow-y-auto min-h-[50vh] md:min-h-0 relative scrollbar-thin scrollbar-thumb-gray-200`}>
-                      {currentFiles.length === 0 ? (
-                      <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-gray-400">
-                          {activeTab === 'idea' ? (
-                          <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'free' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (MODE 2) to start.")}</p></>
-                          ) : activeTab === 'prompt' ? (
-                          <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload a file in Prompt Settings to generate detailed prompts from visual analysis." : "Enter an Idea, Description, and Quantity to start."}</p></>
-                          ) : (
-                          <><UploadCloud size={64} className="mb-4 opacity-20" /><p className="text-base font-medium uppercase">No files in {activeTab.toUpperCase()} workspace.</p><p className="mt-1 text-sm">Upload files to start.</p></>
-                          )}
-                      </div>
-                      ) : (
-                      activeTab === 'idea' ? (
-                          <IdeaListComponent 
-                            items={currentFiles} 
-                            negativeContext={settings.ideaNegativeContext} 
-                            onDelete={handleDelete}
-                            onToggleLanguage={handleToggleLanguage}
-                            getLanguage={getLanguage}
-                            isMode1={settings.ideaMode === 'free'}
-                          />
-                      ) : activeTab === 'prompt' ? (
-                          <PromptListComponent items={currentFiles} onDelete={handleDelete} onToggleLanguage={handleToggleLanguage} getLanguage={getLanguage} />
-                      ) : (
-                          <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
-                          {currentFiles.map(file => {
-                              return (
-                                  <FileCard 
-                                  key={file.id} item={file} onDelete={handleDelete} onUpdate={handleUpdateMetadata}
-                                  onRetry={(id) => {
-                                      const targetKey = getActiveDataKey();
-                                      setFilesMap(prev => ({ ...prev, [targetKey]: prev[targetKey].map(f => f.id === id ? { ...f, status: ProcessingStatus.Pending } : f) }));
-                                  }}
-                                  onPreview={setPreviewItem} language={getLanguage(file.id)} onToggleLanguage={handleToggleLanguage} disabled={isCurrentTabProcessing} platform={settings.metadataPlatform}
-                                  />
-                              );
-                          })}
-                          </div>
-                      )
-                      )}
-                  </div>
-                </>
-            )}
-          </section>
-        </main>
-  
-        <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
-      </div>
-    );
-  };
-  
-  export default App;
+                  <div ref={mainContentRef} className={`flex-1 p-4 md:overflow-y-auto min-h-[50vh] md:min-h-0 relative scrollbar-thin scrollbar-thumb-gray-200`}>
+                      {currentFiles.length === 0 ? (
+                      <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-gray-400">
+                          {activeTab === 'idea' ? (
+                          <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'free' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (MODE 2) to start.")}</p></>
+                          ) : activeTab === 'prompt' ? (
+                          <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload a file in Prompt Settings to generate detailed prompts from visual analysis." : "Enter an Idea, Description, and Quantity to start."}</p></>
+                          ) : (
+                          <><UploadCloud size={64} className="mb-4 opacity-20" /><p className="text-base font-medium uppercase">No files in {activeTab.toUpperCase()} workspace.</p><p className="mt-1 text-sm">Upload files to start.</p></>
+                          )}
+                      </div>
+                      ) : (
+                      activeTab === 'idea' ? (
+                          <IdeaListComponent 
+                            items={currentFiles} 
+                            negativeContext={settings.ideaNegativeContext} 
+                            onDelete={handleDelete}
+                            onToggleLanguage={handleToggleLanguage}
+                            getLanguage={getLanguage}
+                            isMode1={settings.ideaMode === 'free'}
+                          />
+                      ) : activeTab === 'prompt' ? (
+                          <PromptListComponent items={currentFiles} onDelete={handleDelete} onToggleLanguage={handleToggleLanguage} getLanguage={getLanguage} />
+                      ) : (
+                          <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
+                          {currentFiles.map(file => {
+                              return (
+                                  <FileCard 
+                                  key={file.id} item={file} onDelete={handleDelete} onUpdate={handleUpdateMetadata}
+                                  onRetry={(id) => {
+                                      const targetKey = getActiveDataKey();
+                                      setFilesMap(prev => ({ ...prev, [targetKey]: prev[targetKey].map(f => f.id === id ? { ...f, status: ProcessingStatus.Pending } : f) }));
+                                  }}
+                                  onPreview={setPreviewItem} language={getLanguage(file.id)} onToggleLanguage={handleToggleLanguage} disabled={isCurrentTabProcessing} platform={settings.metadataPlatform}
+                                  />
+                              );
+                          })}
+                          </div>
+                      )
+                      )}
+                  </div>
+                </>
+            )}
+          </section>
+        </main>
+
+        <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
+      </div>
+    );
+};
+
+export default App;
