@@ -1139,21 +1139,21 @@ const App: React.FC = () => {
                             <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-1 shadow-sm transition-all">
                                 <div className="flex items-center gap-1 mb-1 text-blue-600">
                                     <Clock size={13} className="shrink-0" />
-                                    <span className="text-sm font-normal capitalize leading-none">Selected</span>
+                                    <span className="text-xs font-medium capitalize leading-none">Selected</span>
                                 </div>
                                 <span className="text-xs font-black text-blue-600 tabular-nums">{displayTotalFiles}</span>
                             </div>
                             <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-green-50 py-1 shadow-sm transition-all">
                                 <div className="flex items-center gap-1 mb-1 text-green-600">
                                     <CheckCircle size={13} className="shrink-0" />
-                                    <span className="text-sm font-normal capitalize leading-none">Completed</span>
+                                    <span className="text-xs font-medium capitalize leading-none">Completed</span>
                                 </div>
                                 <span className="text-xs font-black text-green-700 tabular-nums">{completedCount}</span>
                             </div>
                             <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-red-50 py-1 shadow-sm transition-all">
                                 <div className="flex items-center gap-1 mb-1 text-red-600">
                                     <XCircle size={13} className="shrink-0" />
-                                    <span className="text-sm font-normal capitalize leading-none">Failed</span>
+                                    <span className="text-xs font-medium capitalize leading-none">Failed</span>
                                 </div>
                                 <span className="text-xs font-black text-red-700 tabular-nums">{failedCount}</span>
                             </div>
@@ -1163,7 +1163,7 @@ const App: React.FC = () => {
                             <button 
                                 onClick={handleClearAll} 
                                 disabled={currentFiles.length === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold uppercase tracking-wide rounded border transition-colors ${currentFiles.length > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
+                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-bold uppercase tracking-wide rounded border transition-colors ${currentFiles.length > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
                             >
                                 <Trash2 size={14} /> CLEAR ALL
                             </button>
@@ -1173,7 +1173,7 @@ const App: React.FC = () => {
                     {/* ACTION BUTTONS */}
                     <div className="flex gap-1.5 h-10">
                         {isCurrentTabProcessing ? (
-                            <div className={`flex-1 bg-gradient-to-r border text-sm font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
+                            <div className={`flex-1 bg-gradient-to-r border text-xs font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
                                 <Sparkles className={`w-4 h-4 ${isPaused ? '' : 'animate-spin'} ${getLoadingIconColor()}`} style={{ animationDuration: '3s' }} />
                                 <span className="uppercase truncate tracking-wide">{isPaused ? 'Terhenti' : 'Memproses...'}</span>
                             </div>
@@ -1181,7 +1181,7 @@ const App: React.FC = () => {
                             <button 
                                 onClick={startProcessing} 
                                 disabled={!canGenerate || isProcessing} 
-                                className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
+                                className={`flex-1 text-xs font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
                             >
                                 <Wand2 size={14} className="shrink-0" />
                                 <span className="truncate">{getGenerateButtonText()}</span>
@@ -1200,7 +1200,7 @@ const App: React.FC = () => {
                                   : 'bg-amber-100 border-amber-300 text-amber-600 hover:bg-amber-200'
                             }`}
                         >
-                            {isCurrentTabPaused ? <Play size={18} className="fill-current" /> : <Pause size={18} className="fill-current" />}
+                            {isCurrentTabPaused ? <Play size={14} className="fill-current" /> : <Pause size={18} className="fill-current" />}
                         </button>
 
                         <button 
