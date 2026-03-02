@@ -147,7 +147,7 @@ const IdeaSettings: React.FC<Props> = ({
         </div>
         <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[48px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
           <button
-            onClick={() => handleModeSwitch('')}
+            onClick={() => handleModeSwitch('Mode 1')}
             disabled={isProcessing} 
             className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
               settings.ideaMode === 'free' 
@@ -160,7 +160,7 @@ const IdeaSettings: React.FC<Props> = ({
           </button>
 
           <button
-            onClick={() => handleModeSwitch('')}
+            onClick={() => handleModeSwitch('Mode 2')}
             disabled={isProcessing} 
             className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
               settings.ideaMode === 'paid' 
