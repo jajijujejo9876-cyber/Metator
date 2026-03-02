@@ -1175,49 +1175,17 @@ const App: React.FC = () => {
           
           </aside>
 
-          {/* Bagian Kanan (Preview Output) */}
           <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
-          
-          {/* ACTIVITY & ACTIONS INSIDE SCROLLABLE AREA */}
-                    {activeTab !== 'logs' && activeTab !== 'apikeys' && (
-                        <div className="shrink-0 p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-4 z-10">
-                            {/* ACTIVITY STATUS */}
-                            <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
-                                <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2 bg-gray-50">
-                                    <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-2.5 shadow-sm transition-all">
-                                        <div className="flex items-center gap-1 mb-1 text-blue-600">
-                                            <Clock size={13} className="shrink-0" />
-                                            <span className="text-sm font-normal capitalize leading-none">Selected</span>
-                                        </div>
-                                        <span className="text-xs font-black text-blue-600 tabular-nums">{displayTotalFiles}</span>
-                                    </div>
-                                    <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-green-50 py-2.5 shadow-sm transition-all">
-                                        <div className="flex items-center gap-1 mb-1 text-green-600">
-                                            <CheckCircle size={13} className="shrink-0" />
-                                            <span className="text-sm font-normal capitalize leading-none">Completed</span>
-                                        </div>
-                                        <span className="text-xs font-black text-green-700 tabular-nums">{completedCount}</span>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-red-50 py-2.5 shadow-sm transition-all">
-                                        <div className="flex items-center gap-1 mb-1 text-red-600">
-                                            <XCircle size={13} className="shrink-0" />
-                                            <span className="text-sm font-normal capitalize leading-none">Failed</span>
-                                        </div>
-                                        <span className="text-xs font-black text-red-700 tabular-nums">{failedCount}</span>
-                                    </div>
-                                </div>
-                                
-                                <div className="p-3 bg-white flex items-center justify-between gap-3">
-                                    <button 
-                                        onClick={handleClearAll} 
-                                        disabled={currentFiles.length === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold uppercase tracking-wide rounded border transition-colors ${currentFiles.length > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
-                                    >
-                                        <Trash2 size={14} /> CLEAR ALL
-                                    </button>
-                                </div>
-                            </div>
-
+            {isSidebarOnlyMode ? (
+                <div className="flex h-full flex-col items-center justify-center bg-gray-50 p-8">
+                    <div className="flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                            {activeTab === 'apikeys' ? <Key size={32} /> : <Activity size={32} />}
+                        </div>
+                        <h3 className="mb-2 text-lg font-bold tracking-wide text-gray-700 uppercase">{activeTab.replace('_', ' ').toUpperCase()} VIEWER</h3>
+                        <p className="text-sm text-gray-400">Settings and information are displayed in the left panel for easy access while working.</p>
+                    </div>
+                </div>
                             {/* ACTION BUTTONS */}
                             <div className="flex gap-1.5 h-12">
                                 {isCurrentTabProcessing ? (
