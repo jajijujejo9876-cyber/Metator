@@ -1079,7 +1079,7 @@ const App: React.FC = () => {
                                 <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
                                     <button
                                         onClick={() => setLogViewMode('clipped')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-none ${
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-bold rounded-md transition-none ${
                                             logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                         }`}
                                     >
@@ -1087,7 +1087,7 @@ const App: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => setLogViewMode('transparent')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-none ${
+                                        className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-bold rounded-md transition-none ${
                                             logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                         }`}
                                     >
@@ -1136,21 +1136,21 @@ const App: React.FC = () => {
                     {/* ACTIVITY STATUS */}
                     <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
                         <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2 bg-gray-50">
-                            <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-2.5 shadow-sm transition-all">
+                            <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-1.5 shadow-sm transition-all">
                                 <div className="flex items-center gap-1 mb-1 text-blue-600">
                                     <Clock size={13} className="shrink-0" />
                                     <span className="text-sm font-normal capitalize leading-none">Selected</span>
                                 </div>
                                 <span className="text-xs font-black text-blue-600 tabular-nums">{displayTotalFiles}</span>
                             </div>
-                            <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-green-50 py-2.5 shadow-sm transition-all">
+                            <div className="mx-1.5 flex flex-col items-center justify-center border border-green-200 rounded-lg bg-green-50 py-1.5 shadow-sm transition-all">
                                 <div className="flex items-center gap-1 mb-1 text-green-600">
                                     <CheckCircle size={13} className="shrink-0" />
                                     <span className="text-sm font-normal capitalize leading-none">Completed</span>
                                 </div>
                                 <span className="text-xs font-black text-green-700 tabular-nums">{completedCount}</span>
                             </div>
-                            <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-red-50 py-2.5 shadow-sm transition-all">
+                            <div className="flex flex-col items-center justify-center border border-red-200 rounded-lg bg-red-50 py-1.5 shadow-sm transition-all">
                                 <div className="flex items-center gap-1 mb-1 text-red-600">
                                     <XCircle size={13} className="shrink-0" />
                                     <span className="text-sm font-normal capitalize leading-none">Failed</span>
@@ -1171,7 +1171,7 @@ const App: React.FC = () => {
                     </div>
 
                     {/* ACTION BUTTONS */}
-                    <div className="flex gap-1.5 h-12">
+                    <div className="flex gap-1.5 h-10">
                         {isCurrentTabProcessing ? (
                             <div className={`flex-1 bg-gradient-to-r border text-sm font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
                                 <Sparkles className={`w-4 h-4 ${isPaused ? '' : 'animate-spin'} ${getLoadingIconColor()}`} style={{ animationDuration: '3s' }} />
@@ -1192,7 +1192,7 @@ const App: React.FC = () => {
                             onClick={togglePause}
                             disabled={!isCurrentTabProcessing}
                             title={isCurrentTabPaused ? "Resume Process" : "Pause Process"}
-                            className={`w-12 h-12 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${
+                            className={`w-10 h-10 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${
                                 !isCurrentTabProcessing 
                                 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
                                 : isCurrentTabPaused 
