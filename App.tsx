@@ -1229,7 +1229,7 @@ const App: React.FC = () => {
                                 </button>
                             </div>
                         </div>
-                    )}
+                    )} 
           </aside>
   
           <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
