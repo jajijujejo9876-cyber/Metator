@@ -156,7 +156,7 @@ const IdeaSettings: React.FC<Props> = ({
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
             <Sparkles size={14} className={settings.ideaMode === 'free' ? 'text-blue-500' : 'text-gray-400'} />
-            <span>free</span>
+            <span>Mode 1</span>
           </button>
 
           <button
@@ -169,7 +169,7 @@ const IdeaSettings: React.FC<Props> = ({
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
             <Library size={14} className={settings.ideaMode === 'paid' ? 'text-blue-600' : 'text-gray-400'} />
-            <span>paid</span>
+            <span>Mode 2</span>
           </button>
         </div>
       </div>
