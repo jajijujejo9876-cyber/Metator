@@ -149,7 +149,7 @@ const IdeaSettings: React.FC<Props> = ({
           <button
             onClick={() => handleModeSwitch('free')}
             disabled={isProcessing} 
-            className={`flex-1 flex items-center justify-center gap-2 py-1 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
               settings.ideaMode === 'free' 
                 ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
                 : 'text-gray-500 hover:bg-gray-200'
