@@ -140,7 +140,7 @@ const IdeaSettings: React.FC<Props> = ({
 
       <div className="border-t border-blue-100 -my-2"></div>
 
-      {/* MODE TABS (free vs paid) */}
+      {/* MODE TABS (Mode 1 vs Mode 2) */}
       <div className="pt-2">
         <div className="flex items-center gap-2 mb-1">
              <label className={labelClass}>Operating Mode</label>
@@ -150,7 +150,7 @@ const IdeaSettings: React.FC<Props> = ({
             onClick={() => handleModeSwitch('free')}
             disabled={isProcessing} 
             className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
-              settings.ideaMode === 'Mode 1' 
+              settings.ideaMode === 'fre' 
                 ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
                 : 'text-gray-500 hover:bg-gray-200'
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
@@ -163,7 +163,7 @@ const IdeaSettings: React.FC<Props> = ({
             onClick={() => handleModeSwitch('paid')}
             disabled={isProcessing} 
             className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
-              settings.ideaMode === 'Mode 2' 
+              settings.ideaMode === 'paid' 
                 ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
                 : 'text-gray-500 hover:bg-gray-200'
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
