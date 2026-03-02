@@ -65,7 +65,7 @@ const App: React.FC = () => {
     }
   });
 
-  const [isPaidUnlocked, setIsPaidUnlocked] = useState(false);
+  const [isMode 2Unlocked, setIsMode 2Unlocked] = useState(false);
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
@@ -124,8 +124,8 @@ const App: React.FC = () => {
   const [filesMap, setFilesMap] = useState<Record<string, FileItem[]>>({
     metadata_adobe: [],
     metadata_shutter: [],
-    idea_free: [],
-    idea_paid: [],
+    idea_Mode 1: [],
+    idea_Mode 2: [],
     prompt: []
   });
   
@@ -151,7 +151,7 @@ const App: React.FC = () => {
 
   const getActiveDataKey = () => {
     if (activeTab === 'idea') {
-      return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+      return settings.ideaMode === 'Mode 1' ? 'idea_Mode 1' : 'idea_Mode 2';
     }
     if (activeTab === 'metadata') {
       return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
@@ -199,7 +199,7 @@ const App: React.FC = () => {
     const heartbeat = setInterval(() => {
         if (processingFilesRef.current) {
             const processingDataKey = (() => {
-                if (processingMode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+                if (processingMode === 'idea') return settings.ideaMode === 'Mode 1' ? 'idea_Mode 1' : 'idea_Mode 2';
                 if (processingMode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
                 return processingMode as string;
             })();
@@ -347,7 +347,7 @@ const App: React.FC = () => {
                   status: ProcessingStatus.Completed 
               }));
               
-              const key = settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+              const key = settings.ideaMode === 'Mode 1' ? 'idea_Mode 1' : 'idea_Mode 2';
               
               setFilesMap(prev => ({ 
                 ...prev, 
@@ -568,7 +568,7 @@ const App: React.FC = () => {
       if (currentMode === 'idea') {
         let virtualFiles: FileItem[] = [];
   
-        if (settings.ideaMode === 'free') {
+        if (settings.ideaMode === 'Mode 1') {
             if (settings.apiProvider !== 'PUTER' && settings.apiProvider !== 'AUTO' && currentProviderKeys.length === 0) { alert("Please enter at least one API Key."); return; }
             if (settings.ideaCategory === 'custom' && !settings.ideaCustomInput) { alert("Enter custom topic."); return; }
   
@@ -606,7 +606,7 @@ const App: React.FC = () => {
                     });
                 }
             }
-            setFilesMap(prev => ({ ...prev, idea_free: virtualFiles }));
+            setFilesMap(prev => ({ ...prev, idea_Mode 1: virtualFiles }));
             runQueue(virtualFiles, currentMode);
         } else {
             const from = settings.ideaFromRow || 1;
@@ -630,7 +630,7 @@ const App: React.FC = () => {
                 sourceData: { id: from + index, originalTitle: cleanSlug, originalKeywords: line }
               };
             });
-            setFilesMap(prev => ({ ...prev, idea_paid: virtualFiles }));
+            setFilesMap(prev => ({ ...prev, idea_Mode 2: virtualFiles }));
             localStorage.setItem('ISA_LAST_IDEA_BATCH', JSON.stringify(virtualFiles));
             setHasHistory(true);
             addLog(`Extracted ${virtualFiles.length} links locally.`, 'success', 'idea');
@@ -661,7 +661,7 @@ const App: React.FC = () => {
       activeWorkersRef.current = 0;
       
       const processingDataKey = (() => {
-        if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+        if (mode === 'idea') return settings.ideaMode === 'Mode 1' ? 'idea_Mode 1' : 'idea_Mode 2';
         if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
         return mode as string;
       })();
@@ -820,7 +820,7 @@ const App: React.FC = () => {
               pausedRef.current = false;
               
               const processingDataKey = (() => {
-                if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+                if (mode === 'idea') return settings.ideaMode === 'Mode 1' ? 'idea_Mode 1' : 'idea_Mode 2';
                 if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
                 return mode as string;
               })();
@@ -851,7 +851,7 @@ const App: React.FC = () => {
     const displayTotalFiles = (() => {
         if (activeTab === 'idea') {
             if (currentFiles.length > 0) return currentFiles.length;
-            if (settings.ideaMode === 'free') {
+            if (settings.ideaMode === 'Mode 1') {
                if (settings.ideaCategory === 'file' && settings.ideaSourceFiles && settings.ideaSourceFiles.length > 0) {
                   return (settings.ideaQuantity || 30) * settings.ideaSourceFiles.length;
                }
@@ -903,7 +903,7 @@ const App: React.FC = () => {
     const canGenerate = (() => {
           if (isProcessing) return false;
           if (activeMode === 'idea') {
-              if (settings.ideaMode === 'free') {
+              if (settings.ideaMode === 'Mode 1') {
                    if (settings.ideaCategory === 'file' && (!settings.ideaSourceFiles || settings.ideaSourceFiles.length === 0)) return false;
                    if (settings.ideaCategory === 'custom' && !settings.ideaCustomInput) return false;
                    return true;
@@ -1039,7 +1039,7 @@ const App: React.FC = () => {
                     {activeTab === 'idea' && (
                         <IdeaSettings 
                             settings={settings} setSettings={setSettings} isProcessing={isCurrentTabProcessing} 
-                            isPaidUnlocked={isPaidUnlocked} setIsPaidUnlocked={setIsPaidUnlocked} 
+                            isMode 2Unlocked={isMode 2Unlocked} setIsMode 2Unlocked={setIsMode 2Unlocked} 
                             onRestoreHistory={handleRestoreHistory} hasHistory={hasHistory}
                         />
                     )}
@@ -1242,7 +1242,7 @@ const App: React.FC = () => {
                       {currentFiles.length === 0 ? (
                       <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-gray-400">
                           {activeTab === 'idea' ? (
-                          <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'free' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (MODE 2) to start.")}</p></>
+                          <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'Mode 1' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (MODE 2) to start.")}</p></>
                           ) : activeTab === 'prompt' ? (
                           <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload a file in Prompt Settings to generate detailed prompts from visual analysis." : "Enter an Idea, Description, and Quantity to start."}</p></>
                           ) : (
@@ -1257,7 +1257,7 @@ const App: React.FC = () => {
                             onDelete={handleDelete}
                             onToggleLanguage={handleToggleLanguage}
                             getLanguage={getLanguage}
-                            isMode1={settings.ideaMode === 'free'}
+                            isMode1={settings.ideaMode === 'Mode 1'}
                           />
                       ) : activeTab === 'prompt' ? (
                           <PromptListComponent items={currentFiles} onDelete={handleDelete} onToggleLanguage={handleToggleLanguage} getLanguage={getLanguage} />
