@@ -1166,14 +1166,17 @@ const App: React.FC = () => {
                                     disabled={completedCount === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
                                     className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide ${completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-green-600 hover:bg-green-700 text-white border border-green-700' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
                                 >
-                                    <Download size={14} className="shrink-0" /> 
-                                    <span className="truncate">{getExportLabel()}</span>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                                    <Download size={14} className="shrink-0" /> 
+                                    <span className="truncate">{getExportLabel()}</span>
+                                </button>
+                            </div> 
+                        </div> 
+                    )} 
+          
+          </aside>
+
+          {/* Bagian Kanan (Preview Output) */}
+          <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
           
           {/* ACTIVITY & ACTIONS INSIDE SCROLLABLE AREA */}
                     {activeTab !== 'logs' && activeTab !== 'apikeys' && (
@@ -1259,7 +1262,6 @@ const App: React.FC = () => {
                             </div>
                         </div>
                     )}
-          
           </aside>
   
           <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
