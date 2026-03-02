@@ -7,8 +7,8 @@ interface Props {
   settings: AppSettings;
   setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
   isProcessing: boolean;
-  isPaidUnlocked: boolean;
-  setIsPaidUnlocked: (unlocked: boolean) => void;
+  isMode 2Unlocked: boolean;
+  setIsMode 2Unlocked: (unlocked: boolean) => void;
   onRestoreHistory: () => void;
   hasHistory: boolean;
 }
@@ -109,7 +109,7 @@ const IdeaSettings: React.FC<Props> = ({
     }
   };
 
-  const handleModeSwitch = (mode: 'free' | 'paid') => {
+  const handleModeSwitch = (mode: 'Mode 1' | 'Mode 2') => {
     if (isProcessing) return; 
     setSettings(prev => ({ ...prev, ideaMode: mode }));
   };
@@ -147,35 +147,35 @@ const IdeaSettings: React.FC<Props> = ({
         </div>
         <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[48px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
           <button
-            onClick={() => handleModeSwitch('free')}
+            onClick={() => handleModeSwitch('Mode 1')}
             disabled={isProcessing} 
             className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
-              settings.ideaMode === 'free' 
+              settings.ideaMode === 'Mode 1' 
                 ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
                 : 'text-gray-500 hover:bg-gray-200'
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
-            <Sparkles size={14} className={settings.ideaMode === 'free' ? 'text-blue-500' : 'text-gray-400'} />
+            <Sparkles size={14} className={settings.ideaMode === 'Mode 1' ? 'text-blue-500' : 'text-gray-400'} />
             <span>Mode 1</span>
           </button>
 
           <button
-            onClick={() => handleModeSwitch('paid')}
+            onClick={() => handleModeSwitch('Mode 2')}
             disabled={isProcessing} 
             className={`flex-1 flex items-center justify-center gap-2 py-1 text-sm font-medium tracking-wide rounded-md transition-all ${
-              settings.ideaMode === 'paid' 
+              settings.ideaMode === 'Mode 2' 
                 ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
                 : 'text-gray-500 hover:bg-gray-200'
             } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           >
-            <Library size={14} className={settings.ideaMode === 'paid' ? 'text-blue-600' : 'text-gray-400'} />
+            <Library size={14} className={settings.ideaMode === 'Mode 2' ? 'text-blue-600' : 'text-gray-400'} />
             <span>Mode 2</span>
           </button>
         </div>
       </div>
       
       {/* === CUSTOM INSTRUCTION INJECTION === */}
-      {settings.ideaMode === 'free' && (
+      {settings.ideaMode === 'Mode 1' && (
          <div className="animate-in fade-in duration-300">
            <div className="flex items-center gap-2 mb-1">
              <label className={labelClass}>Custom Instruction (Optional)</label>
@@ -193,7 +193,7 @@ const IdeaSettings: React.FC<Props> = ({
       )}
 
       {/* === MODE 1 CONTENT === */}
-      {settings.ideaMode === 'free' && (
+      {settings.ideaMode === 'Mode 1' && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col gap-4">
            <div>
              <div className="flex items-center gap-2 mb-1">
@@ -336,7 +336,7 @@ const IdeaSettings: React.FC<Props> = ({
       )}
 
       {/* === MODE 2 CONTENT === */}
-      {settings.ideaMode === 'paid' && (
+      {settings.ideaMode === 'Mode 2' && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col gap-4">
           
           <div className="pt-2">
