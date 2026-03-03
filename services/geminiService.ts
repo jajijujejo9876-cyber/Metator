@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, ApiProvider, ChatMessage, ProcessingStatus } from "../types";
-import { DEFAULT_PROMPT_TEMPLATE, CATEGORIES, SHUTTERSTOCK_CATEGORIES, APP_CODE_CONTEXT, BLEND_CATEGORIES, BLEND_CRITERIA } from "../constants";
+import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, ChatMessage } from "../types";
+import { CATEGORIES, SHUTTERSTOCK_CATEGORIES } from "../constants";
 import { extractVideoFrames } from "../utils/helpers";
-import { v4 as uuidv4 } from 'uuid';
 
 const fileToPart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
   return new Promise((resolve, reject) => {
@@ -103,22 +102,6 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
   });
 };
 
-const base64ToBlob = (base64: string, mimeType: string): Blob => {
-  const binary = atob(base64);
-  const array = [];
-  for (let i = 0; i < binary.length; i++) {
-    array.push(binary.charCodeAt(i));
-  }
-  return new Blob([new Uint8Array(array)], { type: mimeType });
-};
-
-interface GenerationResult {
-  metadata: FileMetadata;
-  thumbnail?: string;
-  generatedImageUrl?: string;
-  isScientific?: boolean;
-}
-
 const SUPREME_METADATA_PROTOCOL = `
 ### SUPREME STOCK METADATA SEO PROTOCOL (LITERAL ANALYSIS ONLY) ###
 Anda adalah Analis SEO Microstock Elit. Ikuti protokol ketat ini:
@@ -132,7 +115,7 @@ STEP 2: RUMUS PENULISAN JUDUL
 - FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Konteks Komersial].
 - KATA PERTAMA: Harus berupa nama objek literal (Subjek Utama).
 - NO OPINIONS: Dilarang keras kata-kata seperti "beautiful, stunning, amazing, best quality".
-- DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur (Contoh: "Glossy blue glass bowl", "Soft sunset lighting over mountain").
+- DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur.
 
 STEP 3: LOGIKA KATA KUNCI (SEO HIERARCHY)
 - TOTAL: Tepat [KW_COUNT] kata kunci.
@@ -149,90 +132,22 @@ ASSIGN CATEGORY:
 - Pilih tepat SATU kategori dari list yang diberikan berdasarkan subjek literal utama.
 `;
 
-const callCompatibleApi = async (
-  parts: any[], 
-  systemInstruction: string, 
-  apiKey: string, 
-  baseUrl: string, 
-  model: string,
-  provider: string,
-  responseSchema?: any,
-  temperature: number = 0.1
-): Promise<any> => {
-  const messages: any[] = [];
-  if (systemInstruction) messages.push({ role: "system", content: systemInstruction });
-  
-  const hasImages = parts.some(p => p.inlineData);
-  let userContent: any;
-  
-  if (hasImages) {
-      userContent = parts.map(part => {
-        if (part.text) return { type: "text", text: part.text };
-        if (part.inlineData) return { type: "image_url", image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` } };
-        return null;
-      }).filter(Boolean);
-  } else {
-      userContent = parts.map(p => p.text).filter(Boolean).join("\n\n");
-  }
-  
-  messages.push({ role: "user", content: userContent });
-  
-  const payload: any = { model: model, messages: messages, temperature: temperature };
-  if (responseSchema) payload.response_format = { type: "json_object" };
-
-  let endpoint = baseUrl;
-  if (!endpoint.includes('/chat/completions')) {
-      endpoint = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
-  }
-  
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify(payload)
-  });
-  
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`API Error ${response.status}: ${errText}`);
-  }
-  
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Empty response content from API");
-  
-  if (responseSchema) {
-      let cleanJson = content.replace(/```json\n?|```/g, "");
-      const firstBrace = cleanJson.indexOf('{');
-      const lastBrace = cleanJson.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1) cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
-      return JSON.parse(cleanJson);
-  }
-  return content;
-};
-
+// Fungsi utama API
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
-  apiKey: string,
+  apiKey: string, // Tetap dibiarkan sebagai parameter biar App.tsx nggak error, tapi nilainya nggak kita pakai.
   mode: AppMode = 'metadata'
-): Promise<GenerationResult> => {
-  const provider = settings.apiProvider || 'AUTO';
-  const actualApiKey = provider === 'AUTO' ? process.env.API_KEY || '' : apiKey;
+): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; }> => {
+  
+  // Karena kita pakai internal Gemini Canvas, kita deteksi environment key-nya secara otomatis.
+  const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
 
   try {
-    const multilingualInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.`;
     let systemInstruction = "";
     let promptText = "";
     let temperature = 0.1;
-    let outputSchema: any = {
-      type: Type.OBJECT,
-      properties: {
-        en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-        ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-        category: { type: Type.STRING }
-      },
-      required: ["en", "ind", "category"]
-    };
+    let outputSchema: any;
 
     if (mode === 'metadata') {
         const platform = settings.metadataPlatform || 'Adobe Stock';
@@ -243,7 +158,7 @@ export const generateMetadataForFile = async (
         const maxChars = settings.titleMax || 150;
         const kwTotal = settings.slideKeyword || 40;
 
-        systemInstruction = `${multilingualInstruction}\n\n${SUPREME_METADATA_PROTOCOL}`
+        systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
             .replace('[KW_COUNT]', kwTotal.toString());
 
         systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.\nPLATFORM: ${platform}\nCATEGORIES:\n${categoryList}`;
@@ -257,22 +172,55 @@ export const generateMetadataForFile = async (
             promptText += `\n\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
         }
 
+        outputSchema = {
+          type: Type.OBJECT,
+          properties: {
+            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
+            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
+            category: { type: Type.STRING }
+          },
+          required: ["en", "ind", "category"]
+        };
+
     } else if (mode === 'idea') {
-        temperature = 1.0; 
+        temperature = 0.9; // Dinaikkan sedikit biar idenya lebih liar dan kreatif
+        
+        // SCHEMA KHUSUS IDEA (Hanya mengembalikan 1 baris teks ide)
         outputSchema = {
            type: Type.OBJECT,
            properties: {
-              en_title: { type: Type.STRING }, ind_title: { type: Type.STRING },
-              en_visual: { type: Type.STRING }, ind_visual: { type: Type.STRING },
-              en_keywords: { type: Type.STRING }, ind_keywords: { type: Type.STRING }
+              en_idea: { type: Type.STRING, description: "1 short line of visual concept idea (max 10 words)" }, 
+              ind_idea: { type: Type.STRING, description: "1 baris ide konsep visual singkat (maks 10 kata)" }
            },
-           required: ["en_title", "ind_title", "en_visual", "ind_visual", "en_keywords", "ind_keywords"]
+           required: ["en_idea", "ind_idea"]
         };
-        systemInstruction = `${multilingualInstruction}\nTASK: Hasilkan SATU konsep visual unik untuk stock image/video. Gunakan format 'Judul ||| Deskripsi Visual'.`;
-        promptText = `Kategori Ide: ${settings.ideaCategory}. ${settings.ideaCustomInput ? `Topik: ${settings.ideaCustomInput}` : ''}`;
-    }
 
-    let parsed: any;
+        const kategoriDipilih = settings.ideaCategory;
+        const instruksiPengguna = settings.ideaCustomInstruction;
+
+        // PENGGABUNGAN PROMPT SAKTI
+        systemInstruction = `Bertindak sebagai Senior Microstock Analyst. Berikan 1 ide konsep visual bernilai komersial tinggi.
+        
+        TEMA/KATEGORI: ${kategoriDipilih}
+        (Jika tema 'auto', pilih secara acak tema yang paling laku di pasaran).
+        
+        ATURAN MUTLAK:
+        1. Output HANYA berupa kalimat ide yang sangat singkat (1 baris, maksimal 5-10 kata).
+        2. JANGAN sertakan judul, deskripsi panjang, atau keyword.
+        3. Hasilkan dalam field JSON 'en_idea' (Inggris) dan 'ind_idea' (Indonesia).`;
+
+        promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Tidak ada instruksi tambahan. Buat konsep serealistis dan sekomersial mungkin."}"`;
+    } else {
+        // Fallback schema for prompt
+        outputSchema = {
+          type: Type.OBJECT,
+          properties: {
+            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } } },
+            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } } },
+            category: { type: Type.STRING }
+          }
+        };
+    }
 
     let parts: any[] = [];
     if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
@@ -289,36 +237,28 @@ export const generateMetadataForFile = async (
       parts = [mediaPart, { text: promptText }];
     }
 
-    const modelToUse = provider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
+    // Eksekusi ke Gemini Internal
+    const ai = new GoogleGenAI({ apiKey: actualApiKey });
+    const response: any = await ai.models.generateContent({
+      model: settings.geminiModel || 'gemini-3-flash-preview',
+      contents: { parts },
+      config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
+    });
+    
+    const parsed = JSON.parse(response.text);
 
-    if (provider === 'GEMINI' || provider === 'AUTO') {
-        // PENGGUNAAN API KEY GOOGLE GEMINI STANDAR
-        const ai = new GoogleGenAI({ apiKey: actualApiKey });
-        const response: any = await ai.models.generateContent({
-          model: modelToUse,
-          contents: { parts },
-          config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
-        });
-        parsed = JSON.parse(response.text);
-    } else {
-        // PENGGUNAAN GROQ, MISTRAL, ATAU CUSTOM PROVIDER
-        let baseUrl = provider === 'GROQ' ? 'https://api.groq.com/openai/v1/' : (provider === 'MISTRAL' ? 'https://api.mistral.ai/v1/' : (settings.customBaseUrl || ''));
-        // @ts-ignore (Memaksa pembacaan customModel jika ada)
-        let model = provider === 'GROQ' ? (settings.groqModel || 'llama-4-maverick-17b-128e-instruct') : (provider === 'MISTRAL' ? (settings.mistralModel || 'pixtral-large-latest') : (settings.customModel || ''));
-        
-        parsed = await callCompatibleApi(parts, systemInstruction, actualApiKey, baseUrl, model, provider, outputSchema, temperature);
-    }
-
+    // Format Data Balikan Khusus Mode Idea
     if (mode === 'idea') {
         return {
             metadata: {
-                en: { title: `${parsed.en_title} ||| ${parsed.en_visual}`, keywords: parsed.en_keywords },
-                ind: { title: `${parsed.ind_title} ||| ${parsed.ind_visual}`, keywords: parsed.ind_keywords },
-                category: "Idea"
+                en: { title: parsed.en_idea, keywords: "" }, // Keyword dikosongkan sengaja
+                ind: { title: parsed.ind_idea, keywords: "" },
+                category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
             }
         };
     }
 
+    // Format Data Balikan Metadata/Prompt
     return {
       metadata: { 
         en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
@@ -331,8 +271,8 @@ export const generateMetadataForFile = async (
   }
 };
 
-export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, apiKey: string, settings?: AppSettings): Promise<{ title: string; keywords: string }> => {
-  const actualApiKey = apiKey || process.env.API_KEY || '';
+export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, apiKey: string): Promise<{ title: string; keywords: string }> => {
+  const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || apiKey || 'internal_canvas_key';
   const ai = new GoogleGenAI({ apiKey: actualApiKey });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -343,12 +283,10 @@ export const translateMetadataContent = async (content: { title: string; keyword
 };
 
 export const translateText = async (text: string, targetLang: string, apiKey: string, settings: AppSettings): Promise<string> => {
-    const actualApiKey = apiKey || process.env.API_KEY || '';
-    const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
-    
+    const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || apiKey || 'internal_canvas_key';
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response = await ai.models.generateContent({
-      model: modelToUse,
+      model: settings.geminiModel || 'gemini-3-flash-preview',
       contents: `Translate text to ${targetLang}: ${text}`,
       config: { temperature: 0.1 }
     });
@@ -356,12 +294,14 @@ export const translateText = async (text: string, targetLang: string, apiKey: st
 };
 
 export const generateChatResponse = async (history: ChatMessage[], newMessage: string, settings: AppSettings, apiKey: string): Promise<string> => {
-    const actualApiKey = apiKey || process.env.API_KEY || '';
-    const modelToUse = settings.apiProvider === 'AUTO' ? 'gemini-3-flash-preview' : (settings.geminiModel || 'gemini-2.5-flash');
-
+    const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || apiKey || 'internal_canvas_key';
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const contents = history.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
     contents.push({ role: 'user', parts: [{ text: newMessage }] });
-    const response = await ai.models.generateContent({ model: modelToUse, contents, config: { systemInstruction: `IsaProject Chat Assistant.`, temperature: 0.7 } });
+    const response = await ai.models.generateContent({ 
+        model: settings.geminiModel || 'gemini-3-flash-preview', 
+        contents, 
+        config: { systemInstruction: `IsaProject Chat Assistant.`, temperature: 0.7 } 
+    });
     return response.text || "";
 };
