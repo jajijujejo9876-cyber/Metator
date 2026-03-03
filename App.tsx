@@ -903,27 +903,29 @@ const App: React.FC = () => {
     };
   
     const canGenerate = (() => {
-          if (isProcessing) return false;
-          if (activeMode === 'idea') {
-              if (settings.ideaMode === 'free') {
-                   if (settings.ideaCategory === 'file' && (!settings.ideaSourceFiles || settings.ideaSourceFiles.length === 0)) return false;
-                   if (settings.ideaCategory === 'custom' && !settings.ideaCustomInput) return false;
-                   return true;
-              } else {
-                   return settings.ideaSourceLines && settings.ideaSourceLines.length > 0 && 
-                          (settings.ideaFromRow || 0) > 0 && 
-                          (settings.ideaBatchSize || 0) > 0;
-              }
-          }
-          if (activeMode === 'prompt') {
-              if (settings.promptPlatform === 'file') return (settings.promptSourceFiles || []).length > 0;
-              return !!settings.promptIdea; // Prompt generation requires an Idea/Niche
-          }
-          if (activeMode === 'metadata') {
-              return currentFiles.length > 0; // Metadata generation requires files
-          }
-          return false;
-    })();
+      if (isProcessing) return false;
+      if (activeMode === 'idea') {
+          if (settings.ideaMode === 'free') {
+               if (!currentProviderKeys || currentProviderKeys.length === 0) return false;
+
+               if (settings.ideaCategory === 'file' && (!settings.ideaSourceFiles || settings.ideaSourceFiles.length === 0)) return false;
+               if (settings.ideaCategory === 'custom' && !settings.ideaCustomInput) return false;
+               return true;
+          } else {
+               return settings.ideaSourceLines && settings.ideaSourceLines.length > 0 && 
+                      (settings.ideaFromRow || 0) > 0 && 
+                      (settings.ideaBatchSize || 0) > 0;
+          }
+      }
+      if (activeMode === 'prompt') {
+          if (settings.promptPlatform === 'file') return (settings.promptSourceFiles || []).length > 0;
+          return !!settings.promptIdea; 
+      }
+      if (activeMode === 'metadata') {
+          return currentFiles.length > 0; 
+      }
+      return false;
+  })();
   
     const getGenerateButtonColor = () => {
           if (!canGenerate) return 'bg-gray-300 cursor-not-allowed text-gray-500';
@@ -1182,11 +1184,7 @@ const App: React.FC = () => {
                         ) : (
                             <button 
                                 onClick={startProcessing} 
-                                disabled={
-                                  !canGenerate ||
-                                  isProcessing ||
-                                  (activeTab === 'idea' && settings.ideaMode === 'free' && (!currentProviderKeys || currentProviderKeys.length === 0))
-                                } 
+                                disabled={!canGenerate || isProcessing}
                                 className={`flex-1 text-xs font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
                             >
                                 <Wand2 size={14} className="shrink-0" />
