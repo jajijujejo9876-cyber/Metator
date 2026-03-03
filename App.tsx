@@ -45,6 +45,8 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('clipped');   
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
 
@@ -888,6 +890,14 @@ const App: React.FC = () => {
 
   const isCurrentTabProcessing = isProcessing && processingMode === activeTab;
   const isCurrentTabPaused = isCurrentTabProcessing && isPaused;
+
+  if (!isMounted) {
+      return (
+          <div className="flex items-center justify-center w-full h-screen bg-gray-50">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin opacity-50" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden">
