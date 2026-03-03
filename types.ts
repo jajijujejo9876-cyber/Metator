@@ -1,4 +1,3 @@
-
 export enum FileType {
   Image = 'Image',
   Video = 'Video',
@@ -36,8 +35,7 @@ export interface FileItem {
   metadata: FileMetadata;
   error?: string;
   sourceData?: ScrapedDataRow; 
-  generatedImageUrl?: string; // For ImageGen results
-  isScientific?: boolean; // Flag if generated with scientific precision
+  generatedImageUrl?: string; 
 }
 
 export interface Category {
@@ -46,28 +44,8 @@ export interface Category {
   id_lang: string; 
 }
 
-export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata' | 'chat' | 'imageGen' | 'edu_link';
-
-export enum EduSourceType {
-  YouTube = 'YouTube',
-  File = 'From File',
-  Link = 'Link Other'
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  translatedContent?: string; 
-  timestamp: Date;
-}
-
-export interface ChatSession {
-  id: string;
-  name: string;
-  messages: ChatMessage[];
-  lastModified: number;
-}
+// Menghapus 'chat' dari AppMode
+export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata';
 
 export interface ScrapedDataRow {
   id: number;
@@ -90,51 +68,9 @@ export type IdeaCategory =
   | 'custom'
   | 'file';
 
-export interface ImageModeConfig {
-  prompt: string;
-  quantity: number;
-  aspectRatio: ImageAspectRatio;
-  zipFilename: string;
-  scientificPrecision?: boolean;
-}
-
-export type BlendCategory = 
-  | 'aesthetic_fusion'
-  | 'product_placement'
-  | 'material_mapping'
-  | 'atmospheric'
-  | 'character_consistency'
-  | 'hybrid_concept';
-
-export interface AdsSubHeadings {
-  auto: boolean;
-  media: string;
-  history: string;
-  photo: string;
-  digital: string;
-  pop: string;
-  material: string;
-  core: string;
-  print: string;
-}
-
-export type AdTextPosition = 'auto' | 'top' | 'bottom' | 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-
-export interface AdTextItem {
-  id: string;
-  text: string;
-  position: AdTextPosition;
-}
-
 export interface AppSettings {
   apiProvider: ApiProvider;
   geminiModel: string;   
-  groqModel: string;     
-  puterModel: string;    
-  mistralBaseUrl: string; 
-  mistralModel: string;   
-  customBaseUrl: string; 
-  customModel: string;   
   customTitle: string;
   customKeyword: string;
   negativeMetadata: string; 
@@ -145,14 +81,15 @@ export interface AppSettings {
   slideKeyword: number; 
   videoFrameCount: number;
   workerCount: number; 
+  apiDelay: number;
   ideaMode: 'free' | 'paid';
-  ideaQuantity: number;      
+  ideaQuantity: number;       
   ideaCategory: IdeaCategory;
   ideaCustomInput: string;   
   ideaCustomInstruction: string; 
   ideaSourceFiles?: File[];  
-  ideaFromRow: number;       
-  ideaBatchSize: number;     
+  ideaFromRow: number;        
+  ideaBatchSize: number;      
   ideaSourceLines: string[]; 
   ideaWorkerCount: number;
   promptIdea: string;
@@ -161,7 +98,6 @@ export interface AppSettings {
   promptJsonOutput: boolean;
   promptPlatform: string; 
   promptSourceFiles?: File[]; 
-  selectedFileType: FileType;
   csvFilename: string;
   outputFormat: 'csv' | 'txt';
 }
