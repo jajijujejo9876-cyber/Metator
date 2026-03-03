@@ -70,7 +70,7 @@ const App: React.FC = () => {
       ideaQuantity: 30, 
       ideaCategory: 'auto',
       ideaCustomInput: '',
-      ideaCustomInstruction: '', 
+      ideaCustomInstruction: 'Bertindak sebagai Senior Microstock Analyst. Berikan ide konsep visual bernilai komersial tinggi. ATURAN PENTING: 1. Sesuaikan ide dengan Tema/Kategori yang diminta. Jika tema adalah "auto", pilih secara acak tema yang paling laku di pasaran. 2. Output HANYA berupa 1 baris ide singkat (maks 5-10 kata). 3. JANGAN sertakan judul, deskripsi, atau keyword.',
       ideaSourceFiles: [], 
       ideaFromRow: 0, 
       ideaBatchSize: 0, 
