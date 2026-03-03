@@ -131,6 +131,8 @@ const IdeaSettings: React.FC<Props> = ({
     ? settings.ideaSourceLines.slice(previewStart, previewStart + 3)
     : [];
 
+  const defaultFilename = settings.ideaMode === 'free' ? 'IsaIdea_Mode1' : 'IsaIdea_Mode2';
+  
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -176,7 +178,7 @@ const IdeaSettings: React.FC<Props> = ({
       
       {/* === CUSTOM INSTRUCTION INJECTION === */}
       {settings.ideaMode === 'free' && (
-         <div className="animate-in fade-in duration-300">
+         <div className="">
            <div className="flex items-center gap-2 mb-1">
              <label className={labelClass}>Custom Instruction (Optional)</label>
            </div>
@@ -194,14 +196,14 @@ const IdeaSettings: React.FC<Props> = ({
 
       {/* === free CONTENT === */}
       {settings.ideaMode === 'free' && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
            <div>
              <div className="flex items-center gap-2 mb-1">
                 <label className={labelClass}>Theme / Niche</label>
              </div>
              
              {showFileInput ? (
-                <div className="flex gap-3 animate-in fade-in duration-200">
+                <div className="flex gap-3">
                      <div className="relative flex-1 min-w-0">
                         <input 
                            ref={ideaMediaInputRef}
@@ -255,7 +257,7 @@ const IdeaSettings: React.FC<Props> = ({
                      </button>
                 </div>
              ) : showCustomInput ? (
-                <div className="flex gap-3 animate-in fade-in duration-200">
+                <div className="flex gap-3">
                     <input
                       type="text"
                       className={inputClass}
@@ -337,7 +339,7 @@ const IdeaSettings: React.FC<Props> = ({
 
       {/* === paid CONTENT === */}
       {settings.ideaMode === 'paid' && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           
           <div className="pt-2">
             <div className="flex items-center justify-between mb-1">
@@ -494,7 +496,7 @@ const IdeaSettings: React.FC<Props> = ({
           <input
             type="text"
             className={`${inputClass} pr-12 !bg-white !text-gray-900`} 
-            placeholder="IsaIdea"
+            placeholder={defaultFilename}
             value={settings.csvFilename}
             onChange={(e) => handleChange('csvFilename', e.target.value)}
             disabled={false} 
