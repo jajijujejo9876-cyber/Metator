@@ -149,30 +149,30 @@ const IdeaSettings: React.FC<Props> = ({ 
         </div>
         <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[48px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
           <button
-            onClick={() => handleModeSwitch('free')}
-            disabled={isProcessing} 
-            className={`flex-1 flex items-center justify-center gap-2 py-1 text-base font-medium tracking-wide rounded-md transition-all ${
-              settings.ideaMode === 'free' 
-                ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
-                : 'text-gray-500 hover:bg-gray-200'
-            } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-          >
-            <Sparkles size={14} className={settings.ideaMode === 'free' ? 'text-blue-500' : 'text-gray-400'} />
-            <span>Mode 1</span>
-          </button>
+            onClick={() => handleModeSwitch('free')}
+            disabled={isProcessing} 
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-base font-medium tracking-wide rounded-md transition-all border ${
+              settings.ideaMode === 'free' 
+                ? 'bg-white text-blue-600 shadow-sm border-blue-100' 
+                : 'border-transparent text-gray-500 hover:bg-gray-200'
+            } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          >
+            <Sparkles size={14} className={settings.ideaMode === 'free' ? 'text-blue-500' : 'text-gray-400'} />
+            <span>Mode 1</span>
+          </button>
 
-          <button
-            onClick={() => handleModeSwitch('paid')}
-            disabled={isProcessing} 
-            className={`flex-1 flex items-center justify-center gap-2 py-1 text-base font-medium tracking-wide rounded-md transition-all ${
-              settings.ideaMode === 'paid' 
-                ? 'bg-white text-blue-600 shadow-sm border border-blue-100' 
-                : 'text-gray-500 hover:bg-gray-200'
-            } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-          >
-            <Library size={14} className={settings.ideaMode === 'paid' ? 'text-blue-600' : 'text-gray-400'} />
-            <span>Mode 2</span>
-          </button>
+          <button
+            onClick={() => handleModeSwitch('paid')}
+            disabled={isProcessing} 
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-base font-medium tracking-wide rounded-md transition-all border ${
+              settings.ideaMode === 'paid' 
+                ? 'bg-white text-blue-600 shadow-sm border-blue-100' 
+                : 'border-transparent text-gray-500 hover:bg-gray-200'
+            } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          >
+            <Library size={14} className={settings.ideaMode === 'paid' ? 'text-blue-600' : 'text-gray-400'} />
+            <span>Mode 2</span>
+          </button>
         </div>
       </div>
       
@@ -184,12 +184,12 @@ const IdeaSettings: React.FC<Props> = ({ 
            </div>
            <div className="relative">
              <textarea
-               className={`${inputClass} text-xs resize-none h-14`}
-               placeholder="Instruksi spesifik untuk AI. Contoh: Bertindak sebagai Senior Stock Analyst, Fokus pada nilai komersial"
-               value={settings.ideaCustomInstruction || ''}
-               onChange={(e) => handleChange('ideaCustomInstruction', e.target.value)}
-               disabled={isProcessing}
-             />
+               className={`${areaClass} text-xs resize-none`}
+               placeholder="Instruksi spesifik untuk AI. Contoh: Bertindak sebagai Senior Stock Analyst, Fokus pada nilai komersial"
+               value={settings.ideaCustomInstruction || ''}
+               onChange={(e) => handleChange('ideaCustomInstruction', e.target.value)}
+               disabled={isProcessing}
+             />
            </div>
          </div>
       )}
