@@ -199,7 +199,7 @@ const IdeaSettings: React.FC<Props> = ({ 
         <div className="flex flex-col gap-4">
            <div>
              <div className="flex items-center gap-2 mb-1">
-                <label className={labelClass}>Theme / Niche</label>
+                <label className={labelClass}>Theme</label>
              </div>
              
              {showFileInput ? (
@@ -284,7 +284,7 @@ const IdeaSettings: React.FC<Props> = ({ 
                         onChange={(e) => handleChange('ideaCategory', e.target.value as IdeaCategory)}
                         disabled={isProcessing}
                     >
-                        <option value="auto">SURPRISE ME</option>
+                        <option value="auto">Auto/Surprise Me</option>
                         <option value="lifestyle">Lifestyle & People</option>
                         <option value="business">Business & Technology</option>
                         <option value="nature">Nature & Environment</option>
@@ -341,7 +341,7 @@ const IdeaSettings: React.FC<Props> = ({ 
       {settings.ideaMode === 'paid' && (
         <div className="flex flex-col gap-4">
           
-          <div className="pt-2">
+          <div className="">
             <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <label className={labelClass}>Database Source</label>
