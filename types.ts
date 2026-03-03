@@ -90,8 +90,6 @@ export type IdeaCategory =
   | 'custom'
   | 'file';
 
-export type ImageAspectRatio = "auto" | "1:1" | "9:16" | "16:9" | "4:3" | "3:4" | "custom";
-
 export interface ImageModeConfig {
   prompt: string;
   quantity: number;
@@ -162,24 +160,6 @@ export interface AppSettings {
   promptJsonOutput: boolean;
   promptPlatform: string; 
   promptSourceFiles?: File[]; 
-  imageGenMode: 'T2I' | 'I2I' | 'Blend' | 'Ads';
-  imageGenT2ISubMode: 'single' | 'batch';
-  imageGenT2I: ImageModeConfig; 
-  imageGenT2IBatch: ImageModeConfig; 
-  imageGenI2I: ImageModeConfig;
-  imageGenBlend: ImageModeConfig;
-  imageGenAds: ImageModeConfig;
-  imageGenBlendCategory: BlendCategory;
-  imageGenAdsSubHeadings: AdsSubHeadings;
-  imageGenAdsTexts: AdTextItem[];
-  imageGenSourceFile?: File | null; 
-  imageGenBatchFile?: File | null; 
-  imageGenReferenceFiles: File[]; 
-  imageGenAdsObjectFiles: File[]; 
-  imageGenAdsStyleFiles: File[]; 
-  eduSourceType: EduSourceType;
-  eduInputUrl: string;       
-  eduSourceFiles: File[];    
   selectedFileType: FileType;
   csvFilename: string;
   outputFormat: 'csv' | 'txt';
