@@ -185,7 +185,7 @@ const IdeaSettings: React.FC<Props> = ({ 
            <div className="relative">
              <textarea
                className={`${areaClass} text-xs resize-none`}
-               placeholder="Instruksi spesifik untuk AI. Contoh: Bertindak sebagai Senior Stock Analyst, Fokus pada nilai komersial"
+               placeholder="Instruksi spesifik untuk AI. Contoh: Bertindak sebagai Senior Microstock Analyst."
                value={settings.ideaCustomInstruction || ''}
                onChange={(e) => handleChange('ideaCustomInstruction', e.target.value)}
                disabled={isProcessing}
