@@ -427,8 +427,24 @@ const IdeaSettings: React.FC<Props> = ({
                   disabled={isProcessing}
                 />
               </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between h-5 mb-1">
+              <div className="grid grid-cols-3 gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center h-5 mb-1">
+                    <label className={labelClass}>Start Row</label>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  className={inputClass}
+                  value={settings.ideaFromRow === 0 ? '' : settings.ideaFromRow}
+                  onChange={(e) => handleNumberChange('ideaFromRow', e.target.value)}
+                  disabled={isProcessing}
+                />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center h-5 mb-1">
                     <label className={labelClass}>Quantity</label>
                 </div>
                 <input
@@ -441,21 +457,22 @@ const IdeaSettings: React.FC<Props> = ({
                   disabled={isProcessing}
                 />
               </div>
-          </div>
 
-          {/* Persistent Negative Context Field */}
-          <div className="col-span-full">
-            <label className={labelClass}>Negative Context</label>
-            <textarea
-              className={`${areaClass} resize-none text-xs font-mono scrollbar-thin scrollbar-thumb-gray-200 leading-tight`}
-              placeholder="Daftar kata yang dilarang muncul..."
-              value={settings.ideaNegativeContext}
-              onChange={(e) => handleChange('ideaNegativeContext', e.target.value)}
-              disabled={isProcessing}
-              spellCheck={false}
-            />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center h-5 mb-1">
+                    <label className={labelClass} title="Jumlah proses paralel lokal">Worker</label>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="50"
+                  className={inputClass}
+                  value={settings.ideaWorkerCount === 0 ? '' : settings.ideaWorkerCount}
+                  onChange={(e) => handleNumberChange('ideaWorkerCount', e.target.value)}
+                  disabled={isProcessing}
+                />
+              </div>
           </div>
-        </div>
       )}
 
       {/* Custom Filename & Output Format Combined */}
