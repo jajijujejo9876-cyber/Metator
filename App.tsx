@@ -1185,7 +1185,7 @@ const App: React.FC = () => {
                                 disabled={
                                   !canGenerate ||
                                   isProcessing ||
-                                  (activeTab === 'idea' && settings.ideaMode === 'free' && !settings.geminiApiKey)
+                                  (activeTab === 'idea' && settings.ideaMode === 'free' && (!currentProviderKeys || currentProviderKeys.length === 0))
                                 } 
                                 className={`flex-1 text-xs font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
                             >
