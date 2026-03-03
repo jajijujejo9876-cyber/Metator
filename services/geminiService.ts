@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, ChatMessage } from "../types";
+import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode } from "../types";
 import { CATEGORIES, SHUTTERSTOCK_CATEGORIES } from "../constants";
 import { extractVideoFrames } from "../utils/helpers";
 
@@ -132,15 +132,13 @@ ASSIGN CATEGORY:
 - Pilih tepat SATU kategori dari list yang diberikan berdasarkan subjek literal utama.
 `;
 
-// Fungsi utama API
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
-  apiKey: string, // Tetap dibiarkan sebagai parameter biar App.tsx nggak error, tapi nilainya nggak kita pakai.
+  _unusedApiKey: string, // Biarkan pakai underscore agar tidak warning tapi tetap sinkron dengan pemanggil
   mode: AppMode = 'metadata'
 ): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; }> => {
   
-  // Karena kita pakai internal Gemini Canvas, kita deteksi environment key-nya secara otomatis.
   const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
 
   try {
@@ -183,14 +181,12 @@ export const generateMetadataForFile = async (
         };
 
     } else if (mode === 'idea') {
-        temperature = 0.9; // Dinaikkan sedikit biar idenya lebih liar dan kreatif
-        
-        // SCHEMA KHUSUS IDEA (Hanya mengembalikan 1 baris teks ide)
+        temperature = 0.9;
         outputSchema = {
            type: Type.OBJECT,
            properties: {
-              en_idea: { type: Type.STRING, description: "1 short line of visual concept idea (max 10 words)" }, 
-              ind_idea: { type: Type.STRING, description: "1 baris ide konsep visual singkat (maks 10 kata)" }
+              en_idea: { type: Type.STRING }, 
+              ind_idea: { type: Type.STRING }
            },
            required: ["en_idea", "ind_idea"]
         };
@@ -198,36 +194,21 @@ export const generateMetadataForFile = async (
         const kategoriDipilih = settings.ideaCategory;
         const instruksiPengguna = settings.ideaCustomInstruction;
 
-        // PENGGABUNGAN PROMPT SAKTI
         systemInstruction = `Bertindak sebagai Senior Microstock Analyst. Berikan 1 ide konsep visual bernilai komersial tinggi.
-        
         TEMA/KATEGORI: ${kategoriDipilih}
-        (Jika tema 'auto', pilih secara acak tema yang paling laku di pasaran).
-        
         ATURAN MUTLAK:
         1. Output HANYA berupa kalimat ide yang sangat singkat (1 baris, maksimal 5-10 kata).
         2. JANGAN sertakan judul, deskripsi panjang, atau keyword.
-        3. Hasilkan dalam field JSON 'en_idea' (Inggris) dan 'ind_idea' (Indonesia).`;
+        3. Hasilkan dalam field JSON 'en_idea' dan 'ind_idea'.`;
 
-        promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Tidak ada instruksi tambahan. Buat konsep serealistis dan sekomersial mungkin."}"`;
-    } else {
-        // Fallback schema for prompt
-        outputSchema = {
-          type: Type.OBJECT,
-          properties: {
-            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } } },
-            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } } },
-            category: { type: Type.STRING }
-          }
-        };
+        promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Buat konsep serealistis mungkin."}"`;
     }
 
     let parts: any[] = [];
     if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
       parts = [{ text: promptText }];
     } else if (fileItem.type === FileType.Video) {
-      const requestedFrames = settings.videoFrameCount || 3;
-      const frames = await extractVideoFrames(fileItem.file, requestedFrames);
+      const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
       parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
       parts.push({ text: promptText });
     } else {
@@ -237,7 +218,6 @@ export const generateMetadataForFile = async (
       parts = [mediaPart, { text: promptText }];
     }
 
-    // Eksekusi ke Gemini Internal
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response: any = await ai.models.generateContent({
       model: settings.geminiModel || 'gemini-3-flash-preview',
@@ -247,18 +227,16 @@ export const generateMetadataForFile = async (
     
     const parsed = JSON.parse(response.text);
 
-    // Format Data Balikan Khusus Mode Idea
     if (mode === 'idea') {
         return {
             metadata: {
-                en: { title: parsed.en_idea, keywords: "" }, // Keyword dikosongkan sengaja
+                en: { title: parsed.en_idea, keywords: "" },
                 ind: { title: parsed.ind_idea, keywords: "" },
                 category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
             }
         };
     }
 
-    // Format Data Balikan Metadata/Prompt
     return {
       metadata: { 
         en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
@@ -271,8 +249,8 @@ export const generateMetadataForFile = async (
   }
 };
 
-export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, apiKey: string): Promise<{ title: string; keywords: string }> => {
-  const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || apiKey || 'internal_canvas_key';
+export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language): Promise<{ title: string; keywords: string }> => {
+  const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
   const ai = new GoogleGenAI({ apiKey: actualApiKey });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -282,8 +260,8 @@ export const translateMetadataContent = async (content: { title: string; keyword
   return { title: JSON.parse(response.text).title, keywords: content.keywords };
 };
 
-export const translateText = async (text: string, targetLang: string, apiKey: string, settings: AppSettings): Promise<string> => {
-    const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || apiKey || 'internal_canvas_key';
+export const translateText = async (text: string, targetLang: string, settings: AppSettings): Promise<string> => {
+    const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response = await ai.models.generateContent({
       model: settings.geminiModel || 'gemini-3-flash-preview',
@@ -291,17 +269,4 @@ export const translateText = async (text: string, targetLang: string, apiKey: st
       config: { temperature: 0.1 }
     });
     return response.text || text;
-};
-
-export const generateChatResponse = async (history: ChatMessage[], newMessage: string, settings: AppSettings, apiKey: string): Promise<string> => {
-    const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || apiKey || 'internal_canvas_key';
-    const ai = new GoogleGenAI({ apiKey: actualApiKey });
-    const contents = history.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
-    contents.push({ role: 'user', parts: [{ text: newMessage }] });
-    const response = await ai.models.generateContent({ 
-        model: settings.geminiModel || 'gemini-3-flash-preview', 
-        contents, 
-        config: { systemInstruction: `IsaProject Chat Assistant.`, temperature: 0.7 } 
-    });
-    return response.text || "";
 };
