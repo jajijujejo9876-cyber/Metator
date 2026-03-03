@@ -491,7 +491,9 @@ const App: React.FC = () => {
     if (isProcessing && processingMode === activeTab && !isPaused) return;
 
     let defaultBase = 'IsaMetadata';
-    if (activeTab === 'idea') defaultBase = 'IsaIdea';
+    if (activeTab === 'idea') {
+        defaultBase = settings.ideaMode === 'free' ? 'IsaIdea_Mode1' : 'IsaIdea_Mode2';
+    }
     if (activeTab === 'prompt') defaultBase = 'IsaPrompt';
 
     const filenameToUse = settings.csvFilename.trim() || defaultBase;
@@ -831,7 +833,7 @@ const App: React.FC = () => {
                     [processingDataKey]: [...processingFilesRef.current]
                  };
                  
-                 if (mode === 'idea') {
+                 if (mode === 'idea' && settings.ideaMode === 'free') {
                     localStorage.setItem('ISA_LAST_IDEA_BATCH', JSON.stringify(processingFilesRef.current));
                     setHasHistory(true);
                  } else if (mode === 'prompt') {
@@ -1180,7 +1182,11 @@ const App: React.FC = () => {
                         ) : (
                             <button 
                                 onClick={startProcessing} 
-                                disabled={!canGenerate || isProcessing} 
+                                disabled={
+                                  !canGenerate ||
+                                  isProcessing ||
+                                  (activeTab === 'idea' && settings.ideaMode === 'free' && !settings.apiKey)
+                                } 
                                 className={`flex-1 text-xs font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
                             >
                                 <Wand2 size={14} className="shrink-0" />
