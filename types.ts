@@ -154,6 +154,7 @@ export interface AppSettings {
   ideaFromRow: number;       
   ideaBatchSize: number;     
   ideaSourceLines: string[]; 
+  ideaWorkerCount: number;
   promptIdea: string;
   promptDescription: string;
   promptQuantity: number;
