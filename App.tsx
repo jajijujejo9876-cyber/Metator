@@ -928,9 +928,9 @@ const App: React.FC = () => {
   })();
   
     const getGenerateButtonColor = () => {
-          if (!canGenerate) return 'bg-gray-300 cursor-not-allowed text-gray-500';
-          return 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-700';
-    };
+      if (!canGenerate) return 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-400';
+      return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-700';
+  };
   
     const getGenerateButtonText = () => {
           if (activeMode === 'idea') return "Generate Ideas";
@@ -1184,8 +1184,8 @@ const App: React.FC = () => {
                         ) : (
                             <button 
                                 onClick={startProcessing} 
-                                disabled={!canGenerate || isProcessing}
-                                className={`flex-1 text-xs font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
+                                disabled={!canGenerate || isProcessing} 
+                                className={`flex-1 text-xs font-bold rounded-lg border shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${getGenerateButtonColor()}`}
                             >
                                 <Wand2 size={14} className="shrink-0" />
                                 <span className="truncate">{getGenerateButtonText()}</span>
@@ -1210,7 +1210,11 @@ const App: React.FC = () => {
                         <button 
                             onClick={() => handleDownload()} 
                             disabled={completedCount === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
-                            className={`flex-1 text-sm font-bold rounded-lg shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide ${completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-green-600 hover:bg-green-700 text-white border border-green-700' : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'}`}
+                            className={`flex-1 text-xs font-bold rounded-lg border shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${
+                                completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) 
+                                ? 'bg-green-600 hover:bg-green-700 text-white border-green-700' 
+                                : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-80'
+                            }`}
                         >
                             <Download size={14} className="shrink-0" /> 
                             <span className="truncate">{getExportLabel()}</span>
