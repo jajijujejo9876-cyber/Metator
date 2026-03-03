@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, FilePlus, CheckCircle, XCircle, Clock, Database, Activity, Coffee, FolderPlus, Sparkles, Eraser, Lightbulb, Command, Filter, Lock, Key, Menu, ChevronRight, Info, Check, Bot, Settings, Pause, Play, Copy, Languages, RefreshCw, Loader2 } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Coffee, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -10,9 +10,9 @@ import FileCard from './components/FileCard';
 import IdeaListComponent from './components/IdeaListComponent'; 
 import PromptListComponent from './components/PromptListComponent';
 import PreviewModal from './components/PreviewModal';
-import { generateMetadataForFile, translateMetadataContent, translateText } from './services/geminiService';
+import { generateMetadataForFile, translateMetadataContent } from './services/geminiService';
 import { downloadCSV, downloadTXT, extractSlugFromUrl } from './utils/helpers';
-import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode, ApiProvider, ChatMessage, ChatSession } from './types';
+import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode } from './types';
 import { INITIAL_METADATA } from './constants';
 
 interface LogEntry {
@@ -22,8 +22,6 @@ interface LogEntry {
   type: 'info' | 'success' | 'error' | 'warning';
   mode?: AppMode | 'system'; 
 }
-
-type LogFilter = 'ALL' | AppMode;
 
 const DEFAULT_FORBIDDEN_WORDS = "Apple, Samsung, Nike, Adidas, Gucci, Rolex, Coca-Cola, Pepsi, Disney, Lego, Microsoft, Google, Sony, Nikon, Canon, Facebook, Instagram, Twitter, TikTok, iPhone, iPad, Galaxy, Eiffel Tower Night, Hollywood Sign, Red Cross, Olympic Rings, United Nations, Vatican City, 4K, HD, High Quality, Award Winning, Best, Professional, Photo, Image, Shot on, Shot with, Watermark, Logo, Signature, Copyright, Trademark, Brand, Patent, Patent Pending, All Rights Reserved, Blurred, Out of focus, Grainy, Noisy, Low resolution, Porn, Sex, Nude, Violence, Bloody, Israel, North Korea, Crimea, Restricted Area, Top Secret";
 
@@ -52,9 +50,8 @@ const App: React.FC = () => {
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
-      apiProvider: 'GEMINI', 
+      apiProvider: 'GEMINI CANVAS', 
       geminiModel: 'gemini-3-flash-preview', 
-      customModel: '',
       customTitle: '',
       customKeyword: '',
       negativeMetadata: DEFAULT_FORBIDDEN_WORDS,
@@ -66,20 +63,19 @@ const App: React.FC = () => {
       videoFrameCount: 3,
       workerCount: 10,
       apiDelay: 3,      
-      ideaMode: '', 
+      ideaMode: 'free', 
       ideaQuantity: 30, 
       ideaCategory: 'auto',
       ideaCustomInput: '',
-      ideaCustomInstruction: '',
+      ideaCustomInstruction: '', 
       ideaSourceFiles: [], 
-      ideaFromRow: 0, 
-      ideaBatchSize: 0, 
+      ideaFromRow: 1, 
+      ideaBatchSize: 10, 
       ideaSourceLines: [],
       ideaWorkerCount: 50,
       promptIdea: '',
       promptDescription: '',
       promptQuantity: 30,
-      promptJsonOutput: false,
       promptPlatform: 'Photo/Image', 
       promptSourceFiles: [],
       csvFilename: '',
@@ -93,8 +89,6 @@ const App: React.FC = () => {
         return { 
           ...defaultSettings, 
           ...parsed, 
-          customTitle: '', 
-          customKeyword: '',
           ideaSourceFiles: [], 
           promptSourceFiles: [], 
         };
@@ -124,6 +118,7 @@ const App: React.FC = () => {
   const activeWorkersRef = useRef(0);
   const queueRef = useRef<string[]>([]);
   const globalCooldownRef = useRef<number>(0);
+  
   const processingFilesRef = useRef<FileItem[]>([]); 
 
   const sidebarContentRef = useRef<HTMLDivElement>(null);
@@ -414,14 +409,13 @@ const App: React.FC = () => {
 
     if (field === 'title' || field === 'keywords') {
       const file = filesMap[activeDataKey].find(f => f.id === id);
-      if (!file) return;
+      if (!file) return; // DIBERSIHKAN: Tidak ada lagi cek API Key Puter/Groq disini
       
       try {
         const currentSourceMeta = language === 'ENG' 
           ? { ...file.metadata.en, [field]: value } 
           : { ...file.metadata.ind, [field]: value };
         
-        // Akses internal API Gemini tanpa butuh API Key
         const translated = await translateMetadataContent(currentSourceMeta, language, "");
         
         setFilesMap(prev => ({
@@ -649,8 +643,6 @@ const App: React.FC = () => {
       
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
       const userMaxWorkers = isLocalExtraction ? (settings.ideaWorkerCount || 50) : (settings.workerCount || 10);
-      
-      // Penentuan jumlah Karyawan murni pakai limit Gir / Worker
       let maxConcurrency = isLocalExtraction ? Math.min(userMaxWorkers, filesToProcess.length) : userMaxWorkers;
         
       addLog(`Menjalankan ${maxConcurrency} worker...`, 'info', mode);
@@ -677,7 +669,6 @@ const App: React.FC = () => {
 
       const now = Date.now();
 
-      // CEK ALARM REM DARURAT GLOBAL (ISTIRAHAT 60 DETIK)
       if (globalCooldownRef.current && now < globalCooldownRef.current) {
           setTimeout(() => spawnWorker(workerId, mode), 1000);
           return;
@@ -690,7 +681,6 @@ const App: React.FC = () => {
       }
   
       activeWorkersRef.current++;
-      
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
       
       const fileIndex = processingFilesRef.current.findIndex(f => f.id === fileId);
@@ -704,7 +694,6 @@ const App: React.FC = () => {
         if (!currentFileItem) throw new Error("File aborted or not found");
 
         if (isLocalExtraction) {
-             // JALUR KHUSUS MODE 2 LOKAL (Tanpa Panggil API)
              if (fileIndex !== -1) {
                  processingFilesRef.current[fileIndex] = { 
                      ...processingFilesRef.current[fileIndex], 
@@ -712,8 +701,6 @@ const App: React.FC = () => {
                  };
              }
         } else {
-             // JALUR NORMAL (API Internal Gemini Canvas)
-             // Parameter selectedKey dikosongi "" karena kita pakai jalur internal
              const { metadata, thumbnail, generatedImageUrl } = await generateMetadataForFile(currentFileItem, settings, "", mode);
       
              if (fileIndex !== -1) {
@@ -735,17 +722,13 @@ const App: React.FC = () => {
         const isTemporaryError = errorMsgLower.includes('429') || errorMsgLower.includes('quota') || errorMsgLower.includes('overloaded') || errorMsgLower.includes('timeout') || errorMsgLower.includes('fetch failed');
   
         if (isTemporaryError) {
-          // Tugas gagal dikembalikan ke antrian
           queueRef.current.push(fileId);
-          
-          // NYALAKAN ALARM ISTIRAHAT GLOBAL SELAMA 60 DETIK
           globalCooldownRef.current = Date.now() + 60000; 
           addLog(`LIMIT SERVER GEMINI! Semua worker istirahat 60 detik. Detail: ${rawErrorMsg}`, 'warning', mode);
           
           if (fileIndex !== -1) {
               processingFilesRef.current[fileIndex] = { ...processingFilesRef.current[fileIndex], status: ProcessingStatus.Pending };
           }
-  
         } else {
           console.error("Worker Execution Failed:", error);
           if (fileIndex !== -1) {
@@ -760,8 +743,6 @@ const App: React.FC = () => {
       }
       
       activeWorkersRef.current--;
-
-      // WAKTU NGOPI: Delay 10ms untuk Mode 2, atau Delay Normal untuk API
       const delayInMs = isLocalExtraction ? 10 : (settings.apiDelay && settings.apiDelay >= 1 ? settings.apiDelay : 1) * 1000;
       setTimeout(() => spawnWorker(workerId, mode), delayInMs);
   };
@@ -832,6 +813,7 @@ const App: React.FC = () => {
   
   const filteredLogs = logs;
   
+  // UI HELPER FUNCTIONS DIKEMBALIKAN (TIDAK ADA YANG DIHAPUS)
   const activeModeLabel = 
         activeTab === 'apikeys' ? 'API Configuration'
         : activeTab === 'logs' ? 'System Logs'
@@ -861,6 +843,7 @@ const App: React.FC = () => {
       if (isProcessing) return false;
       if (activeMode === 'idea') {
           if (settings.ideaMode === 'free') {
+               if (!settings.ideaQuantity || settings.ideaQuantity <= 0) return false;
                if (settings.ideaCategory === 'file' && (!settings.ideaSourceFiles || settings.ideaSourceFiles.length === 0)) return false;
                if (settings.ideaCategory === 'custom' && !settings.ideaCustomInput) return false;
                return true;
@@ -923,8 +906,6 @@ const App: React.FC = () => {
   
       <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
               <div className="flex items-center gap-1 p-1.5">
-                  
-                  {/* TOMBOL SETTING */}
                   <button 
                       onClick={() => handleNavigation('apikeys')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
@@ -936,8 +917,6 @@ const App: React.FC = () => {
                   >
                       <Settings className="w-5 h-5" />
                   </button>
-                  
-                  {/* TOMBOL IDEA */}
                   <button 
                       onClick={() => handleNavigation('idea' as any)} 
                       className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
@@ -949,8 +928,6 @@ const App: React.FC = () => {
                       <Lightbulb className="w-5 h-5" />
                       <span>IDEA</span>
                   </button>
-                  
-                  {/* TOMBOL PROMPT */}
                   <button 
                       onClick={() => handleNavigation('prompt' as any)} 
                       className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
@@ -962,8 +939,6 @@ const App: React.FC = () => {
                       <Command className="w-5 h-5" />
                       <span>PROMPT</span>
                   </button>
-
-                  {/* TOMBOL METADATA */}
                   <button 
                       onClick={() => handleNavigation('metadata' as any)} 
                       className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
@@ -975,8 +950,6 @@ const App: React.FC = () => {
                       <Database className="w-5 h-5" />
                       <span>METADATA</span>
                   </button>
-
-                  {/* TOMBOL KOPI */}
                   <a 
                       href="https://lynk.id/isaproject/0581ez0729vx" 
                       target="_blank" 
@@ -1010,7 +983,6 @@ const App: React.FC = () => {
                   )}
                   {activeTab === 'apikeys' && (
                       <div className="flex flex-col gap-4 pb-4">
-                          {/* BAGIAN ATAS: API SETTINGS */}
                           <ApiKeyPanel 
                               isProcessing={isProcessing} 
                               mode='metadata' 
@@ -1022,7 +994,6 @@ const App: React.FC = () => {
                               apiDelay={settings.apiDelay}
                               setApiDelay={(num) => setSettings(prev => ({ ...prev, apiDelay: num }))}
                           />
-                          {/* BAGIAN BAWAH: SYSTEM LOGS */}
                           <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
                               <div className="flex items-center gap-2 mb-2">
                                   <Activity className="w-4 h-4 text-blue-500" />
@@ -1085,7 +1056,6 @@ const App: React.FC = () => {
           {/* ACTIVITY & ACTIONS STICKY BOTTOM */}
           {activeTab !== 'logs' && activeTab !== 'apikeys' && (
               <div className="shrink-0 p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-4 z-10">
-                  {/* ACTIVITY STATUS */}
                   <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
                       <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2 bg-gray-50">
                           <div className="flex flex-col items-center justify-center border border-blue-200 rounded-lg bg-blue-50 py-1.5 shadow-sm transition-all">
@@ -1122,7 +1092,6 @@ const App: React.FC = () => {
                       </div>
                   </div>
 
-                  {/* ACTION BUTTONS */}
                   <div className="flex gap-1.5 h-10">
                       {isCurrentTabProcessing ? (
                           <div className={`flex-1 bg-gradient-to-r border text-xs font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
@@ -1178,7 +1147,7 @@ const App: React.FC = () => {
               <div className="flex h-full flex-col items-center justify-center bg-gray-50 p-8">
                   <div className="flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
                       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
-                          {activeTab === 'apikeys' ? <Key size={32} /> : <Activity size={32} />}
+                          {activeTab === 'apikeys' ? <Settings size={32} /> : <Activity size={32} />}
                       </div>
                       <h3 className="mb-2 text-lg font-bold tracking-wide text-gray-700 uppercase">{activeTab.replace('_', ' ').toUpperCase()} VIEWER</h3>
                       <p className="text-sm text-gray-400">Settings and information are displayed in the left panel for easy access while working.</p>
