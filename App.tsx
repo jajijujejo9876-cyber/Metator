@@ -985,39 +985,39 @@ const App: React.FC = () => {
                     {/* TOMBOL IDEA (Tinggi h-9) */}
                     <button 
                         onClick={() => handleNavigation('idea' as any)} 
-                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
                             activeTab === 'idea' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                         }`}
                     >
-                        <Lightbulb className="w-3.5 h-3.5" />
+                        <Lightbulb className="w-5 h-5" />
                         <span>IDEA</span>
                     </button>
                     
                     {/* TOMBOL PROMPT (Tinggi h-9) */}
                     <button 
                         onClick={() => handleNavigation('prompt' as any)} 
-                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
                             activeTab === 'prompt' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                         }`}
                     >
-                        <Command className="w-3.5 h-3.5" />
+                        <Command className="w-5 h-5" />
                         <span>PROMPT</span>
                     </button>
 
                     {/* TOMBOL METADATA (Tinggi h-9) */}
                     <button 
                         onClick={() => handleNavigation('metadata' as any)} 
-                        className={`flex-1 h-9 rounded-lg text-[10px] font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                        className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
                             activeTab === 'metadata' 
                             ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
                             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                         }`}
                     >
-                        <Database className="w-3.5 h-3.5" />
+                        <Database className="w-5 h-5" />
                         <span>METADATA</span>
                     </button>
 
