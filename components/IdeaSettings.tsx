@@ -30,7 +30,7 @@ const IdeaSettings: React.FC<Props> = ({
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNumberChange = (field: 'ideaFromRow' | 'ideaBatchSize' | 'ideaQuantity', value: string) => {
+  const handleNumberChange = (field: 'ideaFromRow' | 'ideaBatchSize' | 'ideaQuantity' | 'ideaWorkerCount', value: string) => {
     if (value === '') {
       setSettings(prev => ({ ...prev, [field]: 0 }));
       return;
