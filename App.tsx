@@ -92,6 +92,7 @@ const App: React.FC = () => {
       ideaFromRow: 0, 
       ideaBatchSize: 0, 
       ideaSourceLines: [],
+      ideaWorkerCount: 50,
       promptIdea: '',
       promptDescription: '',
       promptQuantity: 30,
