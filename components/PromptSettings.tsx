@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Command, FileText, CheckSquare, Square, UploadCloud, History } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Command, FileText, CheckSquare, Square, UploadCloud, History, Type, File } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface Props {
@@ -8,11 +8,14 @@ interface Props {
   isProcessing: boolean;
   onRestoreHistory: () => void;
   hasHistory: boolean;
-  onFilesUpload?: (files: FileList) => void; // PROPS BARU: Buat lempar file ke layar tengah
+  onFilesUpload?: (files: FileList) => void; 
 }
 
 const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onRestoreHistory, hasHistory, onFilesUpload }) => {
   const promptMediaInputRef = useRef<HTMLInputElement>(null);
+
+  // State lokal untuk ngecek apakah ada file video yang baru saja diupload
+  const [hasVideoUploaded, setHasVideoUploaded] = useState(false);
 
   const handleChange = (field: keyof AppSettings, value: any) => {
     setSettings(prev => ({ ...prev, [field]: value }));
@@ -25,24 +28,24 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
     }
     let num = parseInt(value);
     if (isNaN(num)) return;
-    
     if (num < 0) num = 0;
-    
     handleChange(field, num);
   };
 
-  // FUNGSI UPLOAD BARU: Langsung lempar file ke App.tsx (Output Results)
   const handlePromptMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      // Cek apakah ada file video di antara yang diupload
+      const isVideoPresent = Array.from(e.target.files).some(file => file.type.startsWith('video/'));
+      setHasVideoUploaded(isVideoPresent);
+
       if (onFilesUpload) {
           onFilesUpload(e.target.files);
       }
     }
-    e.target.value = ''; // Reset input biar bisa upload file yang sama lagi kalau butuh
+    e.target.value = ''; 
   };
 
   const inputClass = "w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-400 h-[42px]";
-  
   const labelClass = "block text-sm font-medium text-gray-500 h-5 flex items-center whitespace-nowrap overflow-hidden";
 
   const isFileMode = settings.promptPlatform === 'file';
@@ -54,32 +57,45 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide">Prompt Setting</h2>
       </div>
 
-      {/* TOGGLE MODE: TEKS vs FILE */}
-      <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
-        <button
-          onClick={() => handleChange('promptPlatform', 'text')}
-          disabled={isProcessing}
-          className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
-            !isFileMode ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          TEKS
-        </button>
-        <button
-          onClick={() => handleChange('promptPlatform', 'file')}
-          disabled={isProcessing}
-          className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
-            isFileMode ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          FILE
-        </button>
+      <div className="border-t border-blue-100 -my-2"></div>
+
+      {/* TAMPILAN BARU: SWITCH TEKS vs FILE MENIRU IDEA MODE 1/2 */}
+      <div className="pt-2">
+        <div className="flex items-center gap-2 mb-1">
+             <label className={labelClass}>Operating Mode</label>
+        </div>
+        <div className={`flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[48px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
+          <button
+            onClick={() => handleChange('promptPlatform', 'text')}
+            disabled={isProcessing}
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-base font-medium tracking-wide rounded-md transition-all border ${
+              !isFileMode ? 'bg-white text-blue-600 shadow-sm border-blue-100' : 'border-transparent text-gray-500 hover:bg-gray-200'
+            } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          >
+            <Type size={14} className={!isFileMode ? 'text-blue-500' : 'text-gray-400'} />
+            <span>Mode Teks</span>
+          </button>
+
+          <button
+            onClick={() => handleChange('promptPlatform', 'file')}
+            disabled={isProcessing}
+            className={`flex-1 flex items-center justify-center gap-2 py-1 text-base font-medium tracking-wide rounded-md transition-all border ${
+              isFileMode ? 'bg-white text-blue-600 shadow-sm border-blue-100' : 'border-transparent text-gray-500 hover:bg-gray-200'
+            } ${isProcessing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          >
+            <File size={14} className={isFileMode ? 'text-blue-600' : 'text-gray-400'} />
+            <span>Mode File</span>
+          </button>
+        </div>
       </div>
 
-      {/* AREA INPUT UTAMA */}
-      <div className="pt-1">
+      {/* AREA INPUT (Teks Niche atau Tombol Upload File Gaya Idea Mode 2) */}
+      <div className="">
         {isFileMode ? (
             <div className="animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 mb-1">
+                <label className={labelClass}>Media Source</label>
+              </div>
               <input 
                 ref={promptMediaInputRef}
                 type="file"
@@ -91,10 +107,10 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
               <button 
                 onClick={() => promptMediaInputRef.current?.click()}
                 disabled={isProcessing}
-                className="w-full h-[42px] flex items-center justify-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors text-xs font-bold uppercase tracking-wide shadow-sm"
+                className="w-full py-3 border-2 border-dashed border-blue-300 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors flex items-center justify-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-wait min-h-[42px]"
               >
-                <UploadCloud size={16} />
-                Upload Media Files
+                <UploadCloud size={16} /> 
+                Upload Images / Videos / Vectors
               </button>
             </div>
         ) : (
@@ -114,27 +130,27 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         )}
       </div>
 
-      {/* Description Input */}
+      {/* Description Input (Tetap Tampil) */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <label className={labelClass}>Instruksi Tambahan (Opsional)</label>
+          <label className={labelClass}>Instruction / Description (Optional)</label>
         </div>
         <textarea
           className="w-full text-sm p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 resize-none h-20"
-          placeholder={isFileMode ? "Contoh: Ubah suasananya jadi malam hari, tambahkan efek neon..." : "Detail pencahayaan, suasana, warna..."}
+          placeholder={isFileMode ? "Instruksi spesifik untuk file yang diupload. Contoh: Ubah suasananya jadi malam hari..." : "Detail pencahayaan, suasana, warna..."}
           value={settings.promptDescription}
           onChange={(e) => handleChange('promptDescription', e.target.value)}
           disabled={isProcessing}
         />
       </div>
 
-      {/* Baris Bawah: Frame/Quantity & History */}
+      {/* Quantity, History, & Video Frame Row */}
       <div className="grid grid-cols-2 gap-3 items-end">
         <div className="flex-1 min-w-0">
           {isFileMode ? (
               <div className="animate-in fade-in duration-200">
                   <div className="flex items-center gap-2 mb-1">
-                     <label className={labelClass}>Video Frames</label>
+                     <label className={labelClass} title="Hanya aktif jika upload Video">Video Frames</label>
                   </div>
                   <input
                     type="number"
@@ -143,7 +159,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
                     className={inputClass}
                     value={settings.videoFrameCount || 3}
                     onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || !hasVideoUploaded} // NONAKTIF KECUALI ADA VIDEO
                   />
               </div>
           ) : (
