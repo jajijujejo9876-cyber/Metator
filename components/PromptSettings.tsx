@@ -13,8 +13,6 @@ interface Props {
 
 const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onRestoreHistory, hasHistory, onFilesUpload }) => {
   const promptMediaInputRef = useRef<HTMLInputElement>(null);
-
-  // State lokal untuk ngecek apakah ada file video yang baru saja diupload
   const [hasVideoUploaded, setHasVideoUploaded] = useState(false);
 
   const handleChange = (field: keyof AppSettings, value: any) => {
@@ -34,7 +32,6 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
 
   const handlePromptMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      // Cek apakah ada file video di antara yang diupload
       const isVideoPresent = Array.from(e.target.files).some(file => file.type.startsWith('video/'));
       setHasVideoUploaded(isVideoPresent);
 
@@ -49,6 +46,9 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
   const labelClass = "block text-sm font-medium text-gray-500 h-5 flex items-center whitespace-nowrap overflow-hidden";
 
   const isFileMode = settings.promptPlatform === 'file';
+  
+  // LOGIKA NAMA FILE DEFAULT
+  const defaultFilename = isFileMode ? 'IsaPrompt_File' : 'IsaPrompt_Teks';
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-4">
@@ -59,7 +59,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
 
       <div className="border-t border-blue-100 -my-2"></div>
 
-      {/* TAMPILAN BARU: SWITCH TEKS vs FILE MENIRU IDEA MODE 1/2 */}
+      {/* TOGGLE MODE */}
       <div className="pt-2">
         <div className="flex items-center gap-2 mb-1">
              <label className={labelClass}>Operating Mode</label>
@@ -89,7 +89,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         </div>
       </div>
 
-      {/* AREA INPUT (Teks Niche atau Tombol Upload File Gaya Idea Mode 2) */}
+      {/* AREA INPUT */}
       <div className="">
         {isFileMode ? (
             <div className="animate-in fade-in duration-200">
@@ -130,21 +130,21 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         )}
       </div>
 
-      {/* Description Input (Tetap Tampil) */}
+      {/* Description */}
       <div>
         <div className="flex items-center gap-2 mb-1">
           <label className={labelClass}>Instruction / Description (Optional)</label>
         </div>
         <textarea
           className="w-full text-sm p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 resize-none h-20"
-          placeholder={isFileMode ? "Instruksi spesifik untuk file yang diupload. Contoh: Ubah suasananya jadi malam hari..." : "Detail pencahayaan, suasana, warna..."}
+          placeholder={isFileMode ? "Instruksi spesifik. Contoh: Ubah suasananya jadi malam hari..." : "Detail pencahayaan, suasana, warna..."}
           value={settings.promptDescription}
           onChange={(e) => handleChange('promptDescription', e.target.value)}
           disabled={isProcessing}
         />
       </div>
 
-      {/* Quantity, History, & Video Frame Row */}
+      {/* Frame / Quantity & History */}
       <div className="grid grid-cols-2 gap-3 items-end">
         <div className="flex-1 min-w-0">
           {isFileMode ? (
@@ -159,7 +159,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
                     className={inputClass}
                     value={settings.videoFrameCount || 3}
                     onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
-                    disabled={isProcessing || !hasVideoUploaded} // NONAKTIF KECUALI ADA VIDEO
+                    disabled={isProcessing || !hasVideoUploaded} 
                   />
               </div>
           ) : (
@@ -235,7 +235,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
           <input
             type="text"
             className={`${inputClass} pr-12 !bg-white !text-gray-900`} 
-            placeholder="IsaPrompt"
+            placeholder={defaultFilename}   /* <--- UPDATE DISINI LEK */
             value={settings.csvFilename}
             onChange={(e) => handleChange('csvFilename', e.target.value)}
             disabled={false} 
