@@ -1,6 +1,5 @@
-
 import React, { useRef } from 'react';
-import { Command, FileText, CheckSquare, Square, List, ImageIcon, UploadCloud, X, History } from 'lucide-react';
+import { Command, FileText, CheckSquare, Square, List, ImageIcon, X, History } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface Props {
