@@ -1004,6 +1004,7 @@ const App: React.FC = () => {
                         onRestoreHistory={handleRestorePromptHistory} 
                         hasHistory={settings.promptPlatform === 'file' ? hasPromptFileHistory : hasPromptTextHistory} 
                         onFilesUpload={(fl) => processFiles(fl, 'prompt')}
+                        hasVideo={hasVideoFiles}  // <--- INI TAMBAHANNYA LEK
                       />
                   )}
                   {activeTab === 'metadata' && (
