@@ -862,7 +862,7 @@ const App: React.FC = () => {
                return settings.ideaSourceLines && settings.ideaSourceLines.length > 0 && 
                       (settings.ideaFromRow || 0) > 0 && 
                       (settings.ideaBatchSize || 0) > 0 &&
-                      (settings.ideaWorkerCount || 0) > 0; // <-- PENAMBAHAN WORKER ADA DI SINI
+                      (settings.ideaWorkerCount || 0) > 0; 
           }
       }
       if (activeMode === 'prompt') {
@@ -875,7 +875,13 @@ const App: React.FC = () => {
           }
       }
       if (activeMode === 'metadata') {
-          return currentFiles.length > 0; 
+          // --- PENGAMAN METADATA ---
+          if (currentFiles.length === 0) return false;
+          if (!settings.titleMin || settings.titleMin <= 0) return false;
+          if (!settings.titleMax || settings.titleMax <= 0) return false;
+          if (!settings.slideKeyword || settings.slideKeyword <= 0) return false;
+          if (hasVideoFiles && (!settings.videoFrameCount || settings.videoFrameCount <= 0)) return false;
+          return true;
       }
       return false;
   })();
