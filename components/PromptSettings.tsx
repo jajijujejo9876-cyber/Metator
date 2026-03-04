@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Command, FileText, CheckSquare, Square, List, ImageIcon, X, History } from 'lucide-react';
+import { Command, FileText, CheckSquare, Square, UploadCloud, History } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface Props {
@@ -8,23 +8,17 @@ interface Props {
   isProcessing: boolean;
   onRestoreHistory: () => void;
   hasHistory: boolean;
+  onFilesUpload?: (files: FileList) => void; // PROPS BARU: Buat lempar file ke layar tengah
 }
 
-const PRESET_MEDIA_TYPES = [
-  'Photo/Image',
-  'Vector',
-  'Illustration',
-  'Video / Footage'
-];
-
-const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onRestoreHistory, hasHistory }) => {
+const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onRestoreHistory, hasHistory, onFilesUpload }) => {
   const promptMediaInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: keyof AppSettings, value: any) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNumberChange = (field: 'promptQuantity', value: string) => {
+  const handleNumberChange = (field: 'promptQuantity' | 'videoFrameCount', value: string) => {
     if (value === '') {
       handleChange(field, 0);
       return;
@@ -37,23 +31,21 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
     handleChange(field, num);
   };
 
+  // FUNGSI UPLOAD BARU: Langsung lempar file ke App.tsx (Output Results)
   const handlePromptMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      // Enforce Max 5 Files limit
-      const filesArray = Array.from(e.target.files).slice(0, 5);
-      setSettings(prev => ({ ...prev, promptSourceFiles: filesArray }));
+      if (onFilesUpload) {
+          onFilesUpload(e.target.files);
+      }
     }
-    e.target.value = '';
+    e.target.value = ''; // Reset input biar bisa upload file yang sama lagi kalau butuh
   };
 
   const inputClass = "w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-400 h-[42px]";
   
   const labelClass = "block text-sm font-medium text-gray-500 h-5 flex items-center whitespace-nowrap overflow-hidden";
 
-  const isCustomMedia = !PRESET_MEDIA_TYPES.includes(settings.promptPlatform) && settings.promptPlatform !== 'file' && settings.promptPlatform !== 'CUSTOM_TRIGGER';
-  const showFileInput = settings.promptPlatform === 'file';
-  const sourceFiles = settings.promptSourceFiles || [];
-  const fileCount = sourceFiles.length;
+  const isFileMode = settings.promptPlatform === 'file';
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-4">
@@ -62,157 +54,114 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide">Prompt Setting</h2>
       </div>
 
-      <div className="border-t border-blue-100 -my-2"></div>
-
-      {/* Idea / Niche Input */}
-      <div className="pt-2">
-        <div className="flex items-center gap-2 mb-1">
-          <label className={labelClass}>Idea / Niche</label>
-        </div>
-        <input
-          type="text"
-          className={inputClass}
-          placeholder="e.g. Cyberpunk Street Food / Jajanan Jalanan..."
-          value={settings.promptIdea}
-          onChange={(e) => handleChange('promptIdea', e.target.value)}
+      {/* TOGGLE MODE: TEKS vs FILE */}
+      <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+        <button
+          onClick={() => handleChange('promptPlatform', 'text')}
           disabled={isProcessing}
-        />
+          className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
+            !isFileMode ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          TEKS
+        </button>
+        <button
+          onClick={() => handleChange('promptPlatform', 'file')}
+          disabled={isProcessing}
+          className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
+            isFileMode ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          FILE
+        </button>
+      </div>
+
+      {/* AREA INPUT UTAMA */}
+      <div className="pt-1">
+        {isFileMode ? (
+            <div className="animate-in fade-in duration-200">
+              <input 
+                ref={promptMediaInputRef}
+                type="file"
+                multiple 
+                accept="image/*,video/*,.svg,.eps,.ai,.pdf"
+                onChange={handlePromptMediaUpload}
+                className="hidden"
+              />
+              <button 
+                onClick={() => promptMediaInputRef.current?.click()}
+                disabled={isProcessing}
+                className="w-full h-[42px] flex items-center justify-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors text-xs font-bold uppercase tracking-wide shadow-sm"
+              >
+                <UploadCloud size={16} />
+                Upload Media Files
+              </button>
+            </div>
+        ) : (
+            <div className="animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 mb-1">
+                <label className={labelClass}>Idea / Niche</label>
+              </div>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="e.g. Cyberpunk Street Food / Jajanan Jalanan..."
+                value={settings.promptIdea}
+                onChange={(e) => handleChange('promptIdea', e.target.value)}
+                disabled={isProcessing}
+              />
+            </div>
+        )}
       </div>
 
       {/* Description Input */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <label className={labelClass}>Description (Optional)</label>
+          <label className={labelClass}>Instruksi Tambahan (Opsional)</label>
         </div>
         <textarea
-          className="w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 resize-none h-20"
-          placeholder="Specific details, lighting, mood, colors / Detail pencahayaan, suasana..."
+          className="w-full text-sm p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 resize-none h-20"
+          placeholder={isFileMode ? "Contoh: Ubah suasananya jadi malam hari, tambahkan efek neon..." : "Detail pencahayaan, suasana, warna..."}
           value={settings.promptDescription}
           onChange={(e) => handleChange('promptDescription', e.target.value)}
           disabled={isProcessing}
         />
       </div>
 
-      {/* Media Type Selector */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <label className={labelClass}>Media Type</label>
-        </div>
-        
-        {isCustomMedia ? (
-             <div className="flex gap-3 animate-in fade-in duration-200">
-                <input
-                  type="text"
-                  className={inputClass}
-                  placeholder="e.g. 3D Render"
-                  value={settings.promptPlatform}
-                  onChange={(e) => handleChange('promptPlatform', e.target.value)}
-                  disabled={isProcessing}
-                  autoFocus
-                />
-                <button
-                  onClick={() => handleChange('promptPlatform', 'Photo/Image')} 
-                  className="w-10 shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 border border-gray-300 rounded hover:bg-gray-200 transition-colors h-[42px]"
-                  title="Back to Presets"
-                  disabled={isProcessing}
-                >
-                    <List size={16} />
-                </button>
-            </div>
-        ) : showFileInput ? (
-            <div className="flex gap-3 animate-in fade-in duration-200">
-                <div className="relative flex-1 min-w-0">
-                    <input 
-                        ref={promptMediaInputRef}
-                        type="file"
-                        multiple 
-                        accept="image/*,video/*,.svg,.eps,.ai,.pdf"
-                        onChange={handlePromptMediaUpload}
-                        className="hidden"
-                    />
-                    <button 
-                        onClick={() => fileCount === 0 && promptMediaInputRef.current?.click()}
-                        disabled={isProcessing}
-                        className={`w-full h-full min-h-[42px] px-3 border rounded flex items-center justify-between gap-2 transition-all ${
-                            fileCount > 0
-                            ? 'bg-blue-50 border-blue-300 text-blue-700' 
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                    >
-                        <div className="flex items-center gap-2 overflow-hidden flex-1">
-                            <ImageIcon size={16} className={`shrink-0 ${fileCount > 0 ? "text-blue-500" : "text-gray-400"}`} />
-                            <span className="text-sm truncate block w-full text-left font-medium">
-                                {fileCount > 0 
-                                ? (fileCount === 1 ? sourceFiles[0].name : `${fileCount} Files Selected`) 
-                                : "Upload Images/Videos/Vectors... (Max 5)"}
-                            </span>
-                        </div>
-                        
-                        {fileCount > 0 && (
-                            <div 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!isProcessing) {
-                                        setSettings(prev => ({ ...prev, promptSourceFiles: [] })); 
-                                        if(promptMediaInputRef.current) promptMediaInputRef.current.value = '';
-                                    }
-                                }}
-                                className="p-1 hover:bg-blue-200 rounded-full cursor-pointer transition-colors shrink-0"
-                            >
-                                <X size={14} />
-                            </div>
-                        )}
-                    </button>
-                </div>
-                <button
-                    onClick={() => handleChange('promptPlatform', 'Photo/Image')} 
-                    className="w-10 shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 border border-gray-300 rounded hover:bg-gray-200 transition-colors h-[42px]"
-                    title="Back to Presets"
-                    disabled={isProcessing}
-                >
-                    <List size={16} />
-                </button>
-            </div>
-        ) : (
-             <div className="relative">
-                <select
-                    className={inputClass}
-                    value={settings.promptPlatform}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'CUSTOM_TRIGGER') {
-                            handleChange('promptPlatform', ''); 
-                        } else {
-                            handleChange('promptPlatform', val);
-                        }
-                    }}
-                    disabled={isProcessing}
-                >
-                    {PRESET_MEDIA_TYPES.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                    ))}
-                    <option value="file">From File (Image/Video/Vector)</option>
-                    <option value="CUSTOM_TRIGGER">Custom (Your Media Type)</option>
-                </select>
-             </div>
-        )}
-      </div>
-
-      {/* Quantity & History Row (50:50) */}
+      {/* Baris Bawah: Frame/Quantity & History */}
       <div className="grid grid-cols-2 gap-3 items-end">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-             <label className={labelClass}>Quantity</label>
-          </div>
-          <input
-            type="number"
-            min="0"
-            placeholder="No limits"
-            className={inputClass}
-            value={settings.promptQuantity === 0 ? '' : settings.promptQuantity}
-            onChange={(e) => handleNumberChange('promptQuantity', e.target.value)}
-            disabled={isProcessing}
-          />
+          {isFileMode ? (
+              <div className="animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 mb-1">
+                     <label className={labelClass}>Video Frames</label>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    className={inputClass}
+                    value={settings.videoFrameCount || 3}
+                    onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
+                    disabled={isProcessing}
+                  />
+              </div>
+          ) : (
+              <div className="animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 mb-1">
+                     <label className={labelClass}>Quantity</label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="No limits"
+                    className={inputClass}
+                    value={settings.promptQuantity === 0 ? '' : settings.promptQuantity}
+                    onChange={(e) => handleNumberChange('promptQuantity', e.target.value)}
+                    disabled={isProcessing}
+                  />
+              </div>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -232,6 +181,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         </div>
       </div>
 
+      {/* Export Settings */}
       <div className="pt-2 border-t border-blue-100">
         <div className="flex items-center justify-between mb-1">
            <div className="flex items-center gap-2">
