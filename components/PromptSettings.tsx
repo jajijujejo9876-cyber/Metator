@@ -46,8 +46,6 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
   const labelClass = "block text-sm font-medium text-gray-500 h-5 flex items-center whitespace-nowrap overflow-hidden";
 
   const isFileMode = settings.promptPlatform === 'file';
-  
-  // LOGIKA NAMA FILE DEFAULT
   const defaultFilename = isFileMode ? 'IsaPrompt_File' : 'IsaPrompt_Teks';
 
   return (
@@ -130,71 +128,74 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
         )}
       </div>
 
-      {/* Description */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <label className={labelClass}>Instruction / Description (Optional)</label>
-        </div>
-        <textarea
-          className="w-full text-sm p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 resize-none h-20"
-          placeholder={isFileMode ? "Instruksi spesifik. Contoh: Ubah suasananya jadi malam hari..." : "Detail pencahayaan, suasana, warna..."}
-          value={settings.promptDescription}
-          onChange={(e) => handleChange('promptDescription', e.target.value)}
-          disabled={isProcessing}
-        />
-      </div>
+      {/* DIBUAT RAPAT: Description & Quantity dibungkus gap-2 */}
+      <div className="flex flex-col gap-2">
+          {/* Description */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <label className={labelClass}>Instruction / Description (Optional)</label>
+            </div>
+            <textarea
+              className="w-full text-sm p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 resize-none h-20"
+              placeholder={isFileMode ? "Instruksi spesifik. Contoh: Ubah suasananya jadi malam hari..." : "Detail pencahayaan, suasana, warna..."}
+              value={settings.promptDescription}
+              onChange={(e) => handleChange('promptDescription', e.target.value)}
+              disabled={isProcessing}
+            />
+          </div>
 
-      {/* Frame / Quantity & History */}
-      <div className="grid grid-cols-2 gap-3 items-end">
-        <div className="flex-1 min-w-0">
-          {isFileMode ? (
-              <div className="animate-in fade-in duration-200">
-                  <div className="flex items-center gap-2 mb-1">
-                     <label className={labelClass} title="Hanya aktif jika upload Video">Video Frames</label>
+          {/* Frame / Quantity & History */}
+          <div className="grid grid-cols-2 gap-3 items-end">
+            <div className="flex-1 min-w-0">
+              {isFileMode ? (
+                  <div className="animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2 mb-1">
+                         <label className={labelClass} title="Hanya aktif jika upload Video">Video Frames</label>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        className={inputClass}
+                        value={settings.videoFrameCount || 3}
+                        onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
+                        disabled={isProcessing || !hasVideoUploaded} 
+                      />
                   </div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    className={inputClass}
-                    value={settings.videoFrameCount || 3}
-                    onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
-                    disabled={isProcessing || !hasVideoUploaded} 
-                  />
-              </div>
-          ) : (
-              <div className="animate-in fade-in duration-200">
-                  <div className="flex items-center gap-2 mb-1">
-                     <label className={labelClass}>Quantity</label>
+              ) : (
+                  <div className="animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2 mb-1">
+                         <label className={labelClass}>Quantity</label>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="No limits"
+                        className={inputClass}
+                        value={settings.promptQuantity === 0 ? '' : settings.promptQuantity}
+                        onChange={(e) => handleNumberChange('promptQuantity', e.target.value)}
+                        disabled={isProcessing}
+                      />
                   </div>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="No limits"
-                    className={inputClass}
-                    value={settings.promptQuantity === 0 ? '' : settings.promptQuantity}
-                    onChange={(e) => handleNumberChange('promptQuantity', e.target.value)}
-                    disabled={isProcessing}
-                  />
-              </div>
-          )}
-        </div>
+              )}
+            </div>
 
-        <div className="flex-1 min-w-0">
-            <button
-                onClick={onRestoreHistory}
-                disabled={isProcessing || !hasHistory}
-                className={`w-full h-[42px] flex items-center justify-center gap-2 px-3 rounded-md border text-xs font-bold uppercase transition-colors ${
-                    hasHistory 
-                    ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 shadow-sm' 
-                    : 'bg-gray-50 text-gray-400 border-gray-200'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                title="Restore last generated prompt batch"
-            >
-                <History size={16} />
-                <span>History</span>
-            </button>
-        </div>
+            <div className="flex-1 min-w-0">
+                <button
+                    onClick={onRestoreHistory}
+                    disabled={isProcessing || !hasHistory}
+                    className={`w-full h-[42px] flex items-center justify-center gap-2 px-3 rounded-md border text-xs font-bold uppercase transition-colors ${
+                        hasHistory 
+                        ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 shadow-sm' 
+                        : 'bg-gray-50 text-gray-400 border-gray-200'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    title="Restore last generated prompt batch"
+                >
+                    <History size={16} />
+                    <span>History</span>
+                </button>
+            </div>
+          </div>
       </div>
 
       {/* Export Settings */}
@@ -235,7 +236,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
           <input
             type="text"
             className={`${inputClass} pr-12 !bg-white !text-gray-900`} 
-            placeholder={defaultFilename}   /* <--- UPDATE DISINI LEK */
+            placeholder={defaultFilename}
             value={settings.csvFilename}
             onChange={(e) => handleChange('csvFilename', e.target.value)}
             disabled={false} 
