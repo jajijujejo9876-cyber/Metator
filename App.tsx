@@ -102,7 +102,6 @@ const App: React.FC = () => {
     return defaultSettings;
   });
   
-  // LOGIKA BARU: Keranjang Prompt dipecah 2 (prompt_text dan prompt_file)
   const [filesMap, setFilesMap] = useState<Record<string, FileItem[]>>({
     metadata_adobe: [],
     metadata_shutter: [],
@@ -285,7 +284,6 @@ const App: React.FC = () => {
          const clones = createdItems.map(item => ({...item, id: uuidv4(), metadata: JSON.parse(JSON.stringify(INITIAL_METADATA))}));
          newState.metadata_shutter = [...prev.metadata_shutter, ...clones];
       } else {
-         // Masuk ke keranjang yang sesuai (contoh: prompt_file)
          newState[activeDataKey] = [...prev[activeDataKey], ...createdItems];
       }
       return newState;
@@ -507,13 +505,8 @@ const App: React.FC = () => {
       // ==================== MODE PROMPT ====================
       if (currentMode === 'prompt') {
          const isFileMode = settings.promptPlatform === 'file';
-         
-         // Cek validasi text mode
-         if (!isFileMode && !settings.promptIdea) { alert("Please enter an Idea/Niche."); return; }
-         if (!isFileMode && (settings.promptQuantity || 0) <= 0) { alert("Quantity must be greater than 0."); return; }
   
          if (isFileMode) {
-             // Mode file sudah langsung terupload ke layar, jadi kita eksekusi dari keranjang
              const targetFiles = filesMap['prompt_file'].filter(f => f.status === ProcessingStatus.Pending || f.status === ProcessingStatus.Failed);
              if (targetFiles.length === 0) {
                  const resetFiles = filesMap['prompt_file'].map(f => ({ ...f, status: ProcessingStatus.Pending, error: undefined }));
@@ -524,7 +517,6 @@ const App: React.FC = () => {
              }
              return;
          } else {
-             // Mode Teks (Generate slot virtual)
              const virtualFiles: FileItem[] = [];
              const quantity = settings.promptQuantity;
              for (let i = 0; i < quantity; i++) {
@@ -550,7 +542,6 @@ const App: React.FC = () => {
         let virtualFiles: FileItem[] = [];
   
         if (settings.ideaMode === 'free') {
-            // MODE 1 (API)
             if (settings.ideaCategory === 'custom' && !settings.ideaCustomInput) { alert("Enter custom topic."); return; }
   
             const sourceFiles = settings.ideaSourceFiles || [];
@@ -591,7 +582,6 @@ const App: React.FC = () => {
             runQueue(virtualFiles, currentMode);
             
         } else {
-            // MODE 2 (LOKAL EKSTRAK)
             const from = settings.ideaFromRow || 1;
             const batchSize = settings.ideaBatchSize || 0; 
             const sourceLines = settings.ideaSourceLines || [];
@@ -785,7 +775,6 @@ const App: React.FC = () => {
                     [processingDataKey]: [...processingFilesRef.current]
                  };
                  
-                 // Simpan history terpisah
                  if (mode === 'idea' && settings.ideaMode === 'free') {
                     localStorage.setItem('ISA_LAST_IDEA_BATCH', JSON.stringify(processingFilesRef.current));
                     setHasHistory(true);
@@ -819,10 +808,8 @@ const App: React.FC = () => {
       }
       if (activeTab === 'prompt') {
           if (currentFiles.length > 0) return currentFiles.length;
-          // Mode Teks
           if (settings.promptPlatform === 'text') return settings.promptQuantity || 0;
-          // Mode File
-          return 0; // Saat File belum ada, nilainya 0 karena nunggu diupload
+          return 0; 
       }
       return currentFiles.length;
   })();
@@ -856,6 +843,12 @@ const App: React.FC = () => {
         if (isPaused) return 'text-amber-600';
         return 'text-blue-600';
   };
+
+  const hasVideoFiles = currentFiles.some(f => 
+    f.type === FileType.Video || 
+    f.file.name.toLowerCase().endsWith('.mp4') || 
+    f.file.name.toLowerCase().endsWith('.mov')
+  );
   
   const canGenerate = (() => {
       if (isProcessing) return false;
@@ -868,12 +861,18 @@ const App: React.FC = () => {
           } else {
                return settings.ideaSourceLines && settings.ideaSourceLines.length > 0 && 
                       (settings.ideaFromRow || 0) > 0 && 
-                      (settings.ideaBatchSize || 0) > 0;
+                      (settings.ideaBatchSize || 0) > 0 &&
+                      (settings.ideaWorkerCount || 0) > 0; // <-- PENAMBAHAN WORKER ADA DI SINI
           }
       }
       if (activeMode === 'prompt') {
-          if (settings.promptPlatform === 'file') return currentFiles.length > 0;
-          return !!settings.promptIdea; 
+          if (settings.promptPlatform === 'file') {
+              if (currentFiles.length === 0) return false;
+              if (hasVideoFiles && (!settings.videoFrameCount || settings.videoFrameCount <= 0)) return false;
+              return true;
+          } else {
+              return !!settings.promptIdea && (settings.promptQuantity || 0) > 0;
+          }
       }
       if (activeMode === 'metadata') {
           return currentFiles.length > 0; 
@@ -897,12 +896,6 @@ const App: React.FC = () => {
   const getThemeColor = () => 'text-blue-500';
   
   const isSidebarOnlyMode = activeTab === 'apikeys' || activeTab === 'logs';
-
-  const hasVideoFiles = currentFiles.some(f => 
-    f.type === FileType.Video || 
-    f.file.name.toLowerCase().endsWith('.mp4') || 
-    f.file.name.toLowerCase().endsWith('.mov')
-  );
 
   const isCurrentTabProcessing = isProcessing && processingMode === activeTab;
   const isCurrentTabPaused = isCurrentTabProcessing && isPaused;
@@ -1225,7 +1218,7 @@ const App: React.FC = () => {
                             onDelete={handleDelete} 
                             onToggleLanguage={handleToggleLanguage} 
                             getLanguage={getLanguage} 
-                            onPreview={setPreviewItem} // <-- Prop Preview diaktifkan
+                            onPreview={setPreviewItem} 
                         />
                     ) : (
                         <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
