@@ -461,7 +461,9 @@ const App: React.FC = () => {
     if (activeTab === 'idea') {
         defaultBase = settings.ideaMode === 'free' ? 'IsaIdea_Mode1' : 'IsaIdea_Mode2';
     }
-    if (activeTab === 'prompt') defaultBase = 'IsaPrompt';
+    if (activeTab === 'prompt') {
+        defaultBase = settings.promptPlatform === 'file' ? 'IsaPrompt_File' : 'IsaPrompt_Teks';
+    }
 
     const filenameToUse = settings.csvFilename.trim() || defaultBase;
     const targetFiles = filesMap[activeDataKey];
