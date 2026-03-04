@@ -9,9 +9,10 @@ interface Props {
   onRestoreHistory: () => void;
   hasHistory: boolean;
   onFilesUpload?: (files: FileList) => void; 
+  hasVideo?: boolean; // <--- INI SAYA TAMBAHIN BIAR GAK ERROR
 }
 
-const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onRestoreHistory, hasHistory, onFilesUpload }) => {
+const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onRestoreHistory, hasHistory, onFilesUpload, hasVideo }) => {
   const promptMediaInputRef = useRef<HTMLInputElement>(null);
   const [hasVideoUploaded, setHasVideoUploaded] = useState(false);
 
@@ -165,7 +166,7 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
                         // LOGIKA BARU: Kalau 0 tampilkan kosong agar placeholder muncul
                         value={settings.videoFrameCount === 0 ? '' : settings.videoFrameCount}
                         onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
-                        disabled={isProcessing || !hasVideoUploaded} 
+                        disabled={isProcessing || !hasVideo} 
                       />
                   </div>
               ) : (
