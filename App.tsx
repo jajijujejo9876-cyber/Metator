@@ -78,7 +78,7 @@ const App: React.FC = () => {
       promptIdea: '',
       promptDescription: '',
       promptQuantity: 30,
-      promptPlatform: 'Photo/Image', 
+      promptPlatform: 'text',
       promptSourceFiles: [],
       csvFilename: '',
       outputFormat: 'csv',
