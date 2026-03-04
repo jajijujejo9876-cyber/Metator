@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Command, FileText, CheckSquare, Square, UploadCloud, History, Type, File } from 'lucide-react';
+import { Command, FileText, CheckSquare, Square, UploadCloud, History, Type, File, ImageIcon } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface Props {
@@ -21,12 +21,16 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
 
   const handleNumberChange = (field: 'promptQuantity' | 'videoFrameCount', value: string) => {
     if (value === '') {
-      handleChange(field, 0);
+      handleChange(field, 0); // Diset ke 0 agar input bisa kosong di UI
       return;
     }
     let num = parseInt(value);
     if (isNaN(num)) return;
     if (num < 0) num = 0;
+    
+    // Khusus video frame count, kita batasi maksimal 5 sesuai placeholder
+    if (field === 'videoFrameCount' && num > 5) num = 5;
+
     handleChange(field, num);
   };
 
@@ -155,9 +159,11 @@ const PromptSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, 
                       <input
                         type="number"
                         min="1"
-                        max="10"
+                        max="5"
+                        placeholder="Max 5"
                         className={inputClass}
-                        value={settings.videoFrameCount || 3}
+                        // LOGIKA BARU: Kalau 0 tampilkan kosong agar placeholder muncul
+                        value={settings.videoFrameCount === 0 ? '' : settings.videoFrameCount}
                         onChange={(e) => handleNumberChange('videoFrameCount', e.target.value)}
                         disabled={isProcessing || !hasVideoUploaded} 
                       />
