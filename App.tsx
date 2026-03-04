@@ -45,6 +45,7 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('clipped');   
   const [currentTime, setCurrentTime] = useState(new Date());
+  
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -101,12 +102,14 @@ const App: React.FC = () => {
     return defaultSettings;
   });
   
+  // LOGIKA BARU: Keranjang Prompt dipecah 2 (prompt_text dan prompt_file)
   const [filesMap, setFilesMap] = useState<Record<string, FileItem[]>>({
     metadata_adobe: [],
     metadata_shutter: [],
     idea_free: [],
     idea_paid: [],
-    prompt: []
+    prompt_text: [], 
+    prompt_file: []  
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -131,6 +134,9 @@ const App: React.FC = () => {
     if (activeTab === 'idea') {
       return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
     }
+    if (activeTab === 'prompt') {
+      return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
+    }
     if (activeTab === 'metadata') {
       return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
     }
@@ -144,8 +150,11 @@ const App: React.FC = () => {
   const [hasHistory, setHasHistory] = useState(() => {
     try { return !!localStorage.getItem('ISA_LAST_IDEA_BATCH'); } catch(e) { return false; }
   });
-  const [hasPromptHistory, setHasPromptHistory] = useState(() => {
-    try { return !!localStorage.getItem('ISA_LAST_PROMPT_BATCH'); } catch(e) { return false; }
+  const [hasPromptTextHistory, setHasPromptTextHistory] = useState(() => {
+    try { return !!localStorage.getItem('ISA_LAST_PROMPT_TEXT_BATCH'); } catch(e) { return false; }
+  });
+  const [hasPromptFileHistory, setHasPromptFileHistory] = useState(() => {
+    try { return !!localStorage.getItem('ISA_LAST_PROMPT_FILE_BATCH'); } catch(e) { return false; }
   });
 
   useEffect(() => {
@@ -173,6 +182,7 @@ const App: React.FC = () => {
         if (processingFilesRef.current) {
             const processingDataKey = (() => {
                 if (processingMode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+                if (processingMode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
                 if (processingMode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
                 return processingMode as string;
             })();
@@ -185,13 +195,13 @@ const App: React.FC = () => {
     }, 500); 
 
     return () => clearInterval(heartbeat);
-  }, [isProcessing, processingMode, settings.ideaMode, settings.metadataPlatform]);
+  }, [isProcessing, processingMode, settings.ideaMode, settings.metadataPlatform, settings.promptPlatform]);
 
   useLayoutEffect(() => {
     if (sidebarContentRef.current) sidebarContentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     if (mainContentRef.current) mainContentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  }, [activeTab, settings.metadataPlatform]);
+  }, [activeTab, settings.metadataPlatform, settings.promptPlatform]);
 
   const handleNavigation = (tab: AppMode | 'logs' | 'apikeys') => {
     setActiveTab(tab);
@@ -275,6 +285,7 @@ const App: React.FC = () => {
          const clones = createdItems.map(item => ({...item, id: uuidv4(), metadata: JSON.parse(JSON.stringify(INITIAL_METADATA))}));
          newState.metadata_shutter = [...prev.metadata_shutter, ...clones];
       } else {
+         // Masuk ke keranjang yang sesuai (contoh: prompt_file)
          newState[activeDataKey] = [...prev[activeDataKey], ...createdItems];
       }
       return newState;
@@ -332,7 +343,10 @@ const App: React.FC = () => {
 
   const handleRestorePromptHistory = () => {
       try {
-          const saved = localStorage.getItem('ISA_LAST_PROMPT_BATCH');
+          const isFileMode = settings.promptPlatform === 'file';
+          const storageKey = isFileMode ? 'ISA_LAST_PROMPT_FILE_BATCH' : 'ISA_LAST_PROMPT_TEXT_BATCH';
+          const saved = localStorage.getItem(storageKey);
+          
           if (saved) {
               const parsed = JSON.parse(saved);
               const restoredFiles: FileItem[] = parsed.map((item: any) => ({
@@ -340,8 +354,9 @@ const App: React.FC = () => {
                   file: new File([""], item.file?.name || "restored_prompt", { type: item.file?.type || 'text/plain' }),
                   status: ProcessingStatus.Completed 
               }));
-              setFilesMap(prev => ({ ...prev, prompt: restoredFiles }));
-              addLog(`Restored ${restoredFiles.length} prompts from history.`, 'success', 'prompt');
+              
+              setFilesMap(prev => ({ ...prev, [isFileMode ? 'prompt_file' : 'prompt_text']: restoredFiles }));
+              addLog(`Restored ${restoredFiles.length} prompts from ${isFileMode ? 'File' : 'Text'} history.`, 'success', 'prompt');
           }
       } catch (e) {
           console.error("Failed to restore prompt history", e);
@@ -367,12 +382,15 @@ const App: React.FC = () => {
             [activeDataKey]: prev[activeDataKey].filter(f => f.id !== id)
         };
         if (activeTab === 'prompt') {
-            if (newState.prompt.length > 0) {
-              localStorage.setItem('ISA_LAST_PROMPT_BATCH', JSON.stringify(newState.prompt));
-              setHasPromptHistory(true);
+            const isFileMode = settings.promptPlatform === 'file';
+            const storageKey = isFileMode ? 'ISA_LAST_PROMPT_FILE_BATCH' : 'ISA_LAST_PROMPT_TEXT_BATCH';
+            
+            if (newState[activeDataKey].length > 0) {
+              localStorage.setItem(storageKey, JSON.stringify(newState[activeDataKey]));
+              if (isFileMode) setHasPromptFileHistory(true); else setHasPromptTextHistory(true);
             } else {
-              localStorage.removeItem('ISA_LAST_PROMPT_BATCH');
-              setHasPromptHistory(false);
+              localStorage.removeItem(storageKey);
+              if (isFileMode) setHasPromptFileHistory(false); else setHasPromptTextHistory(false);
             }
         }
         if (activeTab === 'idea') {
@@ -411,7 +429,7 @@ const App: React.FC = () => {
 
     if (field === 'title' || field === 'keywords') {
       const file = filesMap[activeDataKey].find(f => f.id === id);
-      if (!file) return; // DIBERSIHKAN: Tidak ada lagi cek API Key Puter/Groq disini
+      if (!file) return; 
       
       try {
         const currentSourceMeta = language === 'ENG' 
@@ -489,32 +507,25 @@ const App: React.FC = () => {
       // ==================== MODE PROMPT ====================
       if (currentMode === 'prompt') {
          const isFileMode = settings.promptPlatform === 'file';
-         const promptSourceFiles = settings.promptSourceFiles || [];
-
-         if (isFileMode && promptSourceFiles.length === 0) { alert("Please upload Image/Video files for prompt generation."); return; }
+         
+         // Cek validasi text mode
          if (!isFileMode && !settings.promptIdea) { alert("Please enter an Idea/Niche."); return; }
          if (!isFileMode && (settings.promptQuantity || 0) <= 0) { alert("Quantity must be greater than 0."); return; }
   
-         const virtualFiles: FileItem[] = [];
-         
          if (isFileMode) {
-             const quantityPerItem = settings.promptQuantity || 1;
-             promptSourceFiles.forEach((file, fileIdx) => {
-                 for (let i = 0; i < quantityPerItem; i++) {
-                     let type = file.type.startsWith('video') ? FileType.Video : FileType.Image;
-                     virtualFiles.push({
-                         id: uuidv4(),
-                         file: file,
-                         previewUrl: URL.createObjectURL(file),
-                         type: type,
-                         status: ProcessingStatus.Pending,
-                         metadata: JSON.parse(JSON.stringify(INITIAL_METADATA)),
-                         sourceData: { id: (fileIdx * quantityPerItem) + i + 1, originalTitle: `File: ${file.name}`, originalKeywords: 'file' }
-                     });
-                 }
-             });
-             addLog(`Generated ${virtualFiles.length} prompt slots from ${promptSourceFiles.length} files.`, 'info', 'prompt');
+             // Mode file sudah langsung terupload ke layar, jadi kita eksekusi dari keranjang
+             const targetFiles = filesMap['prompt_file'].filter(f => f.status === ProcessingStatus.Pending || f.status === ProcessingStatus.Failed);
+             if (targetFiles.length === 0) {
+                 const resetFiles = filesMap['prompt_file'].map(f => ({ ...f, status: ProcessingStatus.Pending, error: undefined }));
+                 setFilesMap(prev => ({ ...prev, prompt_file: resetFiles }));
+                 runQueue(resetFiles, currentMode);
+             } else {
+                 runQueue(targetFiles, currentMode);
+             }
+             return;
          } else {
+             // Mode Teks (Generate slot virtual)
+             const virtualFiles: FileItem[] = [];
              const quantity = settings.promptQuantity;
              for (let i = 0; i < quantity; i++) {
                virtualFiles.push({
@@ -528,11 +539,10 @@ const App: React.FC = () => {
                });
              }
              addLog(`Generated ${quantity} prompt slots. Idea: ${settings.promptIdea}`, 'info', 'prompt');
+             setFilesMap(prev => ({ ...prev, prompt_text: virtualFiles }));
+             runQueue(virtualFiles, currentMode);
+             return;
          }
-  
-         setFilesMap(prev => ({ ...prev, prompt: virtualFiles }));
-         runQueue(virtualFiles, currentMode);
-         return;
       }
   
       // ==================== MODE IDEA ====================
@@ -634,6 +644,7 @@ const App: React.FC = () => {
       
       const processingDataKey = (() => {
         if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+        if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
         if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
         return mode as string;
       })();
@@ -763,6 +774,7 @@ const App: React.FC = () => {
               
               const processingDataKey = (() => {
                 if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+                if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
                 if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
                 return mode as string;
               })();
@@ -773,12 +785,15 @@ const App: React.FC = () => {
                     [processingDataKey]: [...processingFilesRef.current]
                  };
                  
+                 // Simpan history terpisah
                  if (mode === 'idea' && settings.ideaMode === 'free') {
                     localStorage.setItem('ISA_LAST_IDEA_BATCH', JSON.stringify(processingFilesRef.current));
                     setHasHistory(true);
                  } else if (mode === 'prompt') {
-                    localStorage.setItem('ISA_LAST_PROMPT_BATCH', JSON.stringify(processingFilesRef.current));
-                    setHasPromptHistory(true);
+                    const isFileMode = settings.promptPlatform === 'file';
+                    const storageKey = isFileMode ? 'ISA_LAST_PROMPT_FILE_BATCH' : 'ISA_LAST_PROMPT_TEXT_BATCH';
+                    localStorage.setItem(storageKey, JSON.stringify(processingFilesRef.current));
+                    if (isFileMode) setHasPromptFileHistory(true); else setHasPromptTextHistory(true);
                  }
   
                  return newState;
@@ -804,10 +819,10 @@ const App: React.FC = () => {
       }
       if (activeTab === 'prompt') {
           if (currentFiles.length > 0) return currentFiles.length;
-          if (settings.promptPlatform === 'file' && settings.promptSourceFiles && settings.promptSourceFiles.length > 0) {
-              return (settings.promptQuantity || 1) * settings.promptSourceFiles.length;
-          }
-          return settings.promptQuantity || 0;
+          // Mode Teks
+          if (settings.promptPlatform === 'text') return settings.promptQuantity || 0;
+          // Mode File
+          return 0; // Saat File belum ada, nilainya 0 karena nunggu diupload
       }
       return currentFiles.length;
   })();
@@ -817,7 +832,6 @@ const App: React.FC = () => {
   
   const filteredLogs = logs;
   
-  // UI HELPER FUNCTIONS DIKEMBALIKAN (TIDAK ADA YANG DIHAPUS)
   const activeModeLabel = 
         activeTab === 'apikeys' ? 'API Configuration'
         : activeTab === 'logs' ? 'System Logs'
@@ -858,7 +872,7 @@ const App: React.FC = () => {
           }
       }
       if (activeMode === 'prompt') {
-          if (settings.promptPlatform === 'file') return (settings.promptSourceFiles || []).length > 0;
+          if (settings.promptPlatform === 'file') return currentFiles.length > 0;
           return !!settings.promptIdea; 
       }
       if (activeMode === 'metadata') {
@@ -983,7 +997,16 @@ const App: React.FC = () => {
                           onRestoreHistory={handleRestoreHistory} hasHistory={hasHistory}
                       />
                   )}
-                  {activeTab === 'prompt' && <PromptSettings settings={settings} setSettings={setSettings} isProcessing={isCurrentTabProcessing} onRestoreHistory={handleRestorePromptHistory} hasHistory={hasPromptHistory} />}
+                  {activeTab === 'prompt' && (
+                      <PromptSettings 
+                        settings={settings} 
+                        setSettings={setSettings} 
+                        isProcessing={isCurrentTabProcessing} 
+                        onRestoreHistory={handleRestorePromptHistory} 
+                        hasHistory={settings.promptPlatform === 'file' ? hasPromptFileHistory : hasPromptTextHistory} 
+                        onFilesUpload={(fl) => processFiles(fl, 'prompt')}
+                      />
+                  )}
                   {activeTab === 'metadata' && (
                   <MetadataSettings 
                       settings={settings} 
@@ -1181,7 +1204,7 @@ const App: React.FC = () => {
                         {activeTab === 'idea' ? (
                         <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'free' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (paid) to start.")}</p></>
                         ) : activeTab === 'prompt' ? (
-                        <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload a file in Prompt Settings to generate detailed prompts from visual analysis." : "Enter an Idea, Description, and Quantity to start."}</p></>
+                        <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload file di panel pengaturan untuk membuat prompt dari analisa gambar/video." : "Enter an Idea, Description, and Quantity to start."}</p></>
                         ) : (
                         <><UploadCloud size={64} className="mb-4 opacity-20" /><p className="text-base font-medium uppercase">No files in {activeTab.toUpperCase()} workspace.</p><p className="mt-1 text-sm">Upload files to start.</p></>
                         )}
@@ -1197,7 +1220,13 @@ const App: React.FC = () => {
                           isMode1={settings.ideaMode === 'free'}
                         />
                     ) : activeTab === 'prompt' ? (
-                        <PromptListComponent items={currentFiles} onDelete={handleDelete} onToggleLanguage={handleToggleLanguage} getLanguage={getLanguage} />
+                        <PromptListComponent 
+                            items={currentFiles} 
+                            onDelete={handleDelete} 
+                            onToggleLanguage={handleToggleLanguage} 
+                            getLanguage={getLanguage} 
+                            onPreview={setPreviewItem} // <-- Prop Preview diaktifkan
+                        />
                     ) : (
                         <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
                         {currentFiles.map(file => {
