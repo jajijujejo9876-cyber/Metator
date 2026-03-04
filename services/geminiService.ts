@@ -135,7 +135,7 @@ ASSIGN CATEGORY:
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
-  _unusedApiKey: string, // Biarkan pakai underscore agar tidak warning tapi tetap sinkron dengan pemanggil
+  _unusedApiKey: string, 
   mode: AppMode = 'metadata'
 ): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; }> => {
   
@@ -202,20 +202,61 @@ export const generateMetadataForFile = async (
         3. Hasilkan dalam field JSON 'en_idea' dan 'ind_idea'.`;
 
         promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Buat konsep serealistis mungkin."}"`;
+    
+    // === TAMBAHAN LOGIKA PROMPT ===
+    } else if (mode === 'prompt') {
+        temperature = 0.8;
+        outputSchema = {
+           type: Type.OBJECT,
+           properties: {
+              en_prompt: { type: Type.STRING }, 
+              ind_prompt: { type: Type.STRING }
+           },
+           required: ["en_prompt", "ind_prompt"]
+        };
+
+        const instruksiTambahan = settings.promptDescription ? `\nInstruksi Tambahan dari User: ${settings.promptDescription}` : "";
+        
+        if (settings.promptPlatform === 'text') {
+            systemInstruction = `Bertindak sebagai AI Prompt Engineer profesional. Tugas Anda adalah mengembangkan ide pendek menjadi sebuah prompt gambar/video yang sangat detail, spesifik, dan memukau untuk AI Image Generator (seperti Midjourney atau Stable Diffusion).
+            
+            ATURAN:
+            1. Buat prompt deskriptif yang mencakup subjek utama, pencahayaan, suasana (mood), sudut pandang kamera, dan gaya visual.
+            2. Jangan menambahkan penjelasan apapun di luar prompt.
+            3. Hasilkan dalam bahasa Inggris ('en_prompt') dan terjemahan akuratnya dalam bahasa Indonesia ('ind_prompt').`;
+            
+            promptText = `Kembangkan ide berikut menjadi sebuah prompt gambar yang sangat detail: "${settings.promptIdea}" ${instruksiTambahan}`;
+        } else {
+            // Mode File (Baca gambar/video untuk dijadikan prompt)
+            systemInstruction = `Bertindak sebagai AI Vision Expert. Tugas Anda adalah menganalisa gambar/video ini dan mengubahnya menjadi sebuah prompt teks (reverse-prompting) yang sangat detail, agar AI Image Generator lain bisa membuat ulang gambar yang mirip.
+            
+            ATURAN:
+            1. Deskripsikan secara detail: Subjek utama, lingkungan/latar belakang, pencahayaan, warna dominan, dan gaya estetik (apakah foto realistis, vektor, ilustrasi, dll).
+            2. Jika ada instruksi tambahan dari user, gabungkan instruksi tersebut ke dalam prompt akhir.
+            3. Hasilkan dalam bahasa Inggris ('en_prompt') dan terjemahan akuratnya dalam bahasa Indonesia ('ind_prompt').`;
+
+            promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
+        }
     }
 
     let parts: any[] = [];
-    if (mode === 'prompt' || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+    
+    // === PERBAIKAN LOGIKA PARTS ===
+    // Kalau mode Teks biasa (Prompt Teks atau Idea Auto), cuma kirim teks
+    if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
       parts = [{ text: promptText }];
-    } else if (fileItem.type === FileType.Video) {
-      const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
-      parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-      parts.push({ text: promptText });
     } else {
-      const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-        ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-        : await compressImage(fileItem.file);
-      parts = [mediaPart, { text: promptText }];
+      // Artinya ini adalah Mode File (Metadata, Idea File, atau Prompt File)
+      if (fileItem.type === FileType.Video) {
+        const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
+        parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+        parts.push({ text: promptText });
+      } else {
+        const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+          ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+          : await compressImage(fileItem.file);
+        parts = [mediaPart, { text: promptText }];
+      }
     }
 
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
@@ -227,6 +268,7 @@ export const generateMetadataForFile = async (
     
     const parsed = JSON.parse(response.text);
 
+    // === PEMETAAN HASIL ===
     if (mode === 'idea') {
         return {
             metadata: {
@@ -235,8 +277,17 @@ export const generateMetadataForFile = async (
                 category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
             }
         };
+    } else if (mode === 'prompt') {
+        return {
+            metadata: {
+                en: { title: parsed.en_prompt, keywords: "" },
+                ind: { title: parsed.ind_prompt, keywords: "" },
+                category: 'Prompt'
+            }
+        };
     }
 
+    // Default untuk mode Metadata
     return {
       metadata: { 
         en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
