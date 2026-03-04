@@ -794,14 +794,15 @@ const App: React.FC = () => {
       }
   };
   
+  // === BAGIAN YANG DIUBAH (|| 0 untuk Idea Mode) ===
   const displayTotalFiles = (() => {
       if (activeTab === 'idea') {
           if (currentFiles.length > 0) return currentFiles.length;
           if (settings.ideaMode === 'free') {
              if (settings.ideaCategory === 'file' && settings.ideaSourceFiles && settings.ideaSourceFiles.length > 0) {
-                return (settings.ideaQuantity || 30) * settings.ideaSourceFiles.length;
+                return (settings.ideaQuantity || 0) * settings.ideaSourceFiles.length;
              }
-             return settings.ideaQuantity || 30;
+             return settings.ideaQuantity || 0;
           } else {
              return settings.ideaBatchSize || 0;
           }
@@ -875,7 +876,6 @@ const App: React.FC = () => {
           }
       }
       if (activeMode === 'metadata') {
-          // --- PENGAMAN METADATA ---
           if (currentFiles.length === 0) return false;
           if (!settings.titleMin || settings.titleMin <= 0) return false;
           if (!settings.titleMax || settings.titleMax <= 0) return false;
