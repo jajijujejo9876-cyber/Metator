@@ -79,7 +79,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
             const isFileMode = item.previewUrl && item.previewUrl.length > 0;
 
             return (
-               <div key={item.id} className="flex gap-3 p-4 hover:bg-gray-50 transition-colors group h-[140px]">
+               <div key={item.id} className="flex gap-3 p-4 hover:bg-gray-50 transition-colors group h-[80px]">
                   {/* Row Number */}
                   <div className="shrink-0 w-8 flex items-start justify-center pt-1">
                      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-xs font-bold text-gray-500">
