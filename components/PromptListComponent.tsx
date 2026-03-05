@@ -79,9 +79,9 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
             const isFileMode = item.previewUrl && item.previewUrl.length > 0;
 
             return (
-               <div key={item.id} className="flex gap-3 p-4 hover:bg-gray-50 transition-colors group h-[100px]">
+               <div key={item.id} className="flex gap-3 p-3 hover:bg-gray-50 transition-colors group h-[100px]">
                   {/* Row Number */}
-                  <div className="shrink-0 w-8 flex items-start justify-center pt-1">
+                  <div className="shrink-0 w-8 flex items-center justify-center h-full">
                      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-xs font-bold text-gray-500">
                        {index + 1}
                      </div>
@@ -101,12 +101,14 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                   </div>
 
                   {/* Actions / Menu Area - Sisa 1/3 di sebelah kanan */}
-                  <div className="flex-1 flex justify-end items-start h-full">
-                      <div className="relative">
+                  <div className="flex-1 flex justify-end items-center h-full">
+                      {/* RELATIVE WRAPPER UNTUK MENU */}
+                      <div className="relative flex items-center justify-end shrink-0 w-9 h-9">
                           {isMenuOpen ? (
                               <div 
                                   ref={menuRef}
-                                  className="flex items-center gap-1.5 bg-white border border-gray-200 shadow-sm rounded-lg p-1.5 animate-in fade-in slide-in-from-right-2 duration-200"
+                                  // DI SINI KUNCINYA LEK: absolute, right-0, z-50, shadow-xl biar numpuk melayang
+                                  className="absolute right-0 flex items-center gap-1.5 bg-white border border-gray-200 shadow-xl rounded-lg p-1.5 z-50 animate-in fade-in slide-in-from-right-2 duration-200 ring-1 ring-black/5"
                               >
                                   {/* 1. Tombol Preview Mata (HANYA MUNCUL DI MODE FILE) */}
                                   {isFileMode && onPreview && (
