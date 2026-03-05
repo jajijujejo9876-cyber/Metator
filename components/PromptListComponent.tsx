@@ -77,16 +77,18 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
             const isFileMode = item.previewUrl && item.previewUrl.length > 0;
 
             return (
+               // Gap-3 ini yang mengatur jarak rata (12px) antar elemen di dalamnya
                <div key={item.id} className="flex gap-3 p-3 hover:bg-gray-50 transition-colors group h-[100px]">
-                  {/* Row Number */}
+                  
+                  {/* Bagian Kiri: Row Number */}
                   <div className="shrink-0 w-8 flex items-center justify-center h-full">
                      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-xs font-bold text-gray-500">
                        {index + 1}
                      </div>
                   </div>
 
-                  {/* Content Prompt */}
-                  <div className="w-2/3 h-full">
+                  {/* Bagian Tengah: Content Prompt (Dibuat flex-1 agar mengisi seluruh ruang kosong) */}
+                  <div className="flex-1 min-w-0 h-full">
                      <div className={`h-full rounded border overflow-hidden flex flex-col ${isJson ? 'bg-gray-50 border-gray-200 font-mono text-xs' : 'bg-white border-gray-100'}`}>
                         {isJson && <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase p-1.5 border-b border-gray-200 bg-gray-50 shrink-0"><Code size={10} /> JSON Output</div>}
                         
@@ -98,9 +100,9 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                      </div>
                   </div>
 
-                  {/* Actions / Menu Area */}
-                  <div className="flex-1 flex justify-end items-center h-full">
-                      <div className="relative flex items-center justify-end shrink-0 w-9 h-9">
+                  {/* Bagian Kanan: Actions / Menu Area (Dibuat shrink-0 agar ukurannya pas dengan tombol) */}
+                  <div className="shrink-0 flex items-center justify-center h-full">
+                      <div className="relative flex items-center justify-center w-9 h-9">
                           {isMenuOpen ? (
                               <div 
                                   ref={menuRef}
@@ -158,7 +160,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                           ) : (
                               <button 
                                   onClick={(e) => toggleMenu(e, item.id)}
-                                  className="p-1.5 rounded-lg border bg-white border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all group-hover:border-gray-300"
+                                  className="p-1.5 rounded-lg border bg-white border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all group-hover:border-gray-300 shadow-sm"
                                   title="Action Menu"
                               >
                                   <Menu size={18} />
