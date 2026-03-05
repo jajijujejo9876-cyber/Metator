@@ -15,7 +15,6 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Auto-close menu saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -75,7 +74,6 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
             const isJson = text.trim().startsWith('{') && text.trim().endsWith('}');
             const isMenuOpen = activeMenuId === item.id;
             
-            // Cek apakah ini hasil dari Mode File (Punya URL Preview Gambar/Video)
             const isFileMode = item.previewUrl && item.previewUrl.length > 0;
 
             return (
@@ -87,7 +85,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                      </div>
                   </div>
 
-                  {/* Content Prompt - Dibatasi lebarnya menjadi 2/3 (approx 66%) */}
+                  {/* Content Prompt */}
                   <div className="w-2/3 h-full">
                      <div className={`h-full rounded border overflow-hidden flex flex-col ${isJson ? 'bg-gray-50 border-gray-200 font-mono text-xs' : 'bg-white border-gray-100'}`}>
                         {isJson && <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase p-1.5 border-b border-gray-200 bg-gray-50 shrink-0"><Code size={10} /> JSON Output</div>}
@@ -100,21 +98,19 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                      </div>
                   </div>
 
-                  {/* Actions / Menu Area - Sisa 1/3 di sebelah kanan */}
+                  {/* Actions / Menu Area */}
                   <div className="flex-1 flex justify-end items-center h-full">
-                      {/* RELATIVE WRAPPER UNTUK MENU */}
                       <div className="relative flex items-center justify-end shrink-0 w-9 h-9">
                           {isMenuOpen ? (
                               <div 
                                   ref={menuRef}
-                                  // DI SINI KUNCINYA LEK: absolute, right-0, z-50, shadow-xl biar numpuk melayang
                                   className="absolute right-0 flex items-center gap-1.5 bg-white border border-gray-200 shadow-xl rounded-lg p-1.5 z-50 animate-in fade-in slide-in-from-right-2 duration-200 ring-1 ring-black/5"
                               >
-                                  {/* 1. Tombol Preview Mata (HANYA MUNCUL DI MODE FILE) */}
+                                  {/* 1. Preview Mata */}
                                   {isFileMode && onPreview && (
                                       <button 
                                           onClick={() => { onPreview(item); setActiveMenuId(null); }}
-                                          className="w-9 h-9 flex items-center justify-center rounded-md transition-colors bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-600"
+                                          className="p-2 rounded-md transition-colors bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-600"
                                           title="Preview Gambar/Video Asli"
                                       >
                                           <Eye size={16} />
@@ -124,7 +120,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                                   {/* 2. Salin */}
                                   <button 
                                       onClick={() => handleCopy(text, item.id)}
-                                      className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${copiedId === item.id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-600'}`}
+                                      className={`p-2 rounded-md transition-colors ${copiedId === item.id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-600'}`}
                                       title="Salin Prompt"
                                   >
                                       {copiedId === item.id ? <Check size={16} /> : <Copy size={16} />}
@@ -133,7 +129,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                                   {/* 3. Ganti Bahasa */}
                                   <button 
                                       onClick={() => { onToggleLanguage(item.id); setActiveMenuId(null); }}
-                                      className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors bg-gray-100 ${lang === 'ENG' ? 'text-blue-600 hover:bg-blue-100' : 'text-emerald-600 hover:bg-emerald-100'}`}
+                                      className={`p-2 rounded-md transition-colors bg-gray-100 ${lang === 'ENG' ? 'text-blue-600 hover:bg-blue-100' : 'text-emerald-600 hover:bg-emerald-100'}`}
                                       title={`Bahasa saat ini: ${lang}`}
                                   >
                                       <Languages size={16} />
@@ -142,7 +138,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                                   {/* 4. Hapus */}
                                   <button 
                                       onClick={() => { onDelete(item.id); setActiveMenuId(null); }}
-                                      className="w-9 h-9 flex items-center justify-center rounded-md transition-colors bg-gray-100 text-red-500 hover:bg-red-100"
+                                      className="p-2 rounded-md transition-colors bg-gray-100 text-red-500 hover:bg-red-100"
                                       title="Hapus Prompt"
                                   >
                                       <Trash2 size={16} />
@@ -153,7 +149,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                                   {/* 5. Tutup Menu (X) */}
                                   <button 
                                       onClick={() => setActiveMenuId(null)}
-                                      className="w-9 h-9 flex items-center justify-center rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                      className="p-2 rounded-md bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                                       title="Tutup Menu"
                                   >
                                       <X size={16} />
@@ -162,7 +158,7 @@ const PromptListComponent: React.FC<Props> = ({ items, onDelete, onToggleLanguag
                           ) : (
                               <button 
                                   onClick={(e) => toggleMenu(e, item.id)}
-                                  className="w-9 h-9 flex items-center justify-center rounded-lg border bg-white border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                                  className="p-1.5 rounded-lg border bg-white border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-all group-hover:border-gray-300"
                                   title="Action Menu"
                               >
                                   <Menu size={18} />
