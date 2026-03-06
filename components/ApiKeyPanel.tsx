@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink, Sparkles, Coffee } from 'lucide-react';
+import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink, RefreshCw, Coffee } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
 
 interface Props {
@@ -8,8 +8,8 @@ interface Props {
   isProcessing: boolean;
   mode?: AppMode | 'logs'; 
   
-  provider?: ApiProvider | 'CUSTOM' | string;
-  setProvider?: (provider: any) => void;
+  provider?: string; 
+  setProvider?: (provider: string) => void;
   
   geminiModel?: string;
   setGeminiModel?: (m: string) => void;
@@ -20,6 +20,13 @@ interface Props {
   apiDelay?: number;
   setApiDelay?: (delay: number) => void;
 }
+
+const GEMINI_PRESETS = [
+  { value: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
+  { value: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+];
 
 const ApiKeyPanel: React.FC<Props> = ({ 
   apiKeys = [], 
@@ -36,7 +43,15 @@ const ApiKeyPanel: React.FC<Props> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [bulkInput, setBulkInput] = useState('');
+  const [isManualModel, setIsManualModel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [userModels, setUserModels] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ISA_USER_MODELS');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
 
   const theme = { 
       border: 'border-blue-200', 
@@ -52,13 +67,13 @@ const ApiKeyPanel: React.FC<Props> = ({
   const inputClass = `w-full h-8 text-xs px-2 py-1.5 border border-gray-300 rounded bg-white text-gray-900 transition-all disabled:bg-gray-50 disabled:text-gray-400 ${theme.inputFocus}`;
 
   useEffect(() => {
-    if (workerCount === undefined && setWorkerCount) {
-        setWorkerCount(5);
-    }
-    if (apiDelay === undefined && setApiDelay) {
-        setApiDelay(3);
-    }
+    if (workerCount === undefined && setWorkerCount) setWorkerCount(5);
+    if (apiDelay === undefined && setApiDelay) setApiDelay(3);
   }, [workerCount, apiDelay, setWorkerCount, setApiDelay]);
+
+  useEffect(() => {
+    localStorage.setItem('ISA_USER_MODELS', JSON.stringify(userModels));
+  }, [userModels]);
 
   const handleWorkerChange = (value: string) => {
       if (!setWorkerCount) return;
@@ -83,6 +98,18 @@ const ApiKeyPanel: React.FC<Props> = ({
     if (isNaN(num)) return;
     if (num < 1) num = 1; 
     setApiDelay(num);
+  };
+
+  const isCurrentModelCustom = userModels.includes((geminiModel || '').trim());
+
+  const handleToggleCustomModel = () => {
+    const name = (geminiModel || '').trim();
+    if (!name) return;
+    if (isCurrentModelCustom) {
+      setUserModels(prev => prev.filter(m => m !== name));
+    } else {
+      setUserModels(prev => [...prev, name]);
+    }
   };
 
   const handleAddKeys = () => {
@@ -117,8 +144,11 @@ const ApiKeyPanel: React.FC<Props> = ({
   const filteredKeys = useMemo(() => apiKeys.filter(k => k.toLowerCase().includes(searchTerm.toLowerCase())), [apiKeys, searchTerm]);
 
   const getBaseUrl = () => {
+    if (provider === 'GEMINI CANVAS') return "Internal (Canvas Routing)";
     return "https://generativelanguage.googleapis.com";
   };
+
+  const isCanvasMode = provider === 'GEMINI CANVAS';
 
   return (
     <div className="flex flex-col gap-4">
@@ -136,9 +166,15 @@ const ApiKeyPanel: React.FC<Props> = ({
               <div className="grid grid-cols-2 gap-3">
                  <div className="flex flex-col">
                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Provider</label>
-                    <div className={`${inputClass} flex items-center bg-gray-50 font-bold text-gray-700 border-solid`}>
-                      GEMINI API
-                    </div>
+                    <select 
+                      className={inputClass}
+                      value={provider}
+                      onChange={(e) => setProvider && setProvider(e.target.value)}
+                      disabled={isProcessing}
+                    >
+                      <option value="GEMINI CANVAS">Gemini Canvas</option>
+                      <option value="GEMINI API">Gemini API</option>
+                    </select>
                  </div>
                  
                  <div className="flex flex-col relative">
@@ -162,11 +198,68 @@ const ApiKeyPanel: React.FC<Props> = ({
                <div className="flex flex-col relative">
                   <div className="flex items-center justify-between mb-0.5">
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Model Name</div>
-                      <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight">Auto Updated</div>
+                      {isCanvasMode ? (
+                          <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight flex items-center gap-1">
+                             Auto Detect
+                          </div>
+                      ) : (
+                          <button 
+                              onClick={() => setIsManualModel(!isManualModel)} 
+                              className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium"
+                          >
+                              {isManualModel ? 'List' : 'Manual'}
+                          </button>
+                      )}
                   </div>
-                  <div className={`${inputClass} flex items-center bg-gray-50 font-medium overflow-hidden text-ellipsis whitespace-nowrap`}>
-                      {geminiModel}
-                  </div>
+                  
+                  {isCanvasMode ? (
+                      <div className="relative">
+                         <div className={`${inputClass} flex items-center bg-gray-50 font-bold text-blue-700 overflow-hidden pr-8 border-blue-200`}>
+                             {geminiModel}
+                         </div>
+                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                             <RefreshCw size={12} className="text-blue-500 animate-spin" style={{ animationDuration: '3s' }} />
+                         </div>
+                      </div>
+                  ) : isManualModel ? (
+                      <div className="relative">
+                        <input 
+                            type="text" 
+                            className={`${inputClass} pr-8`} 
+                            placeholder="e.g. gemini-1.5-pro" 
+                            value={geminiModel} 
+                            onChange={(e) => setGeminiModel && setGeminiModel(e.target.value)} 
+                            disabled={isProcessing} 
+                        />
+                        <button 
+                            onClick={handleToggleCustomModel}
+                            title={isCurrentModelCustom ? "Delete from Custom list" : "Save to Custom list"}
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${isCurrentModelCustom ? 'text-red-500 hover:text-red-700' : 'text-blue-500 hover:text-blue-700'}`}
+                        >
+                            {isCurrentModelCustom ? <Trash2 size={14} /> : <Save size={14} />}
+                        </button>
+                      </div>
+                  ) : (
+                      <select 
+                          className={inputClass}
+                          value={geminiModel}
+                          onChange={(e) => setGeminiModel && setGeminiModel(e.target.value)}
+                          disabled={isProcessing}
+                      >
+                          <optgroup label="System Models">
+                            {GEMINI_PRESETS.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                          </optgroup>
+                          {userModels.length > 0 && (
+                            <optgroup label="Custom Saved Models">
+                              {userModels.map(m => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                      </select>
+                  )}
                </div>
 
                <div className="flex flex-col">
@@ -203,15 +296,16 @@ const ApiKeyPanel: React.FC<Props> = ({
 
         <div className={`border-t ${theme.divider} mb-3`}></div>
 
-        {/* BAGIAN INPUT & LIST API KEY YANG DIKEMBALIKAN */}
-        <div className="flex flex-col animate-in fade-in duration-300">
+        {/* BAGIAN INPUT KOTAK API KEY */}
+        <div className={`flex flex-col transition-all duration-300`}>
             <div className="flex items-center justify-between leading-none mb-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                Google Gemini API Keys
+                  Google Gemini API Keys
                 </label>
                 <button 
                     onClick={() => window.open("https://aistudio.google.com/app/api-keys", '_blank')}
-                    className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium flex items-center gap-1"
+                    className={`text-[10px] underline font-medium flex items-center gap-1 ${isCanvasMode ? 'text-gray-400 pointer-events-none' : 'text-blue-500 hover:text-blue-700'}`}
+                    disabled={isCanvasMode}
                 >
                     Get Free Key <ExternalLink size={10} />
                 </button>
@@ -219,11 +313,11 @@ const ApiKeyPanel: React.FC<Props> = ({
             
             <div className="w-full h-[70px] flex gap-2 p-1">
                 <textarea 
-                    placeholder="Paste your Gemini API Keys here (one per line)..."
-                    className="flex-1 h-full p-2 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200"
+                    placeholder={isCanvasMode ? "Using Internal Canvas Routing. Input disabled." : "Paste your Gemini API Keys here (one per line)..."}
+                    className="flex-1 h-full p-2 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                     value={bulkInput}
                     onChange={(e) => setBulkInput(e.target.value)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isCanvasMode}
                 />
                 <div className="flex flex-col shrink-0">
                     <input 
@@ -235,8 +329,8 @@ const ApiKeyPanel: React.FC<Props> = ({
                     />
                     <button 
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isProcessing}
-                        className="h-full px-4 border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner disabled:opacity-50"
+                        disabled={isProcessing || isCanvasMode}
+                        className="h-full px-4 border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg flex flex-col items-center justify-center gap-1 text-blue-700 hover:bg-blue-100 transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400"
                     >
                         <FileText size={18} />
                         <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Load TXT</span>
@@ -245,30 +339,32 @@ const ApiKeyPanel: React.FC<Props> = ({
             </div>
         </div>
 
+        {/* TOMBOL ADD & CLEAR */}
         <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className={`flex items-center justify-center gap-1 p-2 rounded border ${theme.border} ${theme.countBg}`}>
+            <div className={`flex items-center justify-center gap-1 p-2 rounded border ${isCanvasMode ? 'bg-gray-50 border-gray-200 text-gray-400' : theme.border + ' ' + theme.countBg}`}>
                <span className="text-[11px] font-bold uppercase opacity-70">Stored:</span>
                <span className="text-sm font-bold leading-none">{apiKeys.length}</span>
             </div>
             <button 
                onClick={handleAddKeys}
-               disabled={isProcessing || !bulkInput.trim()}
-               className={`flex flex-row items-center justify-center gap-1.5 p-2 rounded shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.buttonPrimary} ${theme.buttonPrimaryText} active:scale-[0.98] border border-blue-700`}
+               disabled={isProcessing || isCanvasMode || !bulkInput.trim()}
+               className={`flex flex-row items-center justify-center gap-1.5 p-2 rounded shadow-md transition-all active:scale-[0.98] border border-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:border-gray-400 disabled:text-gray-500 ${theme.buttonPrimary} ${theme.buttonPrimaryText}`}
             >
               <Plus size={16} />
               <span className="text-sm font-bold uppercase tracking-wide">Add Keys</span>
             </button>
             <button 
                onClick={handleClearAll} 
-               disabled={isProcessing || apiKeys.length === 0}
-               className="flex flex-row items-center justify-center gap-1.5 p-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm disabled:opacity-50"
+               disabled={isProcessing || isCanvasMode || apiKeys.length === 0}
+               className="flex flex-row items-center justify-center gap-1.5 p-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
             >
               <Trash2 size={16} />
               <span className="text-sm font-bold uppercase tracking-wide">Clear All</span>
             </button>
         </div>
 
-        <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[200px] shrink-0">
+        {/* KOTAK DAFTAR API KEY */}
+        <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[200px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                   <ListOrdered size={14} className="text-gray-500" />
@@ -279,11 +375,13 @@ const ApiKeyPanel: React.FC<Props> = ({
                       <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input 
                           type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-24 pl-6 pr-2 py-1 text-[10px] border border-gray-300 rounded-full bg-white focus:outline-none focus:border-blue-400"
+                          disabled={isCanvasMode}
+                          className="w-24 pl-6 pr-2 py-1 text-[10px] border border-gray-300 rounded-full bg-white focus:outline-none focus:border-blue-400 disabled:bg-gray-100"
                       />
                   </div>
               </div>
           </div>
+          
           <div className="overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-200 flex-1">
               {filteredKeys.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 opacity-60">
@@ -291,23 +389,32 @@ const ApiKeyPanel: React.FC<Props> = ({
                       <span className="text-[11px] font-medium">No API Keys found. Add some to start.</span>
                   </div>
               ) : (
-                  filteredKeys.map((k, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 bg-white border border-gray-100 rounded mb-1 last:mb-0 shadow-sm hover:border-blue-200 transition-colors group">
-                          <div className={`w-2 h-2 rounded-full shrink-0 bg-green-500`} title="Ready to use" />
-                          <span className="w-6 h-6 flex items-center justify-center bg-gray-50 text-[10px] font-bold text-gray-500 rounded shrink-0 select-none border border-gray-200">{idx + 1}</span>
-                          <div className="flex-1 min-w-0 font-mono text-[11px] text-gray-600 truncate px-1 select-all">
-                              {k.substring(0, 10) + '...' + k.substring(k.length - 6)}
+                  <div className="flex flex-col">
+                      {filteredKeys.map((k, idx) => (
+                          <div key={idx} className={`flex items-center gap-2 p-2 bg-white border border-gray-100 rounded mb-1 last:mb-0 shadow-sm transition-colors group ${isCanvasMode ? '' : 'hover:border-blue-200'}`}>
+                              <div className={`w-2 h-2 rounded-full shrink-0 ${isCanvasMode ? 'bg-gray-400' : 'bg-green-500'}`} title="Ready to use" />
+                              <span className="w-6 h-6 flex items-center justify-center bg-gray-50 text-[10px] font-bold text-gray-500 rounded shrink-0 select-none border border-gray-200">{idx + 1}</span>
+                              <div className="flex-1 min-w-0 font-mono text-[11px] text-gray-600 truncate px-1 select-all">
+                                  {/* Format list persis seperti kode lama sampeyan */}
+                                  {k.substring(0, 8) + '...' + k.substring(k.length - 4)}
+                              </div>
+                              <button 
+                                  onClick={() => handleDeleteOne(k)} 
+                                  disabled={isProcessing || isCanvasMode} 
+                                  className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                              >
+                                  <XCircle size={14} />
+                              </button>
                           </div>
-                          <button onClick={() => handleDeleteOne(k)} disabled={isProcessing} className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><XCircle size={14} /></button>
-                      </div>
-                  ))
+                      ))}
+                  </div>
               )}
           </div>
         </div>
 
       </div>
 
-      {/* TOMBOL KOPI DI BAWAH API KEY */}
+      {/* TOMBOL KOPI */}
       <a 
           href="https://lynk.id/isaproject/0581ez0729vx" 
           target="_blank" 
