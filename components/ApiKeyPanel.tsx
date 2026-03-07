@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink, RefreshCw } from 'lucide-react';
+import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
 
 interface Props {
@@ -21,7 +21,15 @@ interface Props {
   setApiDelay?: (delay: number) => void;
 }
 
-const GEMINI_PRESETS = [
+const API_PRESETS = [
+  { value: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
+  { value: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+];
+
+const CANVAS_PRESETS = [
+  { value: 'auto', label: 'Auto Detect (Canvas Default)' },
   { value: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
   { value: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash' },
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
@@ -34,7 +42,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   isProcessing, 
   provider = 'GEMINI CANVAS',
   setProvider,
-  geminiModel = 'gemini-3.1-pro', 
+  geminiModel = 'auto', // Default untuk canvas sebaiknya auto, tapi ngikut props
   setGeminiModel,
   workerCount,
   setWorkerCount,
@@ -75,6 +83,17 @@ const ApiKeyPanel: React.FC<Props> = ({
     localStorage.setItem('ISA_USER_MODELS', JSON.stringify(userModels));
   }, [userModels]);
 
+  // Handle pergantian provider (opsional tapi bagus untuk auto-switch model)
+  useEffect(() => {
+    if (setGeminiModel) {
+        if (provider === 'GEMINI CANVAS' && geminiModel !== 'auto' && !userModels.includes(geminiModel) && !CANVAS_PRESETS.find(p => p.value === geminiModel)) {
+            setGeminiModel('auto');
+        } else if (provider === 'GEMINI API' && geminiModel === 'auto') {
+            setGeminiModel('gemini-3.1-pro');
+        }
+    }
+  }, [provider]);
+
   const handleWorkerChange = (value: string) => {
       if (!setWorkerCount) return;
       if (value === '') {
@@ -104,7 +123,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const handleToggleCustomModel = () => {
     const name = (geminiModel || '').trim();
-    if (!name) return;
+    if (!name || name === 'auto') return;
     if (isCurrentModelCustom) {
       setUserModels(prev => prev.filter(m => m !== name));
     } else {
@@ -143,8 +162,9 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const filteredKeys = useMemo(() => apiKeys.filter(k => k.toLowerCase().includes(searchTerm.toLowerCase())), [apiKeys, searchTerm]);
 
+  // BASE URL MENYESUAIKAN PROVIDER
   const getBaseUrl = () => {
-    if (provider === 'GEMINI CANVAS') return "Internal (Canvas Routing)";
+    if (provider === 'GEMINI CANVAS') return "https://gemini.google.com/api/canvas";
     return "https://generativelanguage.googleapis.com";
   };
 
@@ -198,36 +218,22 @@ const ApiKeyPanel: React.FC<Props> = ({
                <div className="flex flex-col relative">
                   <div className="flex items-center justify-between mb-0.5">
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Model Name</div>
-                      {isCanvasMode ? (
-                          <div className="text-[10px] text-blue-600 font-bold uppercase tracking-tight flex items-center gap-1">
-                             Auto Detect
-                          </div>
-                      ) : (
-                          <button 
-                              onClick={() => setIsManualModel(!isManualModel)} 
-                              className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium"
-                          >
-                              {isManualModel ? 'List' : 'Manual'}
-                          </button>
-                      )}
+                      
+                      {/* TAMPILAN TOGGLE LIST/MANUAL UNTUK KEDUA MODE */}
+                      <button 
+                          onClick={() => setIsManualModel(!isManualModel)} 
+                          className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium"
+                      >
+                          {isManualModel ? 'List' : 'Manual'}
+                      </button>
                   </div>
                   
-                  {isCanvasMode ? (
-                      <div className="relative">
-                         {/* MODEL KHUSUS CANVAS (Tidak ngekor input API) */}
-                         <div className={`${inputClass} flex items-center bg-gray-50 font-bold text-blue-700 overflow-hidden pr-8 border-blue-200`}>
-                             gemini-3.1-pro (Canvas)
-                         </div>
-                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                             <RefreshCw size={12} className="text-blue-500 animate-spin" style={{ animationDuration: '3s' }} />
-                         </div>
-                      </div>
-                  ) : isManualModel ? (
+                  {isManualModel ? (
                       <div className="relative">
                         <input 
                             type="text" 
                             className={`${inputClass} pr-8`} 
-                            placeholder="e.g. gemini-1.5-pro" 
+                            placeholder={isCanvasMode ? "e.g. auto" : "e.g. gemini-1.5-pro"} 
                             value={geminiModel} 
                             onChange={(e) => setGeminiModel && setGeminiModel(e.target.value)} 
                             disabled={isProcessing} 
@@ -248,9 +254,15 @@ const ApiKeyPanel: React.FC<Props> = ({
                           disabled={isProcessing}
                       >
                           <optgroup label="System Models">
-                            {GEMINI_PRESETS.map(m => (
-                                <option key={m.value} value={m.value}>{m.label}</option>
-                            ))}
+                            {isCanvasMode ? (
+                                CANVAS_PRESETS.map(m => (
+                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                ))
+                            ) : (
+                                API_PRESETS.map(m => (
+                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                ))
+                            )}
                           </optgroup>
                           {userModels.length > 0 && (
                             <optgroup label="Custom Saved Models">
@@ -297,6 +309,7 @@ const ApiKeyPanel: React.FC<Props> = ({
 
         <div className={`border-t ${theme.divider} mb-3`}></div>
 
+        {/* BAGIAN INPUT KOTAK API KEY */}
         <div className={`flex flex-col transition-all duration-300`}>
             <div className="flex items-center justify-between leading-none mb-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
@@ -363,6 +376,7 @@ const ApiKeyPanel: React.FC<Props> = ({
             </button>
         </div>
 
+        {/* KOTAK DAFTAR API KEY */}
         <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[260px] min-h-[260px] max-h-[260px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
