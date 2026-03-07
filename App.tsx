@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Coffee, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2 } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -51,10 +51,22 @@ const App: React.FC = () => {
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
 
+  // MEMORI API KEY 
+  const [apiKeys, setApiKeys] = useState<string[]>(() => {
+      try {
+          const saved = localStorage.getItem('ISA_GEMINI_KEYS');
+          return saved ? JSON.parse(saved) : [];
+      } catch (e) { return []; }
+  });
+
+  useEffect(() => {
+      localStorage.setItem('ISA_GEMINI_KEYS', JSON.stringify(apiKeys));
+  }, [apiKeys]);
+
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
-      apiProvider: 'GEMINI CANVAS', 
-      geminiModel: 'gemini-3-flash-preview', 
+      apiProvider: 'GEMINI CANVAS', // Otomatis tersimpan
+      geminiModel: 'gemini-3.1-pro', 
       customTitle: '',
       customKeyword: '',
       negativeMetadata: DEFAULT_FORBIDDEN_WORDS,
@@ -64,7 +76,7 @@ const App: React.FC = () => {
       titleMax: 100,
       slideKeyword: 40,
       videoFrameCount: 3,
-      workerCount: 10,
+      workerCount: 5,
       apiDelay: 3,      
       ideaMode: 'free', 
       ideaQuantity: 30, 
@@ -794,7 +806,6 @@ const App: React.FC = () => {
       }
   };
   
-  // === BAGIAN YANG DIUBAH (|| 0 untuk Idea Mode) ===
   const displayTotalFiles = (() => {
       if (activeTab === 'idea') {
           if (currentFiles.length > 0) return currentFiles.length;
@@ -929,7 +940,8 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
         <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full md:overflow-hidden`}>
   
-      <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
+          {/* MENU NAVIGASI ATAS */}
+          <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
               <div className="flex items-center gap-1 p-1.5">
                   <button 
                       onClick={() => handleNavigation('apikeys')} 
@@ -975,15 +987,18 @@ const App: React.FC = () => {
                       <Database className="w-5 h-5" />
                       <span>METADATA</span>
                   </button>
-                  <a 
-                      href="https://lynk.id/isaproject/0581ez0729vx" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all shadow-sm"
-                      title="Buy me a coffee"
+                  {/* TOMBOL LOGS DIKEMBALIKAN KE SINI */}
+                  <button 
+                      onClick={() => handleNavigation('logs')} 
+                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
+                          activeTab === 'logs' 
+                          ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      }`}
+                      title="System Logs"
                   >
-                      <Coffee className="w-5 h-5" />
-                  </a>
+                      <Activity className="w-5 h-5" />
+                  </button>
               </div>
           </div>
   
@@ -1004,7 +1019,7 @@ const App: React.FC = () => {
                         onRestoreHistory={handleRestorePromptHistory} 
                         hasHistory={settings.promptPlatform === 'file' ? hasPromptFileHistory : hasPromptTextHistory} 
                         onFilesUpload={(fl) => processFiles(fl, 'prompt')}
-                        hasVideo={hasVideoFiles}  // <--- INI TAMBAHANNYA LEK
+                        hasVideo={hasVideoFiles}
                       />
                   )}
                   {activeTab === 'metadata' && (
@@ -1017,70 +1032,74 @@ const App: React.FC = () => {
                   />
                   )}
                   {activeTab === 'apikeys' && (
-                      <div className="flex flex-col gap-4 pb-4">
-                          <ApiKeyPanel 
-                              isProcessing={isProcessing} 
-                              mode='metadata' 
-                              provider='GEMINI CANVAS'
-                              geminiModel={settings.geminiModel} 
-                              setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
-                              workerCount={settings.workerCount}
-                              setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
-                              apiDelay={settings.apiDelay}
-                              setApiDelay={(num) => setSettings(prev => ({ ...prev, apiDelay: num }))}
-                          />
-                          <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
-                              <div className="flex items-center gap-2 mb-2">
-                                  <Activity className="w-4 h-4 text-blue-500" />
-                                  <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">System Logs</h2>
-                              </div>
-                              <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
-                                  <button
-                                      onClick={() => setLogViewMode('clipped')}
-                                      className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-none ${
-                                          logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                                      }`}
-                                  >
-                                      Clipped
-                                  </button>
-                                  <button
-                                      onClick={() => setLogViewMode('transparent')}
-                                      className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-none ${
-                                          logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                                      }`}
-                                  >
-                                      Transparent
-                                  </button>
-                              </div>
+                      <ApiKeyPanel 
+                          apiKeys={apiKeys}
+                          setApiKeys={setApiKeys}
+                          isProcessing={isProcessing} 
+                          mode='metadata' 
+                          provider={settings.apiProvider}
+                          setProvider={(p) => setSettings(prev => ({ ...prev, apiProvider: p as ApiProvider }))}
+                          geminiModel={settings.geminiModel} 
+                          setGeminiModel={(m) => setSettings(prev => ({ ...prev, geminiModel: m }))}
+                          workerCount={settings.workerCount}
+                          setWorkerCount={(num) => setSettings(prev => ({ ...prev, workerCount: num }))}
+                          apiDelay={settings.apiDelay}
+                          setApiDelay={(num) => setSettings(prev => ({ ...prev, apiDelay: num }))}
+                      />
+                  )}
+                  {/* PANEL LOGS DIPISAH KE TAB SENDIRI */}
+                  {activeTab === 'logs' && (
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
+                          <div className="flex items-center gap-2 mb-2">
+                              <Activity className="w-4 h-4 text-blue-500" />
+                              <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">System Logs</h2>
+                          </div>
+                          <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+                              <button
+                                  onClick={() => setLogViewMode('clipped')}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-none ${
+                                      logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                  }`}
+                              >
+                                  Clipped
+                              </button>
+                              <button
+                                  onClick={() => setLogViewMode('transparent')}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-none ${
+                                      logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                  }`}
+                              >
+                                  Transparent
+                              </button>
+                          </div>
 
-                              <div className={`relative flex h-[350px] shrink-0 flex-col overflow-hidden rounded-lg border mt-2 ${
-                                  logViewMode === 'transparent' 
-                                      ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
-                                      : 'bg-white border-blue-200 shadow-sm'
-                              }`}>
-                                  <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
-                                      <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
-                                      <button onClick={handleCopyLogs} className="flex-1 flex items-center justify-center gap-2 bg-blue-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-red-100"><Copy size={14} /> COPY LOGS</button>
-                                  </div>
-                                  <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200/50">
-                                      {filteredLogs.length === 0 ? (
-                                      <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400 opacity-40"><Activity size={32} /> <p>No logs found.</p></div>
-                                      ) : (
-                                      <div className="flex flex-col gap-2">
-                                          {filteredLogs.map(log => (
-                                          <div key={log.id} className="flex items-start gap-2 break-all border-b border-gray-50/50 pb-1 last:border-0">
-                                              <span className={`mt-0.5 shrink-0 rounded px-1 text-[10px] font-medium ${log.mode === 'idea' ? 'bg-amber-100/80 text-amber-700' : log.mode === 'prompt' ? 'bg-fuchsia-100/80 text-fuchsia-700' : log.mode === 'metadata' ? 'bg-blue-100/80 text-blue-700' : 'bg-gray-100/80 text-gray-600'}`}>{log.mode?.substring(0,4).toUpperCase()}</span>
-                                              <div className="flex min-w-0 flex-1 flex-col">
-                                                  <span className="font-mono text-[10px] text-gray-400/80">{log.time}</span>
-                                                  <span className={`text-xs ${log.type === 'error' ? 'text-red-600 font-bold' : log.type === 'success' ? 'text-green-600 font-semibold' : log.type === 'warning' ? 'text-orange-600 font-semibold' : 'text-gray-700'} ${logViewMode === 'clipped' ? 'line-clamp-2 overflow-hidden' : 'break-words whitespace-pre-wrap'}`}>
-                                                      {log.message}
-                                                  </span>
-                                              </div>
+                          <div className={`relative flex h-[350px] shrink-0 flex-col overflow-hidden rounded-lg border mt-2 ${
+                              logViewMode === 'transparent' 
+                                  ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
+                                  : 'bg-white border-blue-200 shadow-sm'
+                          }`}>
+                              <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
+                                  <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
+                                  <button onClick={handleCopyLogs} className="flex-1 flex items-center justify-center gap-2 bg-blue-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-red-100"><Copy size={14} /> COPY LOGS</button>
+                              </div>
+                              <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200/50">
+                                  {filteredLogs.length === 0 ? (
+                                  <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400 opacity-40"><Activity size={32} /> <p>No logs found.</p></div>
+                                  ) : (
+                                  <div className="flex flex-col gap-2">
+                                      {filteredLogs.map(log => (
+                                      <div key={log.id} className="flex items-start gap-2 break-all border-b border-gray-50/50 pb-1 last:border-0">
+                                          <span className={`mt-0.5 shrink-0 rounded px-1 text-[10px] font-medium ${log.mode === 'idea' ? 'bg-amber-100/80 text-amber-700' : log.mode === 'prompt' ? 'bg-fuchsia-100/80 text-fuchsia-700' : log.mode === 'metadata' ? 'bg-blue-100/80 text-blue-700' : 'bg-gray-100/80 text-gray-600'}`}>{log.mode?.substring(0,4).toUpperCase()}</span>
+                                          <div className="flex min-w-0 flex-1 flex-col">
+                                              <span className="font-mono text-[10px] text-gray-400/80">{log.time}</span>
+                                              <span className={`text-xs ${log.type === 'error' ? 'text-red-600 font-bold' : log.type === 'success' ? 'text-green-600 font-semibold' : log.type === 'warning' ? 'text-orange-600 font-semibold' : 'text-gray-700'} ${logViewMode === 'clipped' ? 'line-clamp-2 overflow-hidden' : 'break-words whitespace-pre-wrap'}`}>
+                                                  {log.message}
+                                              </span>
                                           </div>
-                                          ))}
                                       </div>
-                                      )}
+                                      ))}
                                   </div>
+                                  )}
                               </div>
                           </div>
                       </div>
