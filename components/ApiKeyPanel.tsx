@@ -373,7 +373,7 @@ const ApiKeyPanel: React.FC<Props> = ({
         </div>
 
         {/* KOTAK DAFTAR API KEY */}
-        <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[300px] min-h-[300px] max-h-[300px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
+        <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[360px] min-h-[360px] max-h-[360px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                   <ListOrdered size={14} className="text-gray-500" />
