@@ -83,9 +83,9 @@ const ApiKeyPanel: React.FC<Props> = ({
   useEffect(() => {
     if (setGeminiModel) {
         if (provider === 'GEMINI CANVAS' && geminiModel !== 'auto' && !userModels.includes(geminiModel) && !CANVAS_PRESETS.find(p => p.value === geminiModel)) {
-            setGeminiModel('auto');
+            setGeminiModel('e.g. masukkan model api');
         } else if (provider === 'GEMINI API' && geminiModel === 'auto') {
-            setGeminiModel('gemini-3.1-pro');
+            setGeminiModel('e.g. masukkan model api');
         }
     }
   }, [provider]);
