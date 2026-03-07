@@ -118,13 +118,17 @@ const App: React.FC = () => {
 
   useEffect(() => { 
       setIsMounted(true); 
-      // PERBAIKAN: Gunakan setTimeout agar pergeseran terjadi setelah UI benar-benar muncul
+      // Jeda 300ms biar render kelar dulu baru scroll
       setTimeout(() => {
-          if (menuScrollRef.current) {
-              // Digeser sejauh 65px agar tombol Murottal dan garis pembatas benar-benar tenggelam ke kiri
-              menuScrollRef.current.scrollLeft = 65; 
+          if (menuScrollRef.current && settingBtnRef.current) {
+              const offsetLeft = settingBtnRef.current.offsetLeft;
+              // Geser pas ke tombol setting, dikurangi 6px biar garisnya mepet pojok kiri
+              menuScrollRef.current.scrollTo({
+                  left: offsetLeft - 6,
+                  behavior: 'smooth'
+              });
           }
-      }, 100);
+      }, 300);
   }, []);
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
