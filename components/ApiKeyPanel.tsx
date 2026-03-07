@@ -229,7 +229,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                         <input 
                             type="text" 
                             className={`${inputClass} pr-8`} 
-                            placeholder={isCanvasMode ? "e.g. auto" : "e.g. gemini-1.5-pro"} 
+                            placeholder={isCanvasMode ? "e.g. gemini-2.5-pro" : "e.g. gemini-2.5-pro"} 
                             value={geminiModel} 
                             onChange={(e) => setGeminiModel && setGeminiModel(e.target.value)} 
                             disabled={isProcessing} 
