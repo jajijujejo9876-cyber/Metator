@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Search, BookOpen, Volume2, RefreshCw } from 'lucide-react';
+import { Play, Pause, Search, BookOpen, Volume2, RefreshCw, Repeat1, ListVideo } from 'lucide-react';
 
 interface Surah {
   id: number;
@@ -17,11 +17,13 @@ interface Reciter {
 interface Props {
   currentSurahId: number | null;
   isPlaying: boolean;
-  onPlay: (surahId: number, audioUrl: string, surahName: string, reciterName: string) => void;
+  onPlay: (surahId: number, audioUrl: string, surahName: string, reciterName: string, baseUrl?: string, surahsList?: any[]) => void;
   onTogglePlay: () => void;
+  playbackMode: 'normal' | 'loop' | 'autonext';
+  setPlaybackMode: (mode: 'normal' | 'loop' | 'autonext') => void;
 }
 
-const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogglePlay }) => {
+const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogglePlay, playbackMode, setPlaybackMode }) => {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [reciters, setReciters] = useState<Reciter[]>([]);
   const [selectedReciterId, setSelectedReciterId] = useState<number>(73); // Default ID 73 = Syaikh Sudais di mp3quran v3
@@ -50,12 +52,11 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
         const recitersList = data.reciters.map((r: any) => ({
           id: r.id,
           name: r.name,
-          server: r.moshaf[0]?.server || '' // Mengambil URL server audio
-        })).filter((r: Reciter) => r.server !== ''); // Buang yang servernya kosong
+          server: r.moshaf[0]?.server || '' 
+        })).filter((r: Reciter) => r.server !== ''); 
         
         setReciters(recitersList);
         
-        // Pastikan Syaikh Sudais ada, kalau tidak ada fallback ke urutan pertama
         const hasSudais = recitersList.find((r: Reciter) => r.id === 73);
         if (!hasSudais && recitersList.length > 0) {
             setSelectedReciterId(recitersList[0].id);
@@ -73,119 +74,151 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
   );
 
   const handlePlayClick = (surah: Surah) => {
-    // Kalau surat yang diklik sudah aktif (lagi jalan), maka fungsi pause/resume
+    // Kalau surat yang diklik sudah aktif, fungsikan sebagai pause/resume
     if (currentSurahId === surah.id) {
       onTogglePlay();
       return;
     }
 
-    // Kalau surat baru yang diklik, kita rakit URL MP3-nya
+    // Kalau surat baru, rakit URL MP3-nya
     const reciter = reciters.find(r => r.id === selectedReciterId);
     if (!reciter) return;
 
-    // URL Server formatnya: server/001.mp3, server/002.mp3, dst
     const formattedSurahId = String(surah.id).padStart(3, '0');
     const baseUrl = reciter.server.endsWith('/') ? reciter.server : `${reciter.server}/`;
     const audioUrl = `${baseUrl}${formattedSurahId}.mp3`;
 
-    // Lempar data ke pemutar musik pusat di App.tsx
-    onPlay(surah.id, audioUrl, surah.name_simple, reciter.name);
+    // Lempar ke pemutar musik pusat di App.tsx, sertakan data array surahs untuk fitur auto-next
+    onPlay(surah.id, audioUrl, surah.name_simple, reciter.name, baseUrl, surahs);
   };
 
+  const labelClass = "block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5";
+
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-200 flex flex-col gap-0">
-        
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-emerald-600">
-            <BookOpen size={18} />
-            <h2 className="text-base font-bold uppercase tracking-wide leading-none">Murottal</h2>
-          </div>
-        </div>
-
-        {/* DROPDOWN PILIH SYAIKH */}
-        <div className="flex flex-col mb-3">
-          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih Qari / Syaikh (150+ Pilihan)</label>
-          <select 
-            className="w-full h-9 text-xs px-2 border border-gray-300 rounded-md bg-gray-50 text-gray-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
-            value={selectedReciterId}
-            onChange={(e) => setSelectedReciterId(Number(e.target.value))}
-            disabled={isLoadingReciter}
-          >
-            {isLoadingReciter ? (
-              <option>Memuat daftar Qari...</option>
-            ) : (
-              reciters.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))
-            )}
-          </select>
-        </div>
-
-        {/* INPUT PENCARIAN SURAT */}
-        <div className="relative mb-3">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Cari surat (ex: Kahf, Yaseen)..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-9 pl-8 pr-3 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-          />
-        </div>
-
-        {/* KOTAK DAFTAR SURAT */}
-        <div className="border border-gray-200 rounded-md bg-gray-50 flex flex-col h-[380px] md:h-[450px] overflow-hidden">
-          {isLoadingSurah ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 gap-2 opacity-50">
-              <RefreshCw size={24} className="animate-spin" />
-              <span className="text-xs font-medium uppercase tracking-widest">Menyiapkan Surah...</span>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-gray-200">
-              {filteredSurahs.map(surah => {
-                const isActive = currentSurahId === surah.id;
-                return (
-                  <div 
-                    key={surah.id} 
-                    className={`flex items-center justify-between p-2 mb-1 rounded-md transition-colors group ${
-                      isActive ? 'bg-emerald-100 border border-emerald-300' : 'bg-white border border-gray-100 hover:border-emerald-200 shadow-sm'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-7 h-7 flex items-center justify-center rounded text-[11px] font-bold shrink-0 shadow-sm ${isActive ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-emerald-50 group-hover:text-emerald-600'}`}>
-                        {surah.id}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={`text-xs font-bold ${isActive ? 'text-emerald-800' : 'text-gray-700'}`}>{surah.name_simple}</span>
-                        <span className="text-[9px] text-gray-400 uppercase tracking-widest">{surah.verses_count} Ayat</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <span className={`text-sm font-arabic ${isActive ? 'text-emerald-600' : 'text-gray-400 group-hover:text-emerald-400'}`} dir="rtl">{surah.name_arabic}</span>
-                      <button 
-                        onClick={() => handlePlayClick(surah)}
-                        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all shadow-sm ${
-                          isActive 
-                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
-                            : 'bg-gray-50 hover:bg-emerald-100 text-gray-400 hover:text-emerald-600 border border-gray-200'
-                        }`}
-                      >
-                        {isActive && isPlaying ? <Pause size={14} className="fill-current" /> : (isActive ? <Volume2 size={14} className="animate-pulse" /> : <Play size={14} className="fill-current ml-0.5" />)}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {filteredSurahs.length === 0 && (
-                 <div className="h-full flex items-center justify-center text-xs text-gray-400">Surat tidak ditemukan.</div>
-              )}
-            </div>
-          )}
-        </div>
-        
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-200 flex flex-col gap-4 animate-in fade-in duration-300">
+      
+      {/* HEADER SENADA DENGAN METADATA SETTINGS TAPI HIJAU */}
+      <div className="flex items-center gap-2">
+        <BookOpen className="w-4 h-4 text-emerald-500" />
+        <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide">Murottal Settings</h2>
       </div>
+
+      <div className="border-t border-emerald-100 -my-2"></div>
+
+      {/* DROPDOWN PILIH SYAIKH */}
+      <div className="pt-2">
+        <label className={labelClass}>Pilih Qari / Syaikh</label>
+        <select 
+          className="w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 h-[42px]"
+          value={selectedReciterId}
+          onChange={(e) => setSelectedReciterId(Number(e.target.value))}
+          disabled={isLoadingReciter}
+        >
+          {isLoadingReciter ? (
+            <option>Memuat 150+ daftar Qari...</option>
+          ) : (
+            reciters.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))
+          )}
+        </select>
+      </div>
+
+      <div className="border-t border-emerald-100 -my-2"></div>
+
+      {/* MODE PUTAR (PLAYBACK MODE) */}
+      <div className="pt-2">
+         <label className={labelClass}>Mode Pemutaran</label>
+         <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+            <button
+               onClick={() => setPlaybackMode('autonext')}
+               className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium uppercase tracking-wide rounded-md transition-all ${
+                 playbackMode === 'autonext' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-200'
+               }`}
+            >
+               <ListVideo size={16} />
+               Lanjut Otomatis
+            </button>
+            <button
+               onClick={() => setPlaybackMode('loop')}
+               className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium uppercase tracking-wide rounded-md transition-all ${
+                 playbackMode === 'loop' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-200'
+               }`}
+            >
+               <Repeat1 size={16} />
+               Ulangi Surat
+            </button>
+         </div>
+      </div>
+
+      <div className="border-t border-emerald-100 -my-2"></div>
+
+      {/* INPUT PENCARIAN SURAT */}
+      <div className="pt-2">
+         <label className={labelClass}>Daftar Surat</label>
+         <div className="relative mb-3">
+           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+           <input 
+             type="text" 
+             placeholder="Cari surat (ex: Kahf, Yaseen)..." 
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+             className="w-full text-sm p-2 pl-9 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all placeholder:text-gray-300 h-[42px]"
+           />
+         </div>
+
+         {/* KOTAK DAFTAR SURAT (LIST) */}
+         <div className="border border-gray-200 rounded-md bg-gray-50 flex flex-col h-[350px] md:h-[400px] overflow-hidden shadow-inner">
+           {isLoadingSurah ? (
+             <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 gap-2 opacity-50">
+               <RefreshCw size={24} className="animate-spin" />
+               <span className="text-xs font-medium uppercase tracking-widest">Menyiapkan Surah...</span>
+             </div>
+           ) : (
+             <div className="flex-1 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-gray-200">
+               {filteredSurahs.map(surah => {
+                 const isActive = currentSurahId === surah.id;
+                 return (
+                   <div 
+                     key={surah.id} 
+                     className={`flex items-center justify-between p-2.5 mb-1 rounded-md transition-colors group ${
+                       isActive ? 'bg-emerald-100 border border-emerald-300 shadow-sm' : 'bg-white border border-gray-100 hover:border-emerald-200 shadow-sm'
+                     }`}
+                   >
+                     <div className="flex items-center gap-3">
+                       <div className={`w-7 h-7 flex items-center justify-center rounded text-[11px] font-bold shrink-0 shadow-sm ${isActive ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-emerald-50 group-hover:text-emerald-600'}`}>
+                         {surah.id}
+                       </div>
+                       <div className="flex flex-col">
+                         <span className={`text-sm font-bold leading-none ${isActive ? 'text-emerald-800' : 'text-gray-700'}`}>{surah.name_simple}</span>
+                         <span className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-1">{surah.verses_count} Ayat</span>
+                       </div>
+                     </div>
+                     
+                     <div className="flex items-center gap-3">
+                       <span className={`text-lg font-arabic font-medium hidden sm:block ${isActive ? 'text-emerald-600' : 'text-gray-400 group-hover:text-emerald-400'}`} dir="rtl">{surah.name_arabic}</span>
+                       <button 
+                         onClick={() => handlePlayClick(surah)}
+                         className={`w-9 h-9 flex items-center justify-center rounded-full transition-all shadow-sm shrink-0 active:scale-95 ${
+                           isActive 
+                             ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md' 
+                             : 'bg-gray-50 hover:bg-emerald-100 text-gray-400 hover:text-emerald-600 border border-gray-200'
+                         }`}
+                       >
+                         {isActive && isPlaying ? <Pause size={16} className="fill-current" /> : (isActive ? <Volume2 size={16} className="animate-pulse" /> : <Play size={16} className="fill-current ml-0.5" />)}
+                       </button>
+                     </div>
+                   </div>
+                 );
+               })}
+               {filteredSurahs.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-xs text-gray-400">Surat tidak ditemukan.</div>
+               )}
+             </div>
+           )}
+         </div>
+      </div>
+
     </div>
   );
 };
