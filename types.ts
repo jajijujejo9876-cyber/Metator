@@ -45,7 +45,7 @@ export interface Category {
 }
 
 // Menghapus 'chat' dari AppMode
-export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata';
+export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata' | 'quran';
 
 export interface ScrapedDataRow {
   id: number;
