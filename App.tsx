@@ -797,7 +797,7 @@ const App: React.FC = () => {
           queueRef.current.push(fileId);
           
           if (settings.apiProvider === 'GEMINI API' && selectedKey) {
-             cooldownKeysRef.current.set(selectedKey, Date.now() + 45000); 
+             cooldownKeysRef.current.set(selectedKey, Date.now() + 60000); 
              addLog(`Worker ${workerId} Terlimit (Ganti Kunci / Cooldown 45s). Detail: ${rawErrorMsg}`, 'warning', mode);
           } else {
              globalCooldownRef.current = Date.now() + 60000; 
@@ -925,6 +925,12 @@ const App: React.FC = () => {
   
   const canGenerate = (() => {
       if (isProcessing) return false;
+
+      const isApiKeyEmpty = settings.apiProvider === 'GEMINI API' && apiKeys.length === 0;
+      const isIdeaMode2 = activeMode === 'idea' && settings.ideaMode === 'paid';
+      if (isApiKeyEmpty && !isIdeaMode2) return false;
+      // -----------------------------------------
+
       if (activeMode === 'idea') {
           if (settings.ideaMode === 'free') {
                if (!settings.ideaQuantity || settings.ideaQuantity <= 0) return false;
