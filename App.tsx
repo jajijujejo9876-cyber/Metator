@@ -118,11 +118,13 @@ const App: React.FC = () => {
 
   useEffect(() => { 
       setIsMounted(true); 
-      if (menuScrollRef.current) {
-          // Atur scroll otomatis agar Murottal (kiri) dan Support (kanan) tidak langsung terlihat
-          // Angka scroll-nya mungkin perlu disesuaikan dengan ukuran layar, tapi 45px cukup ideal.
-          menuScrollRef.current.scrollLeft = 45; 
-      }
+      // PERBAIKAN: Gunakan setTimeout agar pergeseran terjadi setelah UI benar-benar muncul
+      setTimeout(() => {
+          if (menuScrollRef.current) {
+              // Digeser sejauh 65px agar tombol Murottal dan garis pembatas benar-benar tenggelam ke kiri
+              menuScrollRef.current.scrollLeft = 65; 
+          }
+      }, 100);
   }, []);
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
