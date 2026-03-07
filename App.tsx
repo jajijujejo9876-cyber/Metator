@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2 } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -44,6 +44,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('clipped');   
+  const [showErrorDict, setShowErrorDict] = useState(false); // STATE BARU UNTUK KAMUS ERROR
   const [currentTime, setCurrentTime] = useState(new Date());
   
   const [isMounted, setIsMounted] = useState(false);
@@ -51,7 +52,6 @@ const App: React.FC = () => {
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
 
-  // MEMORI API KEY 
   const [apiKeys, setApiKeys] = useState<string[]>(() => {
       try {
           const saved = localStorage.getItem('ISA_GEMINI_KEYS');
@@ -65,7 +65,7 @@ const App: React.FC = () => {
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
-      apiProvider: 'GEMINI CANVAS', // Otomatis tersimpan
+      apiProvider: 'GEMINI CANVAS', 
       geminiModel: 'gemini-3.1-pro', 
       customTitle: '',
       customKeyword: '',
@@ -135,11 +135,9 @@ const App: React.FC = () => {
   const queueRef = useRef<string[]>([]);
   const globalCooldownRef = useRef<number>(0);
 
-  // === REFERENSI ROTASI API KEY (Dari Kode Lama) ===
   const activeKeysRef = useRef<Set<string>>(new Set());
   const cooldownKeysRef = useRef<Map<string, number>>(new Map());
   const nextKeyIdxRef = useRef(0);
-  // ===============================================
   
   const processingFilesRef = useRef<FileItem[]>([]); 
 
@@ -187,10 +185,10 @@ const App: React.FC = () => {
   }, [settings]);
 
   useEffect(() => {
-    if (logsContainerRef.current) {
+    if (logsContainerRef.current && !showErrorDict) {
         logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
-  }, [logs, activeTab, logViewMode]);
+  }, [logs, activeTab, logViewMode, showErrorDict]);
 
   useEffect(() => {
     if (!isProcessing || !processingMode) return;
@@ -520,7 +518,6 @@ const App: React.FC = () => {
           return;
       }
 
-      // KUNCI PENCEGAHAN (SAFETY LOCK) UNTUK GEMINI API MANUAL
       if (settings.apiProvider === 'GEMINI API' && apiKeys.length === 0) {
           alert("Kamu memilih mode GEMINI API tapi belum memasukkan API Key satupun. Silakan masukkan API Key di menu Settings.");
           return;
@@ -669,12 +666,11 @@ const App: React.FC = () => {
       });
   
       queueRef.current = filesToProcess.map(f => f.id); 
-      activeKeysRef.current.clear(); // Bersihkan pelacakan rotasi kunci
+      activeKeysRef.current.clear(); 
       
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
       const userMaxWorkers = isLocalExtraction ? (settings.ideaWorkerCount || 50) : (settings.workerCount || 10);
       
-      // Jika mode Canvas, biarkan hajar sejumlah worker penuh. Jika mode API, batasi sejumlah kuncinya kalau kuncinya dikit.
       let maxConcurrency = isLocalExtraction ? Math.min(userMaxWorkers, filesToProcess.length) : userMaxWorkers;
       if (settings.apiProvider === 'GEMINI API' && apiKeys.length > 0) {
           maxConcurrency = Math.min(maxConcurrency, Math.max(1, apiKeys.length));
@@ -717,7 +713,6 @@ const App: React.FC = () => {
   
       activeWorkersRef.current++;
 
-      // === MESIN ROTASI API KEY ===
       let selectedKey: string = "";
       const totalKeys = apiKeys.length;
 
@@ -737,7 +732,6 @@ const App: React.FC = () => {
           }
 
           if (!selectedKey) {
-            // Semua kunci kena limit! Turunkan file dan tunggu.
             queueRef.current.unshift(fileId);
             activeWorkersRef.current--;
             setTimeout(() => spawnWorker(workerId, mode), 2000); 
@@ -745,7 +739,6 @@ const App: React.FC = () => {
           }
           activeKeysRef.current.add(selectedKey);
       }
-      // ==========================
 
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
       const fileIndex = processingFilesRef.current.findIndex(f => f.id === fileId);
@@ -767,7 +760,6 @@ const App: React.FC = () => {
                  };
              }
         } else {
-             // OPER API KEY YANG TERPILIH KE SERVICE
              const { metadata, thumbnail, generatedImageUrl } = await generateMetadataForFile(currentFileItem, settings, selectedKey, mode);
       
              if (fileIndex !== -1) {
@@ -798,7 +790,7 @@ const App: React.FC = () => {
           
           if (settings.apiProvider === 'GEMINI API' && selectedKey) {
              cooldownKeysRef.current.set(selectedKey, Date.now() + 60000); 
-             addLog(`Worker ${workerId} Terlimit (Ganti Kunci / Cooldown 45s). Detail: ${rawErrorMsg}`, 'warning', mode);
+             addLog(`Worker ${workerId} Terlimit (Ganti Kunci / Cooldown 60s). Detail: ${rawErrorMsg}`, 'warning', mode);
           } else {
              globalCooldownRef.current = Date.now() + 60000; 
              addLog(`LIMIT SERVER GEMINI CANVAS! Semua worker istirahat 60 detik. Detail: ${rawErrorMsg}`, 'warning', mode);
@@ -929,7 +921,6 @@ const App: React.FC = () => {
       const isApiKeyEmpty = settings.apiProvider === 'GEMINI API' && apiKeys.length === 0;
       const isIdeaMode2 = activeMode === 'idea' && settings.ideaMode === 'paid';
       if (isApiKeyEmpty && !isIdeaMode2) return false;
-      // -----------------------------------------
 
       if (activeMode === 'idea') {
           if (settings.ideaMode === 'free') {
@@ -1005,8 +996,6 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
-        
-        {/* PERBAIKAN: CLASS PEMBUAT GARIS/BAYANGAN DI HP SUDAH DIHAPUS & ASIDE MELAR DI MODE LOGS */}
         <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col z-20 order-1 md:h-full md:overflow-hidden ${isSidebarOnlyMode ? 'flex-1 md:flex-none' : 'shrink-0'}`}>
   
           {/* MENU NAVIGASI ATAS */}
@@ -1116,26 +1105,36 @@ const App: React.FC = () => {
                       />
                   )}
 
-                  {/* PANEL LOGS DIPISAH KE TAB SENDIRI DENGAN TINGGI LEBIH LEGA */}
+                  {/* PANEL LOGS DIPISAH KE TAB SENDIRI */}
                   {activeTab === 'logs' && (
                       <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
                           <div className="flex items-center gap-2 mb-2">
                               <Activity className="w-4 h-4 text-blue-500" />
                               <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">System Logs</h2>
                           </div>
-                          <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+                          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+                              {/* TOMBOL MENU INFO (KAMUS ERROR) */}
                               <button
-                                  onClick={() => setLogViewMode('clipped')}
+                                  onClick={() => setShowErrorDict(!showErrorDict)}
+                                  title="Info Makna Kode Error"
+                                  className={`w-10 flex items-center justify-center shrink-0 rounded-md transition-none ${
+                                      showErrorDict ? 'bg-amber-100 text-amber-700 shadow-sm border border-amber-200' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-200'
+                                  }`}
+                              >
+                                  <Menu size={18} />
+                              </button>
+                              <button
+                                  onClick={() => { setLogViewMode('clipped'); setShowErrorDict(false); }}
                                   className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-none ${
-                                      logViewMode === 'clipped' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                      logViewMode === 'clipped' && !showErrorDict ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                   }`}
                               >
                                   Clipped
                               </button>
                               <button
-                                  onClick={() => setLogViewMode('transparent')}
+                                  onClick={() => { setLogViewMode('transparent'); setShowErrorDict(false); }}
                                   className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-none ${
-                                      logViewMode === 'transparent' ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
+                                      logViewMode === 'transparent' && !showErrorDict ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
                                   }`}
                               >
                                   Transparent
@@ -1143,33 +1142,79 @@ const App: React.FC = () => {
                           </div>
 
                           <div className={`relative flex h-[500px] shrink-0 flex-col overflow-hidden rounded-lg border mt-2 ${
-                              logViewMode === 'transparent' 
-                                  ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
-                                  : 'bg-white border-blue-200 shadow-sm'
+                              showErrorDict 
+                                  ? 'bg-amber-50 border-amber-200 shadow-sm'
+                                  : logViewMode === 'transparent' 
+                                      ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
+                                      : 'bg-white border-blue-200 shadow-sm'
                           }`}>
-                              <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
-                                  <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
-                                  <button onClick={handleCopyLogs} className="flex-1 flex items-center justify-center gap-2 bg-blue-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-red-100"><Copy size={14} /> COPY LOGS</button>
-                              </div>
-                              <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200/50">
-                                  {filteredLogs.length === 0 ? (
-                                  <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400 opacity-40"><Activity size={32} /> <p>No logs found.</p></div>
-                                  ) : (
-                                  <div className="flex flex-col gap-2">
-                                      {filteredLogs.map(log => (
-                                      <div key={log.id} className="flex items-start gap-2 break-all border-b border-gray-50/50 pb-1 last:border-0">
-                                          <span className={`mt-0.5 shrink-0 rounded px-1 text-[10px] font-medium ${log.mode === 'idea' ? 'bg-amber-100/80 text-amber-700' : log.mode === 'prompt' ? 'bg-fuchsia-100/80 text-fuchsia-700' : log.mode === 'metadata' ? 'bg-blue-100/80 text-blue-700' : 'bg-gray-100/80 text-gray-600'}`}>{log.mode?.substring(0,4).toUpperCase()}</span>
-                                          <div className="flex min-w-0 flex-1 flex-col">
-                                              <span className="font-mono text-[10px] text-gray-400/80">{log.time}</span>
-                                              <span className={`text-xs ${log.type === 'error' ? 'text-red-600 font-bold' : log.type === 'success' ? 'text-green-600 font-semibold' : log.type === 'warning' ? 'text-orange-600 font-semibold' : 'text-gray-700'} ${logViewMode === 'clipped' ? 'line-clamp-2 overflow-hidden' : 'break-words whitespace-pre-wrap'}`}>
-                                                  {log.message}
-                                              </span>
+                              {showErrorDict ? (
+                                  // TAMPILAN KAMUS ERROR
+                                  <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-amber-200/50">
+                                      <h3 className="text-sm font-bold text-amber-800 uppercase tracking-widest mb-4 border-b border-amber-200 pb-2">Kamus Kode Error API</h3>
+                                      <div className="flex flex-col gap-3 text-xs text-gray-700">
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Error 400 (Bad Request)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> File tidak didukung, resolusi gambar/video kebesaran, atau teks terlalu panjang/melanggar format sistem.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Error 401 (Unauthorized)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> API Key salah ketik, kedaluwarsa, ditarik dari Google AI Studio, atau belum diisi.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Error 403 (Forbidden)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> Kunci valid tapi tidak punya izin akses ke model tersebut, atau IP wilayah terblokir.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Error 404 (Not Found)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> Nama model salah ketik (typo) atau model sudah dihapus/dinonaktifkan oleh Google.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-orange-600 text-sm">Error 429 (Quota Exceeded / Limit)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> Terlalu banyak request dalam 1 menit, atau jatah gratis harian habis. Sistem akan otomatis memindahkan kunci ke kotak istirahat selama 60 detik.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Error 500 (Internal Server Error)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> Bukan salah aplikasi kita. Server pusat Google sedang <i>down</i> atau error memproses file. Tunggu dan coba lagi.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Error 503 / 504 (Timeout)</span>
+                                              <p className="mt-1"><b>Penyebab:</b> Server Google kepenuhan (jam sibuk) atau file video/gambar terlalu berat sehingga koneksi diputus otomatis.</p>
+                                          </div>
+                                          <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
+                                              <span className="font-black text-red-600 text-sm">Network Error / Fetch Failed</span>
+                                              <p className="mt-1"><b>Penyebab:</b> Koneksi internet putus, atau VPN/Proxy/DNS komputer memblokir jalur ke server Google.</p>
                                           </div>
                                       </div>
-                                      ))}
                                   </div>
-                                  )}
-                              </div>
+                              ) : (
+                                  // TAMPILAN LOGS BIASA
+                                  <>
+                                      <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
+                                          <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
+                                          <button onClick={handleCopyLogs} className="flex-1 flex items-center justify-center gap-2 bg-blue-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-red-100"><Copy size={14} /> COPY LOGS</button>
+                                      </div>
+                                      <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200/50">
+                                          {filteredLogs.length === 0 ? (
+                                          <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400 opacity-40"><Activity size={32} /> <p>No logs found.</p></div>
+                                          ) : (
+                                          <div className="flex flex-col gap-2">
+                                              {filteredLogs.map(log => (
+                                              <div key={log.id} className="flex items-start gap-2 break-all border-b border-gray-50/50 pb-1 last:border-0">
+                                                  <span className={`mt-0.5 shrink-0 rounded px-1 text-[10px] font-medium ${log.mode === 'idea' ? 'bg-amber-100/80 text-amber-700' : log.mode === 'prompt' ? 'bg-fuchsia-100/80 text-fuchsia-700' : log.mode === 'metadata' ? 'bg-blue-100/80 text-blue-700' : 'bg-gray-100/80 text-gray-600'}`}>{log.mode?.substring(0,4).toUpperCase()}</span>
+                                                  <div className="flex min-w-0 flex-1 flex-col">
+                                                      <span className="font-mono text-[10px] text-gray-400/80">{log.time}</span>
+                                                      <span className={`text-xs ${log.type === 'error' ? 'text-red-600 font-bold' : log.type === 'success' ? 'text-green-600 font-semibold' : log.type === 'warning' ? 'text-orange-600 font-semibold' : 'text-gray-700'} ${logViewMode === 'clipped' ? 'line-clamp-2 overflow-hidden' : 'break-words whitespace-pre-wrap'}`}>
+                                                          {log.message}
+                                                      </span>
+                                                  </div>
+                                              </div>
+                                              ))}
+                                          </div>
+                                          )}
+                                      </div>
+                                  </>
+                              )}
                           </div>
                       </div>
                   )}
