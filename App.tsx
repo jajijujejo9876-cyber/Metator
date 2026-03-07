@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X, Move } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -62,7 +62,7 @@ const DraggablePlayer: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <div 
-      className="fixed bottom-6 right-6 z-[100] flex flex-col items-center animate-in slide-in-from-bottom-4"
+      className="fixed bottom-6 right-6 z-[9999] flex flex-col items-center animate-in slide-in-from-bottom-4"
       style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
     >
       <div 
@@ -79,7 +79,6 @@ const DraggablePlayer: React.FC<{ children: React.ReactNode }> = ({ children }) 
   );
 };
 // ============================================
-
 
 interface LogEntry {
   id: string;
@@ -120,7 +119,9 @@ const App: React.FC = () => {
   useEffect(() => { 
       setIsMounted(true); 
       if (menuScrollRef.current) {
-          menuScrollRef.current.scrollLeft = 40; 
+          // Atur scroll otomatis agar Murottal (kiri) dan Support (kanan) tidak langsung terlihat
+          // Angka scroll-nya mungkin perlu disesuaikan dengan ukuran layar, tapi 45px cukup ideal.
+          menuScrollRef.current.scrollLeft = 45; 
       }
   }, []);
 
@@ -134,14 +135,11 @@ const App: React.FC = () => {
   const [currentReciterName, setCurrentReciterName] = useState("");
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   
-  // State untuk mode putar: normal | ulangi surat (loop) | lanjut otomatis (autonext)
   const [playbackMode, setPlaybackMode] = useState<'normal' | 'loop' | 'autonext'>('autonext');
   
-  // Data cadangan agar bisa lanjut surat otomatis
   const [audioBaseUrl, setAudioBaseUrl] = useState("");
   const [quranSurahs, setQuranSurahs] = useState<any[]>([]);
 
-  // Modifikasi fungsi Play untuk menyimpan data cadangan URL
   const handlePlayAudio = (surahId: number, audioUrl: string, surahName: string, reciterName: string, baseUrl?: string, surahsList?: any[]) => {
     if (audioRef.current) {
       if (currentSurahId !== surahId) {
@@ -170,21 +168,18 @@ const App: React.FC = () => {
     }
   };
 
-  // LOGIKA KETIKA AUDIO HABIS / SELESAI (ON ENDED)
   const handleAudioEnded = () => {
     if (!audioRef.current) return;
 
     if (playbackMode === 'loop') {
-      audioRef.current.play(); // Ulangi surat ini
+      audioRef.current.play(); 
     } else if (playbackMode === 'autonext' && currentSurahId && currentSurahId < 114 && audioBaseUrl && quranSurahs.length > 0) {
-      // Pindah ke surat selanjutnya
       const nextId = currentSurahId + 1;
       const nextSurah = quranSurahs.find(s => s.id === nextId);
       const formattedId = String(nextId).padStart(3, '0');
       const nextUrl = `${audioBaseUrl}${formattedId}.mp3`;
       handlePlayAudio(nextId, nextUrl, nextSurah?.name_simple || `Surah ${nextId}`, currentReciterName, audioBaseUrl, quranSurahs);
     } else {
-      // Mode Normal (Mati)
       setIsAudioPlaying(false);
     }
   };
@@ -1126,6 +1121,36 @@ const App: React.FC = () => {
       {/* ELEMEN RADIO GAIB DENGAN LOGIKA AUTO-NEXT/LOOP */}
       <audio ref={audioRef} onEnded={handleAudioEnded} preload="none" />
 
+      {/* POSISI WIDGET MENGUDARA DI LUAR MAIN CONTAINER AGAR TIDAK TERHAPUS OLEH TAB APA PUN */}
+      {showMiniPlayer && currentSurahId && (
+        <DraggablePlayer>
+            <div className="p-3">
+                <div className="flex items-start justify-between mb-2 border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Volume2 size={16} className={`text-emerald-500 ${isAudioPlaying ? 'animate-pulse' : ''}`} />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider leading-none">Sedang Diputar</span>
+                      <span className="text-xs font-medium text-gray-700 truncate w-40">{currentSurahName} - {currentReciterName}</span>
+                    </div>
+                  </div>
+                  {/* TOMBOL CLOSE DENGAN BACKGROUND MERAH REDUP BIAR JELAS */}
+                  <button onClick={closeMiniPlayer} className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 p-1 rounded-md transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <button onClick={() => handleNavigation('quran' as any)} className="text-[10px] font-medium text-gray-500 hover:text-emerald-600 underline">Buka Daftar Surat</button>
+                  <button 
+                    onClick={handleToggleAudio}
+                    className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-all active:scale-95"
+                  >
+                    {isAudioPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
+                  </button>
+                </div>
+            </div>
+        </DraggablePlayer>
+      )}
+
       <header className="w-full bg-white border-b border-gray-200 px-4 h-16 flex items-center justify-between shrink-0 shadow-sm z-50 relative">
       <div className="flex items-center">
         <h1 className="text-5xl font-share-tech font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent tracking-tighter leading-none select-none">IsaProject</h1>
@@ -1220,7 +1245,7 @@ const App: React.FC = () => {
 
                   <div className="w-px h-6 bg-gray-200 shrink-0 mx-0.5"></div>
 
-                  {/* TOMBOL SUPPORT (WARNA COKLAT/AMBER) */}
+                  {/* TOMBOL SUPPORT (WARNA COKLAT/AMBER & LINK BARU) */}
                   <button 
                       onClick={() => window.open('https://lynk.id/isaproject/0581ez0729vx', '_blank')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border bg-white text-amber-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200 transition-all`}
@@ -1560,35 +1585,6 @@ const App: React.FC = () => {
                     )}
                 </div>
               </>
-          )}
-
-          {/* WIDGET FLOATING PLAYER (DRAGGABLE) */}
-          {showMiniPlayer && currentSurahId && (
-            <DraggablePlayer>
-               <div className="p-3">
-                   <div className="flex items-start justify-between mb-2 border-b border-gray-100 pb-2">
-                     <div className="flex items-center gap-2">
-                       <Volume2 size={16} className={`text-emerald-500 ${isAudioPlaying ? 'animate-pulse' : ''}`} />
-                       <div className="flex flex-col">
-                         <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider leading-none">Sedang Diputar</span>
-                         <span className="text-xs font-medium text-gray-700 truncate w-40">{currentSurahName} - {currentReciterName}</span>
-                       </div>
-                     </div>
-                     <button onClick={closeMiniPlayer} className="text-gray-400 hover:text-red-500 transition-colors">
-                       <X size={14} />
-                     </button>
-                   </div>
-                   <div className="flex items-center justify-between">
-                     <button onClick={() => handleNavigation('quran' as any)} className="text-[10px] font-medium text-gray-500 hover:text-emerald-600 underline">Buka Daftar Surat</button>
-                     <button 
-                       onClick={handleToggleAudio}
-                       className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-all active:scale-95"
-                     >
-                       {isAudioPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
-                     </button>
-                   </div>
-               </div>
-            </DraggablePlayer>
           )}
 
         </section>
