@@ -74,13 +74,11 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
   );
 
   const handlePlayClick = (surah: Surah) => {
-    // Kalau surat yang diklik sudah aktif, fungsikan sebagai pause/resume
     if (currentSurahId === surah.id) {
       onTogglePlay();
       return;
     }
 
-    // Kalau surat baru, rakit URL MP3-nya
     const reciter = reciters.find(r => r.id === selectedReciterId);
     if (!reciter) return;
 
@@ -88,28 +86,55 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
     const baseUrl = reciter.server.endsWith('/') ? reciter.server : `${reciter.server}/`;
     const audioUrl = `${baseUrl}${formattedSurahId}.mp3`;
 
-    // Lempar ke pemutar musik pusat di App.tsx, sertakan data array surahs untuk fitur auto-next
     onPlay(surah.id, audioUrl, surah.name_simple, reciter.name, baseUrl, surahs);
   };
 
-  const labelClass = "block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5";
+  // Class bawaan persis seperti di MetadataSettings
+  const labelClass = "block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center";
+  const inputClass = "w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 h-[42px]";
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-200 flex flex-col gap-4 animate-in fade-in duration-300">
       
-      {/* HEADER SENADA DENGAN METADATA SETTINGS TAPI HIJAU */}
+      {/* HEADER */}
       <div className="flex items-center gap-2">
         <BookOpen className="w-4 h-4 text-emerald-500" />
         <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide">Murottal Settings</h2>
       </div>
 
+      {/* SATU-SATUNYA GARIS PEMISAH */}
       <div className="border-t border-emerald-100 -my-2"></div>
 
-      {/* DROPDOWN PILIH SYAIKH */}
+      {/* MODE PUTAR (Di Atas, Desain Kloningan Platform Adobe/Shutter) */}
       <div className="pt-2">
-        <label className={labelClass}>Pilih Qari / Syaikh</label>
+         <label className={labelClass}>Mode Pemutaran</label>
+         <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
+            <button
+               onClick={() => setPlaybackMode('autonext')}
+               className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
+                 playbackMode === 'autonext' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-200'
+               }`}
+            >
+               <ListVideo size={16} />
+               Lanjut Otomatis
+            </button>
+            <button
+               onClick={() => setPlaybackMode('loop')}
+               className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
+                 playbackMode === 'loop' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-200'
+               }`}
+            >
+               <Repeat1 size={16} />
+               Ulangi Surat
+            </button>
+         </div>
+      </div>
+
+      {/* DROPDOWN PILIH SYAIKH (Di Bawah) */}
+      <div className="pt-1">
+        <label className={labelClass}>Qari / Syaikh</label>
         <select 
-          className="w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 h-[42px]"
+          className={inputClass}
           value={selectedReciterId}
           onChange={(e) => setSelectedReciterId(Number(e.target.value))}
           disabled={isLoadingReciter}
@@ -124,46 +149,17 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
         </select>
       </div>
 
-      <div className="border-t border-emerald-100 -my-2"></div>
-
-      {/* MODE PUTAR (PLAYBACK MODE) */}
-      <div className="pt-2">
-         <label className={labelClass}>Mode Pemutaran</label>
-         <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
-            <button
-               onClick={() => setPlaybackMode('autonext')}
-               className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium uppercase tracking-wide rounded-md transition-all ${
-                 playbackMode === 'autonext' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-200'
-               }`}
-            >
-               <ListVideo size={16} />
-               Lanjut Otomatis
-            </button>
-            <button
-               onClick={() => setPlaybackMode('loop')}
-               className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium uppercase tracking-wide rounded-md transition-all ${
-                 playbackMode === 'loop' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-100' : 'text-gray-500 hover:bg-gray-200'
-               }`}
-            >
-               <Repeat1 size={16} />
-               Ulangi Surat
-            </button>
-         </div>
-      </div>
-
-      <div className="border-t border-emerald-100 -my-2"></div>
-
-      {/* INPUT PENCARIAN SURAT */}
-      <div className="pt-2">
+      {/* INPUT PENCARIAN & DAFTAR SURAT (Tanpa Garis Atas) */}
+      <div className="pt-1">
          <label className={labelClass}>Daftar Surat</label>
          <div className="relative mb-3">
-           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
            <input 
              type="text" 
              placeholder="Cari surat (ex: Kahf, Yaseen)..." 
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
-             className="w-full text-sm p-2 pl-9 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all placeholder:text-gray-300 h-[42px]"
+             className={`${inputClass} pl-10`}
            />
          </div>
 
