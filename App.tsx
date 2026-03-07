@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X, Move } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -10,11 +10,76 @@ import FileCard from './components/FileCard';
 import IdeaListComponent from './components/IdeaListComponent'; 
 import PromptListComponent from './components/PromptListComponent';
 import PreviewModal from './components/PreviewModal';
-import QuranPanel from './components/QuranPanel'; // IMPORT QURAN PANEL
+import QuranPanel from './components/QuranPanel'; 
 import { generateMetadataForFile, translateMetadataContent } from './services/geminiService';
 import { downloadCSV, downloadTXT, extractSlugFromUrl } from './utils/helpers';
 import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode } from './types';
 import { INITIAL_METADATA } from './constants';
+
+// === KOMPONEN WIDGET MELAYANG (DRAGGABLE) ===
+const DraggablePlayer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const posRef = useRef({ x: 0, y: 0 });
+  const dragStart = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+
+  const updatePos = (newPos: { x: number, y: number }) => {
+    setPos(newPos);
+    posRef.current = newPos;
+  };
+
+  const handleStart = (clientX: number, clientY: number) => {
+    isDragging.current = true;
+    dragStart.current = { x: clientX - posRef.current.x, y: clientY - posRef.current.y };
+  };
+
+  const handleMove = (clientX: number, clientY: number) => {
+    if (!isDragging.current) return;
+    updatePos({ x: clientX - dragStart.current.x, y: clientY - dragStart.current.y });
+  };
+
+  const handleEnd = () => {
+    isDragging.current = false;
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
+    const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    const onUp = () => handleEnd();
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onUp);
+    };
+  }, []);
+
+  return (
+    <div 
+      className="fixed bottom-6 right-6 z-[100] flex flex-col items-center animate-in slide-in-from-bottom-4"
+      style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
+    >
+      <div 
+        className="w-full h-6 bg-emerald-100/90 backdrop-blur-md rounded-t-xl flex items-center justify-center cursor-grab active:cursor-grabbing border border-b-0 border-emerald-200"
+        onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
+      >
+        <div className="w-10 h-1.5 bg-emerald-300/80 rounded-full" />
+      </div>
+      <div className="bg-white/95 backdrop-blur-md border border-t-0 border-emerald-200 shadow-2xl rounded-b-xl w-64 pointer-events-auto">
+         {children}
+      </div>
+    </div>
+  );
+};
+// ============================================
+
 
 interface LogEntry {
   id: string;
@@ -49,7 +114,15 @@ const App: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
   const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => { setIsMounted(true); }, []);
+  
+  const menuScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { 
+      setIsMounted(true); 
+      if (menuScrollRef.current) {
+          menuScrollRef.current.scrollLeft = 40; 
+      }
+  }, []);
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
 
@@ -60,18 +133,28 @@ const App: React.FC = () => {
   const [currentSurahName, setCurrentSurahName] = useState("");
   const [currentReciterName, setCurrentReciterName] = useState("");
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  
+  // State untuk mode putar: normal | ulangi surat (loop) | lanjut otomatis (autonext)
+  const [playbackMode, setPlaybackMode] = useState<'normal' | 'loop' | 'autonext'>('autonext');
+  
+  // Data cadangan agar bisa lanjut surat otomatis
+  const [audioBaseUrl, setAudioBaseUrl] = useState("");
+  const [quranSurahs, setQuranSurahs] = useState<any[]>([]);
 
-  const handlePlayAudio = (surahId: number, audioUrl: string, surahName: string, reciterName: string) => {
+  // Modifikasi fungsi Play untuk menyimpan data cadangan URL
+  const handlePlayAudio = (surahId: number, audioUrl: string, surahName: string, reciterName: string, baseUrl?: string, surahsList?: any[]) => {
     if (audioRef.current) {
       if (currentSurahId !== surahId) {
         audioRef.current.src = audioUrl;
         setCurrentSurahId(surahId);
         setCurrentSurahName(surahName);
         setCurrentReciterName(reciterName);
+        if (baseUrl) setAudioBaseUrl(baseUrl);
+        if (surahsList) setQuranSurahs(surahsList);
       }
       audioRef.current.play();
       setIsAudioPlaying(true);
-      setShowMiniPlayer(true); // Munculkan mini player saat play
+      setShowMiniPlayer(true); 
     }
   };
 
@@ -84,6 +167,25 @@ const App: React.FC = () => {
         audioRef.current.play();
         setIsAudioPlaying(true);
       }
+    }
+  };
+
+  // LOGIKA KETIKA AUDIO HABIS / SELESAI (ON ENDED)
+  const handleAudioEnded = () => {
+    if (!audioRef.current) return;
+
+    if (playbackMode === 'loop') {
+      audioRef.current.play(); // Ulangi surat ini
+    } else if (playbackMode === 'autonext' && currentSurahId && currentSurahId < 114 && audioBaseUrl && quranSurahs.length > 0) {
+      // Pindah ke surat selanjutnya
+      const nextId = currentSurahId + 1;
+      const nextSurah = quranSurahs.find(s => s.id === nextId);
+      const formattedId = String(nextId).padStart(3, '0');
+      const nextUrl = `${audioBaseUrl}${formattedId}.mp3`;
+      handlePlayAudio(nextId, nextUrl, nextSurah?.name_simple || `Surah ${nextId}`, currentReciterName, audioBaseUrl, quranSurahs);
+    } else {
+      // Mode Normal (Mati)
+      setIsAudioPlaying(false);
     }
   };
 
@@ -1021,8 +1123,8 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden relative">
       
-      {/* ELEMEN RADIO GAIB (TIDAK TERLIHAT) */}
-      <audio ref={audioRef} onEnded={() => setIsAudioPlaying(false)} preload="none" />
+      {/* ELEMEN RADIO GAIB DENGAN LOGIKA AUTO-NEXT/LOOP */}
+      <audio ref={audioRef} onEnded={handleAudioEnded} preload="none" />
 
       <header className="w-full bg-white border-b border-gray-200 px-4 h-16 flex items-center justify-between shrink-0 shadow-sm z-50 relative">
       <div className="flex items-center">
@@ -1037,11 +1139,11 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
         <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col z-20 order-1 md:h-full md:overflow-hidden ${isSidebarOnlyMode ? 'flex-1 md:flex-none' : 'shrink-0'}`}>
   
-          {/* MENU NAVIGASI ATAS DENGAN SCROLL HORIZONTAL */}
+          {/* MENU NAVIGASI ATAS DENGAN SCROLL HORIZONTAL & POSISI DEFAULT DI TENGAH */}
           <div className="flex flex-col bg-white border-b border-gray-200 shrink-0 overflow-hidden">
-              <div className="flex items-center gap-1.5 p-1.5 overflow-x-auto whitespace-nowrap scrollbar-none scroll-smooth">
+              <div ref={menuScrollRef} className="flex items-center gap-1.5 p-1.5 overflow-x-auto whitespace-nowrap scrollbar-none scroll-smooth">
                   
-                  {/* TOMBOL MUROTTAL (PALING KIRI - KOTAK) */}
+                  {/* TOMBOL MUROTTAL */}
                   <button 
                       onClick={() => handleNavigation('quran' as any)} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
@@ -1118,10 +1220,10 @@ const App: React.FC = () => {
 
                   <div className="w-px h-6 bg-gray-200 shrink-0 mx-0.5"></div>
 
-                  {/* TOMBOL SUPPORT (PALING KANAN - KOTAK) */}
+                  {/* TOMBOL SUPPORT (WARNA COKLAT/AMBER) */}
                   <button 
-                      onClick={() => window.open('https://saweria.co/isaproject', '_blank')} 
-                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border bg-white text-rose-500 border-gray-200 hover:bg-rose-50 hover:border-rose-200 transition-all`}
+                      onClick={() => window.open('https://lynk.id/isaproject/0581ez0729vx', '_blank')} 
+                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border bg-white text-amber-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200 transition-all`}
                       title="Support IsaProject"
                   >
                       <Coffee className="w-5 h-5" />
@@ -1132,13 +1234,15 @@ const App: React.FC = () => {
   
           <div ref={sidebarContentRef} className="flex-1 bg-gray-50 flex flex-col overflow-y-visible md:overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200">
               <div className="p-4 flex flex-col gap-4">
-                  {/* TAB QURAN (MUROTTAL) */}
+                  {/* TAB QURAN (MUROTTAL) DENGAN TAMBAHAN PROPS PLAYBACK MODE */}
                   {activeTab === 'quran' && (
                       <QuranPanel 
                         currentSurahId={currentSurahId}
                         isPlaying={isAudioPlaying}
                         onPlay={handlePlayAudio}
                         onTogglePlay={handleToggleAudio}
+                        playbackMode={playbackMode}
+                        setPlaybackMode={setPlaybackMode}
                       />
                   )}
 
@@ -1458,31 +1562,33 @@ const App: React.FC = () => {
               </>
           )}
 
-          {/* FLOATING MINI PLAYER MUROTTAL (Pojok Kanan Bawah) */}
+          {/* WIDGET FLOATING PLAYER (DRAGGABLE) */}
           {showMiniPlayer && currentSurahId && (
-            <div className="absolute bottom-6 right-6 z-50 bg-white border border-emerald-200 shadow-xl rounded-xl p-3 flex flex-col w-64 animate-in slide-in-from-bottom-4">
-               <div className="flex items-start justify-between mb-2 border-b border-gray-100 pb-2">
-                 <div className="flex items-center gap-2">
-                   <Volume2 size={16} className={`text-emerald-500 ${isAudioPlaying ? 'animate-pulse' : ''}`} />
-                   <div className="flex flex-col">
-                     <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider leading-none">Sedang Diputar</span>
-                     <span className="text-xs font-medium text-gray-700 truncate w-40">{currentSurahName} - {currentReciterName}</span>
+            <DraggablePlayer>
+               <div className="p-3">
+                   <div className="flex items-start justify-between mb-2 border-b border-gray-100 pb-2">
+                     <div className="flex items-center gap-2">
+                       <Volume2 size={16} className={`text-emerald-500 ${isAudioPlaying ? 'animate-pulse' : ''}`} />
+                       <div className="flex flex-col">
+                         <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider leading-none">Sedang Diputar</span>
+                         <span className="text-xs font-medium text-gray-700 truncate w-40">{currentSurahName} - {currentReciterName}</span>
+                       </div>
+                     </div>
+                     <button onClick={closeMiniPlayer} className="text-gray-400 hover:text-red-500 transition-colors">
+                       <X size={14} />
+                     </button>
                    </div>
-                 </div>
-                 <button onClick={closeMiniPlayer} className="text-gray-400 hover:text-red-500 transition-colors">
-                   <X size={14} />
-                 </button>
+                   <div className="flex items-center justify-between">
+                     <button onClick={() => handleNavigation('quran' as any)} className="text-[10px] font-medium text-gray-500 hover:text-emerald-600 underline">Buka Daftar Surat</button>
+                     <button 
+                       onClick={handleToggleAudio}
+                       className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-all active:scale-95"
+                     >
+                       {isAudioPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
+                     </button>
+                   </div>
                </div>
-               <div className="flex items-center justify-between">
-                 <button onClick={() => handleNavigation('quran' as any)} className="text-[10px] font-medium text-gray-500 hover:text-emerald-600 underline">Buka Daftar Surat</button>
-                 <button 
-                   onClick={handleToggleAudio}
-                   className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-all active:scale-95"
-                 >
-                   {isAudioPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
-                 </button>
-               </div>
-            </div>
+            </DraggablePlayer>
           )}
 
         </section>
