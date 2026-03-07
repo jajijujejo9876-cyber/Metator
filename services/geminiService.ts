@@ -135,11 +135,28 @@ ASSIGN CATEGORY:
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
-  _unusedApiKey: string, 
+  providedApiKey: string, // <-- Parameter ini yang akan memegang API Key hasil rotasi dari App.tsx
   mode: AppMode = 'metadata'
 ): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; }> => {
   
-  const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
+  // LOGIKA PEMILIHAN KUNCI:
+  // Jika Provider-nya GEMINI API (ada providedApiKey), pakai kunci itu. 
+  // Jika Provider-nya GEMINI CANVAS, abaikan kunci luar dan pakai kunci internal (process.env).
+  const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
+  const actualApiKey = isCanvasMode 
+      ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
+      : providedApiKey;
+
+  if (!isCanvasMode && !actualApiKey) {
+      throw new Error("API Key kosong. Masukkan API Key di pengaturan untuk mode GEMINI API.");
+  }
+
+  // LOGIKA PEMILIHAN MODEL:
+  // Pastikan saat mode Canvas, jika model masih "auto", dia fallback ke gemini-3.1-pro.
+  let targetModel = settings.geminiModel || 'gemini-3.1-pro';
+  if (isCanvasMode && targetModel === 'auto') {
+      targetModel = 'gemini-3.1-pro'; 
+  }
 
   try {
     let systemInstruction = "";
@@ -203,7 +220,6 @@ export const generateMetadataForFile = async (
 
         promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Buat konsep serealistis mungkin."}"`;
     
-    // === TAMBAHAN LOGIKA PROMPT ===
     } else if (mode === 'prompt') {
         temperature = 0.8;
         outputSchema = {
@@ -227,7 +243,6 @@ export const generateMetadataForFile = async (
             
             promptText = `Kembangkan ide berikut menjadi sebuah prompt gambar yang sangat detail: "${settings.promptIdea}" ${instruksiTambahan}`;
         } else {
-            // Mode File (Baca gambar/video untuk dijadikan prompt)
             systemInstruction = `Bertindak sebagai AI Vision Expert. Tugas Anda adalah menganalisa gambar/video ini dan mengubahnya menjadi sebuah prompt teks (reverse-prompting) yang sangat detail, agar AI Image Generator lain bisa membuat ulang gambar yang mirip.
             
             ATURAN:
@@ -241,12 +256,9 @@ export const generateMetadataForFile = async (
 
     let parts: any[] = [];
     
-    // === PERBAIKAN LOGIKA PARTS ===
-    // Kalau mode Teks biasa (Prompt Teks atau Idea Auto), cuma kirim teks
     if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
       parts = [{ text: promptText }];
     } else {
-      // Artinya ini adalah Mode File (Metadata, Idea File, atau Prompt File)
       if (fileItem.type === FileType.Video) {
         const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
         parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
@@ -261,14 +273,13 @@ export const generateMetadataForFile = async (
 
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response: any = await ai.models.generateContent({
-      model: settings.geminiModel || 'gemini-3-flash-preview',
+      model: targetModel,
       contents: { parts },
       config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
     });
     
     const parsed = JSON.parse(response.text);
 
-    // === PEMETAAN HASIL ===
     if (mode === 'idea') {
         return {
             metadata: {
@@ -287,7 +298,6 @@ export const generateMetadataForFile = async (
         };
     }
 
-    // Default untuk mode Metadata
     return {
       metadata: { 
         en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
@@ -300,22 +310,35 @@ export const generateMetadataForFile = async (
   }
 };
 
-export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language): Promise<{ title: string; keywords: string }> => {
-  const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
+export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = ""): Promise<{ title: string; keywords: string }> => {
+  // Untuk translasi sync manual, usahakan pakai kunci yang dilempar, kalau kosong baru pakai internal
+  const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
+  
+  if (!actualApiKey) {
+      console.warn("Translation skipped: No API Key available");
+      return content; // Kembalikan teks asli jika gagal
+  }
+
   const ai = new GoogleGenAI({ apiKey: actualApiKey });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.1-flash', // Gunakan model flash terbaru yang lebih ringan untuk translasi
     contents: `Translate to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}: ${content.title}`,
     config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
   });
   return { title: JSON.parse(response.text).title, keywords: content.keywords };
 };
 
-export const translateText = async (text: string, targetLang: string, settings: AppSettings): Promise<string> => {
-    const actualApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
+export const translateText = async (text: string, targetLang: string, settings: AppSettings, providedApiKey: string = ""): Promise<string> => {
+    const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
+    const actualApiKey = isCanvasMode 
+        ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
+        : providedApiKey;
+        
+    if (!actualApiKey) return text;
+
     const ai = new GoogleGenAI({ apiKey: actualApiKey });
     const response = await ai.models.generateContent({
-      model: settings.geminiModel || 'gemini-3-flash-preview',
+      model: settings.geminiModel || 'gemini-3.1-flash',
       contents: `Translate text to ${targetLang}: ${text}`,
       config: { temperature: 0.1 }
     });
