@@ -134,6 +134,12 @@ const App: React.FC = () => {
   const activeWorkersRef = useRef(0);
   const queueRef = useRef<string[]>([]);
   const globalCooldownRef = useRef<number>(0);
+
+  // === REFERENSI ROTASI API KEY (Dari Kode Lama) ===
+  const activeKeysRef = useRef<Set<string>>(new Set());
+  const cooldownKeysRef = useRef<Map<string, number>>(new Map());
+  const nextKeyIdxRef = useRef(0);
+  // ===============================================
   
   const processingFilesRef = useRef<FileItem[]>([]); 
 
@@ -513,6 +519,12 @@ const App: React.FC = () => {
           alert(`Sistem sedang memproses mode ${processingMode?.toUpperCase()}. Silakan tunggu atau pause proses tersebut sebelum memulai yang baru.`);
           return;
       }
+
+      // KUNCI PENCEGAHAN (SAFETY LOCK) UNTUK GEMINI API MANUAL
+      if (settings.apiProvider === 'GEMINI API' && apiKeys.length === 0) {
+          alert("Kamu memilih mode GEMINI API tapi belum memasukkan API Key satupun. Silakan masukkan API Key di menu Settings.");
+          return;
+      }
       
       // ==================== MODE PROMPT ====================
       if (currentMode === 'prompt') {
@@ -657,12 +669,18 @@ const App: React.FC = () => {
       });
   
       queueRef.current = filesToProcess.map(f => f.id); 
+      activeKeysRef.current.clear(); // Bersihkan pelacakan rotasi kunci
       
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
       const userMaxWorkers = isLocalExtraction ? (settings.ideaWorkerCount || 50) : (settings.workerCount || 10);
+      
+      // Jika mode Canvas, biarkan hajar sejumlah worker penuh. Jika mode API, batasi sejumlah kuncinya kalau kuncinya dikit.
       let maxConcurrency = isLocalExtraction ? Math.min(userMaxWorkers, filesToProcess.length) : userMaxWorkers;
+      if (settings.apiProvider === 'GEMINI API' && apiKeys.length > 0) {
+          maxConcurrency = Math.min(maxConcurrency, Math.max(1, apiKeys.length));
+      }
         
-      addLog(`Menjalankan ${maxConcurrency} worker...`, 'info', mode);
+      addLog(`Menjalankan ${maxConcurrency} worker menggunakan ${settings.apiProvider}...`, 'info', mode);
   
       for (let i = 0; i < maxConcurrency; i++) {
         setTimeout(() => spawnWorker(i + 1, mode), i * 100);
@@ -698,9 +716,40 @@ const App: React.FC = () => {
       }
   
       activeWorkersRef.current++;
-      const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
+
+      // === MESIN ROTASI API KEY ===
+      let selectedKey: string = "";
+      const totalKeys = apiKeys.length;
+
+      if (settings.apiProvider === 'GEMINI API' && totalKeys > 0) {
+          for (const [key, expiry] of cooldownKeysRef.current.entries()) {
+            if (now > expiry) cooldownKeysRef.current.delete(key);
+          }
       
+          for (let i = 0; i < totalKeys; i++) {
+            const idx = (nextKeyIdxRef.current + i) % totalKeys;
+            const keyCandidate = apiKeys[idx];
+            if (!activeKeysRef.current.has(keyCandidate) && !cooldownKeysRef.current.has(keyCandidate)) {
+              selectedKey = keyCandidate;
+              nextKeyIdxRef.current = (idx + 1) % totalKeys;
+              break;
+            }
+          }
+
+          if (!selectedKey) {
+            // Semua kunci kena limit! Turunkan file dan tunggu.
+            queueRef.current.unshift(fileId);
+            activeWorkersRef.current--;
+            setTimeout(() => spawnWorker(workerId, mode), 2000); 
+            return;
+          }
+          activeKeysRef.current.add(selectedKey);
+      }
+      // ==========================
+
+      const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
       const fileIndex = processingFilesRef.current.findIndex(f => f.id === fileId);
+
       if (fileIndex !== -1) {
           processingFilesRef.current[fileIndex] = { ...processingFilesRef.current[fileIndex], status: ProcessingStatus.Processing, error: undefined };
       }
@@ -718,7 +767,8 @@ const App: React.FC = () => {
                  };
              }
         } else {
-             const { metadata, thumbnail, generatedImageUrl } = await generateMetadataForFile(currentFileItem, settings, "", mode);
+             // OPER API KEY YANG TERPILIH KE SERVICE
+             const { metadata, thumbnail, generatedImageUrl } = await generateMetadataForFile(currentFileItem, settings, selectedKey, mode);
       
              if (fileIndex !== -1) {
                  processingFilesRef.current[fileIndex] = { 
@@ -727,10 +777,15 @@ const App: React.FC = () => {
                      metadata, thumbnail, generatedImageUrl
                  };
              }
-             addLog(`Worker ${workerId} [Sukses] ${currentFileItem.file.name}`, 'success', mode);
+             
+             const keyLabel = settings.apiProvider === 'GEMINI CANVAS' ? `Canvas Routing` : `Key ${apiKeys.indexOf(selectedKey) + 1}`;
+             addLog(`Worker ${workerId} (${keyLabel}) [Sukses] ${currentFileItem.file.name}`, 'success', mode);
+             if (selectedKey) activeKeysRef.current.delete(selectedKey);
         }
 
       } catch (error: any) {
+        if (selectedKey) activeKeysRef.current.delete(selectedKey);
+
         const rawErrorMsg = rawStringify(error);
         const errorMsgLower = rawErrorMsg.toLowerCase();
         
@@ -740,8 +795,14 @@ const App: React.FC = () => {
   
         if (isTemporaryError) {
           queueRef.current.push(fileId);
-          globalCooldownRef.current = Date.now() + 60000; 
-          addLog(`LIMIT SERVER GEMINI! Semua worker istirahat 60 detik. Detail: ${rawErrorMsg}`, 'warning', mode);
+          
+          if (settings.apiProvider === 'GEMINI API' && selectedKey) {
+             cooldownKeysRef.current.set(selectedKey, Date.now() + 45000); 
+             addLog(`Worker ${workerId} Terlimit (Ganti Kunci / Cooldown 45s). Detail: ${rawErrorMsg}`, 'warning', mode);
+          } else {
+             globalCooldownRef.current = Date.now() + 60000; 
+             addLog(`LIMIT SERVER GEMINI CANVAS! Semua worker istirahat 60 detik. Detail: ${rawErrorMsg}`, 'warning', mode);
+          }
           
           if (fileIndex !== -1) {
               processingFilesRef.current[fileIndex] = { ...processingFilesRef.current[fileIndex], status: ProcessingStatus.Pending };
@@ -938,7 +999,9 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
-        <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-sm md:shadow-none order-1 md:h-full md:overflow-hidden`}>
+        
+        {/* PERBAIKAN: CLASS PEMBUAT GARIS/BAYANGAN DI HP SUDAH DIHAPUS & ASIDE MELAR DI MODE LOGS */}
+        <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col z-20 order-1 md:h-full md:overflow-hidden ${isSidebarOnlyMode ? 'flex-1 md:flex-none' : 'shrink-0'}`}>
   
           {/* MENU NAVIGASI ATAS */}
           <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
@@ -987,7 +1050,6 @@ const App: React.FC = () => {
                       <Database className="w-5 h-5" />
                       <span>METADATA</span>
                   </button>
-                  {/* TOMBOL LOGS DIKEMBALIKAN KE SINI */}
                   <button 
                       onClick={() => handleNavigation('logs')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
@@ -1047,7 +1109,8 @@ const App: React.FC = () => {
                           setApiDelay={(num) => setSettings(prev => ({ ...prev, apiDelay: num }))}
                       />
                   )}
-                  {/* PANEL LOGS DIPISAH KE TAB SENDIRI */}
+
+                  {/* PANEL LOGS DIPISAH KE TAB SENDIRI DENGAN TINGGI LEBIH LEGA */}
                   {activeTab === 'logs' && (
                       <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
                           <div className="flex items-center gap-2 mb-2">
@@ -1073,7 +1136,7 @@ const App: React.FC = () => {
                               </button>
                           </div>
 
-                          <div className={`relative flex h-[350px] shrink-0 flex-col overflow-hidden rounded-lg border mt-2 ${
+                          <div className={`relative flex h-[500px] shrink-0 flex-col overflow-hidden rounded-lg border mt-2 ${
                               logViewMode === 'transparent' 
                                   ? 'bg-white/40 backdrop-blur-md border-blue-200/60 shadow-none' 
                                   : 'bg-white border-blue-200 shadow-sm'
