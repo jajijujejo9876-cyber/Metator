@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -10,6 +10,7 @@ import FileCard from './components/FileCard';
 import IdeaListComponent from './components/IdeaListComponent'; 
 import PromptListComponent from './components/PromptListComponent';
 import PreviewModal from './components/PreviewModal';
+import QuranPanel from './components/QuranPanel'; // IMPORT QURAN PANEL
 import { generateMetadataForFile, translateMetadataContent } from './services/geminiService';
 import { downloadCSV, downloadTXT, extractSlugFromUrl } from './utils/helpers';
 import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode } from './types';
@@ -41,16 +42,55 @@ const rawStringify = (val: any): string => {
 };
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys'>('apikeys');
+  const [activeTab, setActiveTab] = useState<AppMode | 'logs' | 'apikeys' | 'quran'>('apikeys');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logViewMode, setLogViewMode] = useState<'transparent' | 'clipped'>('clipped');   
-  const [showErrorDict, setShowErrorDict] = useState(false); // STATE BARU UNTUK KAMUS ERROR
+  const [showErrorDict, setShowErrorDict] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
   const [ispaidUnlocked, setIspaidUnlocked] = useState(false);
+
+  // === STATE & REF UNTUK RADIO GAIB (MUROTTAL) ===
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentSurahId, setCurrentSurahId] = useState<number | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [currentSurahName, setCurrentSurahName] = useState("");
+  const [currentReciterName, setCurrentReciterName] = useState("");
+  const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+
+  const handlePlayAudio = (surahId: number, audioUrl: string, surahName: string, reciterName: string) => {
+    if (audioRef.current) {
+      if (currentSurahId !== surahId) {
+        audioRef.current.src = audioUrl;
+        setCurrentSurahId(surahId);
+        setCurrentSurahName(surahName);
+        setCurrentReciterName(reciterName);
+      }
+      audioRef.current.play();
+      setIsAudioPlaying(true);
+      setShowMiniPlayer(true); // Munculkan mini player saat play
+    }
+  };
+
+  const handleToggleAudio = () => {
+    if (audioRef.current) {
+      if (isAudioPlaying) {
+        audioRef.current.pause();
+        setIsAudioPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsAudioPlaying(true);
+      }
+    }
+  };
+
+  const closeMiniPlayer = () => {
+      setShowMiniPlayer(false);
+  };
+  // ===============================================
 
   const [apiKeys, setApiKeys] = useState<string[]>(() => {
       try {
@@ -146,20 +186,14 @@ const App: React.FC = () => {
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
   const getActiveDataKey = () => {
-    if (activeTab === 'idea') {
-      return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
-    }
-    if (activeTab === 'prompt') {
-      return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
-    }
-    if (activeTab === 'metadata') {
-      return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
-    }
+    if (activeTab === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
+    if (activeTab === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
+    if (activeTab === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
     return activeTab as string;
   };
 
   const activeDataKey = getActiveDataKey();
-  const activeMode: AppMode = (activeTab === 'logs' || activeTab === 'apikeys') ? 'metadata' : (activeTab as AppMode);
+  const activeMode: AppMode = (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') ? 'metadata' : (activeTab as AppMode);
   const currentFiles = filesMap[activeDataKey] || [];
   
   const [hasHistory, setHasHistory] = useState(() => {
@@ -218,7 +252,7 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [activeTab, settings.metadataPlatform, settings.promptPlatform]);
 
-  const handleNavigation = (tab: AppMode | 'logs' | 'apikeys') => {
+  const handleNavigation = (tab: AppMode | 'logs' | 'apikeys' | 'quran') => {
     setActiveTab(tab);
     window.scrollTo(0, 0);
   };
@@ -307,7 +341,7 @@ const App: React.FC = () => {
   };
 
   const handleClearAll = () => {
-    if (activeTab === 'logs' || activeTab === 'apikeys') return;
+    if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
     if (isProcessing && processingMode === activeTab && !isPaused) return;
 
     const count = filesMap[activeDataKey].length;
@@ -379,7 +413,7 @@ const App: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (activeTab === 'logs' || activeTab === 'apikeys') return;
+    if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
     const file = filesMap[activeDataKey].find(f => f.id === id);
     if (file && file.status === ProcessingStatus.Processing) {
         addLog("Cannot delete item while it is processing.", 'warning', activeTab as AppMode);
@@ -421,7 +455,7 @@ const App: React.FC = () => {
   };
 
   const handleUpdateMetadata = async (id: string, field: 'title' | 'keywords' | 'category', value: string, language: Language) => {
-    if (activeTab === 'logs' || activeTab === 'apikeys') return;
+    if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
     
     setFilesMap(prev => ({
       ...prev,
@@ -483,7 +517,7 @@ const App: React.FC = () => {
   };
 
   const handleDownload = async (customFilename?: string) => {
-    if (activeTab === 'logs' || activeTab === 'apikeys') return;
+    if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
     
     const completedItems = filesMap[activeDataKey].filter(f => f.status === ProcessingStatus.Completed);
     if (completedItems.length === 0) return;
@@ -510,7 +544,7 @@ const App: React.FC = () => {
   };
 
   const startProcessing = () => {
-      if (activeTab === 'logs' || activeTab === 'apikeys') return;
+      if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
       const currentMode = activeTab as AppMode;
 
       if (isProcessing) {
@@ -887,6 +921,7 @@ const App: React.FC = () => {
   const activeModeLabel = 
         activeTab === 'apikeys' ? 'API Configuration'
         : activeTab === 'logs' ? 'System Logs'
+        : activeTab === 'quran' ? 'Murottal Al-Quran'
         : activeTab === 'idea' ? 'Idea Generation' 
         : activeTab === 'prompt' ? 'Prompt Engineering'
         : 'Metadata Extraction';
@@ -970,7 +1005,7 @@ const App: React.FC = () => {
   
   const getThemeColor = () => 'text-blue-500';
   
-  const isSidebarOnlyMode = activeTab === 'apikeys' || activeTab === 'logs';
+  const isSidebarOnlyMode = activeTab === 'apikeys' || activeTab === 'logs' || activeTab === 'quran';
 
   const isCurrentTabProcessing = isProcessing && processingMode === activeTab;
   const isCurrentTabPaused = isCurrentTabProcessing && isPaused;
@@ -984,8 +1019,12 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden">
-      <header className="w-full bg-white border-b border-gray-200 px-4 h-16 flex items-center justify-between shrink-0 shadow-sm z-50">
+    <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden relative">
+      
+      {/* ELEMEN RADIO GAIB (TIDAK TERLIHAT) */}
+      <audio ref={audioRef} onEnded={() => setIsAudioPlaying(false)} preload="none" />
+
+      <header className="w-full bg-white border-b border-gray-200 px-4 h-16 flex items-center justify-between shrink-0 shadow-sm z-50 relative">
       <div className="flex items-center">
         <h1 className="text-5xl font-share-tech font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent tracking-tighter leading-none select-none">IsaProject</h1>
       </div>
@@ -998,69 +1037,111 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
         <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col z-20 order-1 md:h-full md:overflow-hidden ${isSidebarOnlyMode ? 'flex-1 md:flex-none' : 'shrink-0'}`}>
   
-          {/* MENU NAVIGASI ATAS */}
-          <div className="flex flex-col bg-white border-b border-gray-200 shrink-0">
-              <div className="flex items-center gap-1 p-1.5">
+          {/* MENU NAVIGASI ATAS DENGAN SCROLL HORIZONTAL */}
+          <div className="flex flex-col bg-white border-b border-gray-200 shrink-0 overflow-hidden">
+              <div className="flex items-center gap-1.5 p-1.5 overflow-x-auto whitespace-nowrap scrollbar-none scroll-smooth">
+                  
+                  {/* TOMBOL MUROTTAL (PALING KIRI - KOTAK) */}
+                  <button 
+                      onClick={() => handleNavigation('quran' as any)} 
+                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
+                          activeTab === 'quran' 
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-300 shadow-sm' 
+                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                      }`}
+                      title="Murottal Al-Quran"
+                  >
+                      <PlayCircle className="w-5 h-5" />
+                  </button>
+
+                  <div className="w-px h-6 bg-gray-200 shrink-0 mx-0.5"></div>
+
                   <button 
                       onClick={() => handleNavigation('apikeys')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
                           activeTab === 'apikeys' 
                           ? 'bg-blue-50 text-blue-700 border-blue-300' 
-                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                       }`}
                       title="API Configuration"
                   >
                       <Settings className="w-5 h-5" />
                   </button>
+
                   <button 
                       onClick={() => handleNavigation('idea' as any)} 
-                      className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                      className={`px-4 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1.5 ${
                           activeTab === 'idea' 
                           ? 'bg-blue-50 text-blue-700 border-blue-300' 
                           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                       }`}
                   >
-                      <Lightbulb className="w-5 h-5" />
+                      <Lightbulb className="w-4 h-4" />
                       <span>IDEA</span>
                   </button>
+
                   <button 
                       onClick={() => handleNavigation('prompt' as any)} 
-                      className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                      className={`px-4 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1.5 ${
                           activeTab === 'prompt' 
                           ? 'bg-blue-50 text-blue-700 border-blue-300' 
                           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                       }`}
                   >
-                      <Command className="w-5 h-5" />
+                      <Command className="w-4 h-4" />
                       <span>PROMPT</span>
                   </button>
+
                   <button 
                       onClick={() => handleNavigation('metadata' as any)} 
-                      className={`flex-1 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1 ${
+                      className={`px-4 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1.5 ${
                           activeTab === 'metadata' 
                           ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
                           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                       }`}
                   >
-                      <Database className="w-5 h-5" />
+                      <Database className="w-4 h-4" />
                       <span>METADATA</span>
                   </button>
+
                   <button 
                       onClick={() => handleNavigation('logs')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
                           activeTab === 'logs' 
                           ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
-                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                       }`}
                       title="System Logs"
                   >
                       <Activity className="w-5 h-5" />
                   </button>
+
+                  <div className="w-px h-6 bg-gray-200 shrink-0 mx-0.5"></div>
+
+                  {/* TOMBOL SUPPORT (PALING KANAN - KOTAK) */}
+                  <button 
+                      onClick={() => window.open('https://saweria.co/isaproject', '_blank')} 
+                      className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border bg-white text-rose-500 border-gray-200 hover:bg-rose-50 hover:border-rose-200 transition-all`}
+                      title="Support IsaProject"
+                  >
+                      <Coffee className="w-5 h-5" />
+                  </button>
+
               </div>
           </div>
   
           <div ref={sidebarContentRef} className="flex-1 bg-gray-50 flex flex-col overflow-y-visible md:overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200">
               <div className="p-4 flex flex-col gap-4">
+                  {/* TAB QURAN (MUROTTAL) */}
+                  {activeTab === 'quran' && (
+                      <QuranPanel 
+                        currentSurahId={currentSurahId}
+                        isPlaying={isAudioPlaying}
+                        onPlay={handlePlayAudio}
+                        onTogglePlay={handleToggleAudio}
+                      />
+                  )}
+
                   {activeTab === 'idea' && (
                       <IdeaSettings 
                           settings={settings} setSettings={setSettings} isProcessing={isCurrentTabProcessing} 
@@ -1105,7 +1186,6 @@ const App: React.FC = () => {
                       />
                   )}
 
-                  {/* PANEL LOGS DIPISAH KE TAB SENDIRI */}
                   {activeTab === 'logs' && (
                       <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-2">
                           <div className="flex items-center gap-2 mb-2">
@@ -1113,7 +1193,6 @@ const App: React.FC = () => {
                               <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide leading-none">System Logs</h2>
                           </div>
                           <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
-                              {/* TOMBOL MENU INFO (KAMUS ERROR) */}
                               <button
                                   onClick={() => setShowErrorDict(!showErrorDict)}
                                   title="Info Makna Kode Error"
@@ -1149,7 +1228,6 @@ const App: React.FC = () => {
                                       : 'bg-white border-blue-200 shadow-sm'
                           }`}>
                               {showErrorDict ? (
-                                  // TAMPILAN KAMUS ERROR
                                   <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-amber-200/50">
                                       <h3 className="text-sm font-bold text-amber-800 uppercase tracking-widest mb-4 border-b border-amber-200 pb-2">Kamus Kode Error API</h3>
                                       <div className="flex flex-col gap-3 text-xs text-gray-700">
@@ -1188,7 +1266,6 @@ const App: React.FC = () => {
                                       </div>
                                   </div>
                               ) : (
-                                  // TAMPILAN LOGS BIASA
                                   <>
                                       <div className="flex shrink-0 border-b border-gray-100 divide-x divide-gray-100 bg-white/50 backdrop-blur-sm">
                                           <button onClick={handleClearLogs} className="flex-1 flex items-center justify-center gap-2 bg-red-50/50 py-2.5 text-xs font-bold uppercase tracking-wider text-red-600 transition-colors hover:bg-red-100"><Eraser size={14} /> CLEAR LOGS</button>
@@ -1222,7 +1299,7 @@ const App: React.FC = () => {
           </div>
 
           {/* ACTIVITY & ACTIONS STICKY BOTTOM */}
-          {activeTab !== 'logs' && activeTab !== 'apikeys' && (
+          {activeTab !== 'logs' && activeTab !== 'apikeys' && activeTab !== 'quran' && (
               <div className="shrink-0 p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-4 z-10">
                   <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
                       <div className="grid grid-cols-3 gap-0 border-b border-gray-100 p-2 bg-gray-50">
@@ -1315,7 +1392,7 @@ const App: React.FC = () => {
               <div className="flex h-full flex-col items-center justify-center bg-gray-50 p-8">
                   <div className="flex max-w-sm flex-col items-center rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
                       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
-                          {activeTab === 'apikeys' ? <Settings size={32} /> : <Activity size={32} />}
+                          {activeTab === 'apikeys' ? <Settings size={32} /> : activeTab === 'logs' ? <Activity size={32} /> : <PlayCircle size={32} className="text-emerald-500" />}
                       </div>
                       <h3 className="mb-2 text-lg font-bold tracking-wide text-gray-700 uppercase">{activeTab.replace('_', ' ').toUpperCase()} VIEWER</h3>
                       <p className="text-sm text-gray-400">Settings and information are displayed in the left panel for easy access while working.</p>
@@ -1380,6 +1457,34 @@ const App: React.FC = () => {
                 </div>
               </>
           )}
+
+          {/* FLOATING MINI PLAYER MUROTTAL (Pojok Kanan Bawah) */}
+          {showMiniPlayer && currentSurahId && (
+            <div className="absolute bottom-6 right-6 z-50 bg-white border border-emerald-200 shadow-xl rounded-xl p-3 flex flex-col w-64 animate-in slide-in-from-bottom-4">
+               <div className="flex items-start justify-between mb-2 border-b border-gray-100 pb-2">
+                 <div className="flex items-center gap-2">
+                   <Volume2 size={16} className={`text-emerald-500 ${isAudioPlaying ? 'animate-pulse' : ''}`} />
+                   <div className="flex flex-col">
+                     <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider leading-none">Sedang Diputar</span>
+                     <span className="text-xs font-medium text-gray-700 truncate w-40">{currentSurahName} - {currentReciterName}</span>
+                   </div>
+                 </div>
+                 <button onClick={closeMiniPlayer} className="text-gray-400 hover:text-red-500 transition-colors">
+                   <X size={14} />
+                 </button>
+               </div>
+               <div className="flex items-center justify-between">
+                 <button onClick={() => handleNavigation('quran' as any)} className="text-[10px] font-medium text-gray-500 hover:text-emerald-600 underline">Buka Daftar Surat</button>
+                 <button 
+                   onClick={handleToggleAudio}
+                   className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-md transition-all active:scale-95"
+                 >
+                   {isAudioPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
+                 </button>
+               </div>
+            </div>
+          )}
+
         </section>
       </main>
 
