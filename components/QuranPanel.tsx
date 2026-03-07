@@ -26,14 +26,18 @@ interface Props {
 const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogglePlay, playbackMode, setPlaybackMode }) => {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [reciters, setReciters] = useState<Reciter[]>([]);
-  const [selectedReciterId, setSelectedReciterId] = useState<number>(73); // Default ID 73 = Syaikh Sudais di mp3quran v3
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Baca memori pilihan Qari terakhir
+  const [selectedReciterId, setSelectedReciterId] = useState<number>(() => {
+      const saved = localStorage.getItem('ISA_LAST_QARI');
+      return saved ? parseInt(saved, 10) : 0; 
+  });
   
   const [isLoadingSurah, setIsLoadingSurah] = useState(true);
   const [isLoadingReciter, setIsLoadingReciter] = useState(true);
 
   useEffect(() => {
-    // 1. Fetch Daftar 114 Surat
     fetch('https://api.quran.com/api/v4/chapters?language=id')
       .then(res => res.json())
       .then(data => {
@@ -45,7 +49,6 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
         setIsLoadingSurah(false);
       });
 
-    // 2. Fetch 150+ Daftar Syaikh / Qari
     fetch('https://mp3quran.net/api/v3/reciters?language=eng')
       .then(res => res.json())
       .then(data => {
@@ -57,10 +60,14 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
         
         setReciters(recitersList);
         
-        const hasSudais = recitersList.find((r: Reciter) => r.id === 73);
-        if (!hasSudais && recitersList.length > 0) {
-            setSelectedReciterId(recitersList[0].id);
+        // Logika Pilihan Default/Memori
+        const savedId = localStorage.getItem('ISA_LAST_QARI');
+        if (savedId && recitersList.some(r => r.id === parseInt(savedId, 10))) {
+            setSelectedReciterId(parseInt(savedId, 10));
+        } else if (recitersList.length > 0) {
+            setSelectedReciterId(recitersList[0].id); // Default urutan paling atas
         }
+        
         setIsLoadingReciter(false);
       })
       .catch(err => {
@@ -68,6 +75,13 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
         setIsLoadingReciter(false);
       });
   }, []);
+
+  // Simpan ke memori tiap kali milih Qari beda
+  useEffect(() => {
+      if (selectedReciterId !== 0) {
+          localStorage.setItem('ISA_LAST_QARI', selectedReciterId.toString());
+      }
+  }, [selectedReciterId]);
 
   const filteredSurahs = surahs.filter(s => 
     s.name_simple.toLowerCase().includes(searchTerm.toLowerCase())
@@ -89,23 +103,19 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
     onPlay(surah.id, audioUrl, surah.name_simple, reciter.name, baseUrl, surahs);
   };
 
-  // Class bawaan persis seperti di MetadataSettings
   const labelClass = "block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center";
   const inputClass = "w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 h-[42px]";
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-emerald-200 flex flex-col gap-4 animate-in fade-in duration-300">
       
-      {/* HEADER */}
       <div className="flex items-center gap-2">
         <BookOpen className="w-4 h-4 text-emerald-500" />
         <h2 className="text-base font-semibold text-gray-700 uppercase tracking-wide">Murottal Settings</h2>
       </div>
 
-      {/* SATU-SATUNYA GARIS PEMISAH */}
       <div className="border-t border-emerald-100 -my-2"></div>
 
-      {/* MODE PUTAR (Di Atas, Desain Kloningan Platform Adobe/Shutter) */}
       <div className="pt-2">
          <label className={labelClass}>Mode Pemutaran</label>
          <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
@@ -130,7 +140,6 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
          </div>
       </div>
 
-      {/* DROPDOWN PILIH SYAIKH (Di Bawah) */}
       <div className="pt-1">
         <label className={labelClass}>Qari / Syaikh</label>
         <select 
@@ -149,7 +158,6 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
         </select>
       </div>
 
-      {/* INPUT PENCARIAN & DAFTAR SURAT (Tanpa Garis Atas) */}
       <div className="pt-1">
          <label className={labelClass}>Daftar Surat</label>
          <div className="relative mb-3">
@@ -163,7 +171,6 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
            />
          </div>
 
-         {/* KOTAK DAFTAR SURAT (LIST) */}
          <div className="border border-gray-200 rounded-md bg-gray-50 flex flex-col h-[350px] md:h-[400px] overflow-hidden shadow-inner">
            {isLoadingSurah ? (
              <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 gap-2 opacity-50">
