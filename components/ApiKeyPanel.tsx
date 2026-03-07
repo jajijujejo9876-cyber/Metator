@@ -339,16 +339,16 @@ const ApiKeyPanel: React.FC<Props> = ({
             </div>
         </div>
 
-        {/* TOMBOL ADD & CLEAR */}
+        {/* TOMBOL ADD & CLEAR (TINGGI DIKUNCI H-10) */}
         <div className="grid grid-cols-3 gap-2 mt-2">
-            <div className={`flex items-center justify-center gap-1 p-2 rounded border ${isCanvasMode ? 'bg-gray-50 border-gray-200 text-gray-400' : theme.border + ' ' + theme.countBg}`}>
+            <div className={`flex items-center justify-center gap-1 h-10 rounded border ${isCanvasMode ? 'bg-gray-50 border-gray-200 text-gray-400' : theme.border + ' ' + theme.countBg}`}>
                <span className="text-[11px] font-bold uppercase opacity-70">Keys:</span>
                <span className="text-sm font-bold leading-none">{apiKeys.length}</span>
             </div>
             <button 
                onClick={handleAddKeys}
                disabled={isProcessing || isCanvasMode || !bulkInput.trim()}
-               className={`flex flex-row items-center justify-center gap-1.5 p-2 rounded shadow-md transition-all active:scale-[0.98] border border-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:border-gray-400 disabled:text-gray-500 ${theme.buttonPrimary} ${theme.buttonPrimaryText}`}
+               className={`flex flex-row items-center justify-center gap-1.5 h-10 rounded shadow-md transition-all active:scale-[0.98] border border-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:border-gray-400 disabled:text-gray-500 ${theme.buttonPrimary} ${theme.buttonPrimaryText}`}
             >
               <Plus size={16} />
               <span className="text-sm font-bold uppercase tracking-wide">Add Keys</span>
@@ -356,14 +356,14 @@ const ApiKeyPanel: React.FC<Props> = ({
             <button 
                onClick={handleClearAll} 
                disabled={isProcessing || isCanvasMode || apiKeys.length === 0}
-               className="flex flex-row items-center justify-center gap-1.5 p-2 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
+               className="flex flex-row items-center justify-center gap-1.5 h-10 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
             >
               <Trash2 size={16} />
               <span className="text-sm font-bold uppercase tracking-wide">Clear All</span>
             </button>
         </div>
 
-        {/* KOTAK DAFTAR API KEY - TINGGI DIKUNCI DI 260px */}
+        {/* KOTAK DAFTAR API KEY */}
         <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[260px] min-h-[260px] max-h-[260px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
