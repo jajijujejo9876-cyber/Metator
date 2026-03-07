@@ -316,7 +316,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                     className={`text-[10px] underline font-medium flex items-center gap-1 ${isCanvasMode ? 'text-gray-400 pointer-events-none' : 'text-blue-500 hover:text-blue-700'}`}
                     disabled={isCanvasMode}
                 >
-                    Get Free Key <ExternalLink size={10} />
+                    Get Api Key <ExternalLink size={10} />
                 </button>
             </div>
             
