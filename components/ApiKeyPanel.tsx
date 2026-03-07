@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink, RefreshCw, Coffee } from 'lucide-react';
+import { Key, Plus, Trash2, XCircle, ListOrdered, Search, Save, FileText, ExternalLink, RefreshCw } from 'lucide-react';
 import { AppMode, ApiProvider } from '../types';
 
 interface Props {
@@ -363,8 +363,8 @@ const ApiKeyPanel: React.FC<Props> = ({
             </button>
         </div>
 
-        {/* KOTAK DAFTAR API KEY */}
-        <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[200px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
+        {/* KOTAK DAFTAR API KEY - TINGGI DIKUNCI DI 260px */}
+        <div className={`border border-gray-200 rounded-lg bg-gray-50 overflow-hidden flex flex-col mt-4 shadow-inner h-[260px] min-h-[260px] max-h-[260px] shrink-0 transition-opacity ${isCanvasMode ? 'opacity-60 grayscale-[30%]' : ''}`}>
           <div className="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                   <ListOrdered size={14} className="text-gray-500" />
@@ -395,7 +395,6 @@ const ApiKeyPanel: React.FC<Props> = ({
                               <div className={`w-2 h-2 rounded-full shrink-0 ${isCanvasMode ? 'bg-gray-400' : 'bg-green-500'}`} title="Ready to use" />
                               <span className="w-6 h-6 flex items-center justify-center bg-gray-50 text-[10px] font-bold text-gray-500 rounded shrink-0 select-none border border-gray-200">{idx + 1}</span>
                               <div className="flex-1 min-w-0 font-mono text-[11px] text-gray-600 truncate px-1 select-all">
-                                  {/* Format list persis seperti kode lama sampeyan */}
                                   {k.substring(0, 8) + '...' + k.substring(k.length - 4)}
                               </div>
                               <button 
@@ -413,18 +412,6 @@ const ApiKeyPanel: React.FC<Props> = ({
         </div>
 
       </div>
-
-      {/* TOMBOL KOPI */}
-      <a 
-          href="https://lynk.id/isaproject/0581ez0729vx" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 p-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-amber-700 transition-all shadow-sm group"
-      >
-          <Coffee size={18} className="group-hover:animate-bounce" />
-          <span className="text-sm font-bold tracking-wide">Buy me a coffee to support updates!</span>
-      </a>
-
     </div>
   );
 };
