@@ -342,7 +342,7 @@ const ApiKeyPanel: React.FC<Props> = ({
         {/* TOMBOL ADD & CLEAR */}
         <div className="grid grid-cols-3 gap-2 mt-2">
             <div className={`flex items-center justify-center gap-1 p-2 rounded border ${isCanvasMode ? 'bg-gray-50 border-gray-200 text-gray-400' : theme.border + ' ' + theme.countBg}`}>
-               <span className="text-[11px] font-bold uppercase opacity-70">Stored:</span>
+               <span className="text-[11px] font-bold uppercase opacity-70">Keys:</span>
                <span className="text-sm font-bold leading-none">{apiKeys.length}</span>
             </div>
             <button 
