@@ -166,7 +166,7 @@ const FileCard: React.FC<Props> = ({
                     // TAMPILAN EDIT 2 KATEGORI (SHUTTERSTOCK)
                     <>
                        <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled>Kat 1</option>
+                         <option value="" disabled>Kategori 1</option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
@@ -174,7 +174,7 @@ const FileCard: React.FC<Props> = ({
                          ))}
                        </select>
                        <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="">Kat 2</option>
+                         <option value="">Kategori 2</option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
