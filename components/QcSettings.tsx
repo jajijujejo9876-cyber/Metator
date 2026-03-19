@@ -79,8 +79,6 @@ const QcSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onFi
       <div className="bg-blue-50 border border-blue-100 rounded-md p-3 flex gap-2 items-start shadow-inner">
         <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
         <div className="flex flex-col">
-           <span className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-0.5">AI Reviewer Mode</span>
-           <span className="text-[11px] text-blue-600 leading-tight">Mengecek kualitas teknis (noise, blur), potensi pelanggaran Hak Cipta (IP/Trademark), dan skor nilai jual komersial.</span>
         </div>
       </div>
 
