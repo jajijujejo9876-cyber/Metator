@@ -121,7 +121,8 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
             const uniqueKeywords = Array.from(new Set(rawKeywords)).join(', ');
             const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
             
-            const categoryName = getCategoryName(f.metadata.category, 'ENG', platform);
+            // Kategori dikurung kutip ganda agar tidak bergeser kolomnya
+            const categoryName = `"${getCategoryName(f.metadata.category, 'ENG', platform)}"`;
             
             // Logika Illustration
             const isIllustration = (f.type === 'Vector' || (settings && settings.epsMode)) ? 'yes' : 'no';
@@ -155,7 +156,8 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
             const uniqueKeywords = Array.from(new Set(rawKeywords)).join(', ');
             const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
             
-            const categoryName = getCategoryName(f.metadata.category, 'ENG', platform);
+            // Kategori dikurung kutip ganda agar tidak bergeser kolomnya
+            const categoryName = `"${getCategoryName(f.metadata.category, 'ENG', platform)}"`;
             
             return [
               finalFilename,
