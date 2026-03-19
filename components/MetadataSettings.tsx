@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Database, FileText, UploadCloud, FolderPlus, FilePlus, CheckSquare, Square, PenTool } from 'lucide-react';
+import { Database, FileText, FolderPlus, FilePlus, CheckSquare, Square } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface Props {
@@ -13,9 +13,7 @@ interface Props {
 const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onFilesUpload, hasVideo = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  
-  // TAMBAHAN: State uploadType sekarang punya 'eps'
-  const [uploadType, setUploadType] = useState<'file' | 'folder' | 'eps'>('file');
+  const [uploadType, setUploadType] = useState<'file' | 'folder'>('file');
   const [isDragging, setIsDragging] = useState(false);
 
   const handlePlatformChange = (platform: 'Adobe Stock' | 'Shutterstock') => {
@@ -55,9 +53,13 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
   };
 
   const triggerUpload = () => {
-    // Kalau eps, pakai input file biasa (tapi accept-nya khusus gambar aja)
-    if (uploadType === 'file' || uploadType === 'eps') fileInputRef.current?.click();
-    else folderInputRef.current?.click();
+    // Jika EPS Mode aktif, paksa menggunakan input file biasa (gambar saja)
+    if (settings.epsMode) {
+       fileInputRef.current?.click();
+    } else {
+       if (uploadType === 'file') fileInputRef.current?.click();
+       else folderInputRef.current?.click();
+    }
   };
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +85,16 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
     if (isProcessing) return;
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onFilesUpload(e.dataTransfer.files);
+      // Jika mode EPS, saring manual saat drag-and-drop agar hanya image yang masuk
+      if (settings.epsMode) {
+         const dt = new DataTransfer();
+         Array.from(e.dataTransfer.files).forEach(f => {
+            if (f.type.startsWith('image/')) dt.items.add(f);
+         });
+         if (dt.files.length > 0) onFilesUpload(dt.files);
+      } else {
+         onFilesUpload(e.dataTransfer.files);
+      }
     }
   };
 
@@ -127,34 +138,38 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
       <div className="pt-1">
         <div className="flex items-center justify-between mb-1.5 h-5">
           <label className="text-sm font-medium text-gray-500 tracking-tight">Source Type</label>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
              <button 
-                onClick={() => setUploadType('file')}
-                className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => !settings.epsMode && setUploadType('file')}
+                disabled={settings.epsMode}
+                className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider transition-colors ${settings.epsMode ? 'opacity-40 cursor-not-allowed' : 'text-gray-600 hover:text-blue-600'}`}
               >
-                {uploadType === 'file' ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
+                {uploadType === 'file' && !settings.epsMode ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
                 File
               </button>
               <button 
-                onClick={() => setUploadType('folder')}
-                className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => !settings.epsMode && setUploadType('folder')}
+                disabled={settings.epsMode}
+                className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider transition-colors ${settings.epsMode ? 'opacity-40 cursor-not-allowed' : 'text-gray-600 hover:text-blue-600'}`}
               >
-                {uploadType === 'folder' ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
+                {uploadType === 'folder' && !settings.epsMode ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
                 Folder
               </button>
-              {/* TAMBAHAN: Tombol EPS */}
+
+              <div className="w-px h-3.5 bg-gray-300 my-auto mx-1"></div>
+
+              {/* TOMBOL TOGGLE EPS MODE */}
               <button 
-                onClick={() => setUploadType('eps')}
-                className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-600 hover:text-blue-600 transition-colors"
+                onClick={() => setSettings(prev => ({ ...prev, epsMode: !prev.epsMode }))}
+                className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${settings.epsMode ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
               >
-                {uploadType === 'eps' ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
+                {settings.epsMode ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
                 EPS
               </button>
           </div>
         </div>
 
-        {/* Input file dibedakan, kalau EPS maka hanya nerima image saja */}
-        <input ref={fileInputRef} type="file" multiple accept={uploadType === 'eps' ? "image/*" : "image/*,video/*,.svg,.eps,.ai,.pdf"} onChange={onInputChange} className="hidden" />
+        <input ref={fileInputRef} type="file" multiple accept={settings.epsMode ? "image/*" : "image/*,video/*,.svg,.eps,.ai,.pdf"} onChange={onInputChange} className="hidden" />
         <input ref={folderInputRef} type="file" multiple {...({ webkitdirectory: "", directory: "" } as any)} onChange={onInputChange} className="hidden" />
         
         <button 
@@ -169,15 +184,13 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
               : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          {/* LOGIKA TAMPILAN TOMBOL UPLOAD BERDASARKAN TIPE */}
-          {uploadType === 'eps' ? (
-              // TAMPILAN KHUSUS EPS (Hanya 1 baris di tengah)
+          {/* LOGIKA TAMPILAN TOMBOL UPLOAD */}
+          {settings.epsMode ? (
               <div className="flex items-center justify-center h-full gap-2.5">
                   <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />
-                  <span className={`text-xs uppercase tracking-widest ${isDragging ? 'font-black' : ''}`}>UPLOAD JPG/PNG</span>
+                  <span className={`text-xs font-bold uppercase tracking-widest ${isDragging ? 'text-blue-700' : 'text-blue-600'}`}>UPLOAD JPG/PNG</span>
               </div>
           ) : (
-              // TAMPILAN NORMAL (FILE / FOLDER)
               <>
                   <div className="flex items-center gap-2.5">
                     {uploadType === 'file' ? <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} /> : <FolderPlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />}
