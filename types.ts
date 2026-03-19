@@ -24,6 +24,17 @@ export interface FileMetadata {
   category: string; 
 }
 
+// === STRUKTUR RAPOR QC (BARU) ===
+export interface QcResult {
+  score: number;             // Skor Kelayakan (1-100)
+  status: 'Pass' | 'Fail' | 'Warning'; 
+  technicalIssues: string[]; // Masalah teknis (Blur, Noise, Pencahayaan)
+  ipIssues: string[];        // Pelanggaran Hak Cipta (Logo, Brand, Muka Orang)
+  commercialAdvice: string;  // Nilai jual komersial (Saran dari AI)
+  resolutionInfo?: string;   // Pengecekan lokal (Misal: "Lolos (>4MP)" atau "Gagal (<4MP)")
+}
+// ================================
+
 export interface FileItem {
   id: string;
   file: File;
@@ -36,6 +47,7 @@ export interface FileItem {
   error?: string;
   sourceData?: ScrapedDataRow; 
   generatedImageUrl?: string; 
+  qcResult?: QcResult; // <--- Rapor QC nempel di sini Lek
 }
 
 export interface Category {
@@ -44,8 +56,8 @@ export interface Category {
   id_lang: string; 
 }
 
-// Menghapus 'chat' dari AppMode
-export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata' | 'quran';
+// === TAMBAHAN MODE 'qc' DI SINI ===
+export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata' | 'quran' | 'qc';
 
 export interface ScrapedDataRow {
   id: number;
@@ -89,7 +101,7 @@ export interface AppSettings {
   ideaCustomInstruction: string; 
   ideaSourceFiles?: File[];  
   ideaFromRow: number;        
-  ideaBatchSize: number;      
+  ideaBatchSize: number;     
   ideaSourceLines: string[]; 
   ideaWorkerCount: number;
   promptIdea: string;
