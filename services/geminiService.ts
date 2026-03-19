@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode } from "../types";
+import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, QcResult } from "../types";
 import { CATEGORIES, SHUTTERSTOCK_CATEGORIES } from "../constants";
 import { extractVideoFrames } from "../utils/helpers";
 
@@ -135,13 +135,10 @@ ASSIGN CATEGORY:
 export const generateMetadataForFile = async (
   fileItem: FileItem,
   settings: AppSettings,
-  providedApiKey: string, // <-- Parameter ini yang akan memegang API Key hasil rotasi dari App.tsx
+  providedApiKey: string, 
   mode: AppMode = 'metadata'
-): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; }> => {
+): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; qcResult?: QcResult; }> => {
   
-  // LOGIKA PEMILIHAN KUNCI:
-  // Jika Provider-nya GEMINI API (ada providedApiKey), pakai kunci itu. 
-  // Jika Provider-nya GEMINI CANVAS, abaikan kunci luar dan pakai kunci internal (process.env).
   const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
   const actualApiKey = isCanvasMode 
       ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
@@ -151,8 +148,6 @@ export const generateMetadataForFile = async (
       throw new Error("API Key kosong. Masukkan API Key di pengaturan untuk mode GEMINI API.");
   }
 
-  // LOGIKA PEMILIHAN MODEL:
-  // Pastikan saat mode Canvas, jika model masih "auto", dia fallback ke gemini-3.1-pro.
   let targetModel = settings.geminiModel || 'gemini-3.1-pro';
   if (isCanvasMode && targetModel === 'auto') {
       targetModel = 'gemini-3.1-pro'; 
@@ -252,6 +247,33 @@ export const generateMetadataForFile = async (
 
             promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
         }
+    
+    // === LOGIKA BARU UNTUK MODE QC (QUALITY CONTROL) ===
+    } else if (mode === 'qc') {
+        temperature = 0.2; // Suhu rendah agar AI lebih analitis dan objektif
+        
+        systemInstruction = `Anda adalah Kurator dan Reviewer Agensi Microstock Galak (seperti Adobe Stock atau Shutterstock). Tugas Anda adalah mengkurasi kelayakan komersial, teknis, dan legal dari aset visual yang dikirim.
+        
+        ATURAN PENILAIAN STRICT:
+        1. score: Nilai 1-100 (Seberapa laku dan layak aset ini dijual).
+        2. status: Harus salah satu dari "Pass" (Lolos tanpa masalah), "Warning" (Ada catatan kecil), atau "Fail" (Ditolak mutlak karena cacat/melanggar).
+        3. technicalIssues: Array string. Sebutkan jika ada blur, noise parah, overexposed, pencahayaan buruk, atau cacat anatomi AI (jari aneh, dll). KOSONGKAN array jika kualitas teknis sempurna.
+        4. ipIssues: Array string. Sebutkan JIKA ADA PELANGGARAN HAK CIPTA/TRADEMARK (logo Nike, desain Apple, botol Coca-Cola, plat nomor mobil, atau wajah orang yang butuh rilis model). KOSONGKAN array jika murni aman.
+        5. commercialAdvice: 1-2 kalimat saran komersial dalam Bahasa Indonesia. Apa nilai jual gambar ini atau peringatan mengapa gambar ini akan ditolak kurator.`;
+
+        promptText = `Analisis gambar/video ini secara mendalam seperti seorang kurator galak. Periksa cacat teknis, cacat AI, potensi pelanggaran hak cipta, dan nilai komersialnya.`;
+
+        outputSchema = {
+          type: Type.OBJECT,
+          properties: {
+            score: { type: Type.INTEGER },
+            status: { type: Type.STRING },
+            technicalIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
+            ipIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
+            commercialAdvice: { type: Type.STRING }
+          },
+          required: ["score", "status", "technicalIssues", "ipIssues", "commercialAdvice"]
+        };
     }
 
     let parts: any[] = [];
@@ -296,6 +318,18 @@ export const generateMetadataForFile = async (
                 category: 'Prompt'
             }
         };
+    // PENGEMBALIAN DATA UNTUK MODE QC
+    } else if (mode === 'qc') {
+        return {
+            metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, // Placeholder metadata karena tipe data membutuhkannya
+            qcResult: {
+                score: parsed.score,
+                status: parsed.status,
+                technicalIssues: parsed.technicalIssues || [],
+                ipIssues: parsed.ipIssues || [],
+                commercialAdvice: parsed.commercialAdvice
+            }
+        };
     }
 
     return {
@@ -311,17 +345,16 @@ export const generateMetadataForFile = async (
 };
 
 export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = ""): Promise<{ title: string; keywords: string }> => {
-  // Untuk translasi sync manual, usahakan pakai kunci yang dilempar, kalau kosong baru pakai internal
   const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
   
   if (!actualApiKey) {
       console.warn("Translation skipped: No API Key available");
-      return content; // Kembalikan teks asli jika gagal
+      return content; 
   }
 
   const ai = new GoogleGenAI({ apiKey: actualApiKey });
   const response = await ai.models.generateContent({
-    model: 'gemini-3.1-flash', // Gunakan model flash terbaru yang lebih ringan untuk translasi
+    model: 'gemini-3.1-flash', 
     contents: `Translate to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}: ${content.title}`,
     config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
   });
