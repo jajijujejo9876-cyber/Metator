@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, QcResult } from "../types";
-import { CATEGORIES, SHUTTERSTOCK_CATEGORIES } from "../constants";
+// TAMBAHAN: Impor kategori video Shutterstock
+import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES } from "../constants";
 import { extractVideoFrames } from "../utils/helpers";
 
 const fileToPart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
@@ -120,7 +121,7 @@ STEP 2: RUMUS PENULISAN JUDUL
 STEP 3: LOGIKA KATA KUNCI (SEO HIERARCHY)
 - TOTAL: Tepat [KW_COUNT] kata kunci.
 - WAJIB 1 KATA: Setiap kata kunci HANYA BOLEH 1 KATA. Dilarang keras menggunakan frasa (2 kata atau lebih).
-- UNIQUE / ANTI-REDUNDANT: DILARANG mengulang kata yang sama.
+- UNIQUE / ANTI-REDUNDANT: DILARANG mengulang kata yang sama. Setiap kata harus 100% unik.
 - ZERO HALLUCINATION: Jangan tulis objek yang tidak ada di dalam aset.
 
 STEP 4: BLACKLIST (STRICT PROHIBITION)
@@ -162,7 +163,18 @@ export const generateMetadataForFile = async (
 
     if (mode === 'metadata') {
         const platform = settings.metadataPlatform || 'Adobe Stock';
-        const activeCategories = platform === 'Shutterstock' ? SHUTTERSTOCK_CATEGORIES : CATEGORIES;
+        
+        // === LOGIKA PEMILIHAN KATEGORI (GAMBAR VS VIDEO) ===
+        let activeCategories = CATEGORIES;
+        if (platform === 'Shutterstock') {
+            if (fileItem.type === FileType.Video) {
+                // JIKA FILE ADALAH VIDEO DAN PLATFORM SHUTTERSTOCK
+                activeCategories = SHUTTERSTOCK_VIDEO_CATEGORIES || SHUTTERSTOCK_CATEGORIES;
+            } else {
+                activeCategories = SHUTTERSTOCK_CATEGORIES;
+            }
+        }
+        
         const categoryList = activeCategories.map(c => `"${c.id}" = ${c.en}`).join('\n');
         
         const minChars = settings.titleMin || 50;
@@ -249,9 +261,8 @@ export const generateMetadataForFile = async (
             promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
         }
     
-    // === LOGIKA BARU UNTUK MODE QC (QUALITY CONTROL) ===
     } else if (mode === 'qc') {
-        temperature = 0.2; // Suhu rendah agar AI lebih analitis dan objektif
+        temperature = 0.2; 
         
         systemInstruction = `Anda adalah Kurator dan Reviewer Agensi Microstock Galak (seperti Adobe Stock atau Shutterstock). Tugas Anda adalah mengkurasi kelayakan komersial, teknis, dan legal dari aset visual yang dikirim.
         
@@ -319,10 +330,9 @@ export const generateMetadataForFile = async (
                 category: 'Prompt'
             }
         };
-    // PENGEMBALIAN DATA UNTUK MODE QC
     } else if (mode === 'qc') {
         return {
-            metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, // Placeholder metadata karena tipe data membutuhkannya
+            metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, 
             qcResult: {
                 score: parsed.score,
                 status: parsed.status,
