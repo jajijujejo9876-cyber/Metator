@@ -54,6 +54,29 @@ export const SHUTTERSTOCK_CATEGORIES: Category[] = [
   { id: 'Vintage', en: 'Vintage', id_lang: 'Vintage' },
 ];
 
+// === KATEGORI KHUSUS VIDEO SHUTTERSTOCK ===
+export const SHUTTERSTOCK_VIDEO_CATEGORIES: Category[] = [
+  { id: 'Animals/Wildlife', en: 'Animals/Wildlife', id_lang: 'Hewan/Satwa Liar' },
+  { id: 'Arts', en: 'Arts', id_lang: 'Seni' },
+  { id: 'Backgrounds/Textures', en: 'Backgrounds/Textures', id_lang: 'Latar Belakang/Tekstur' },
+  { id: 'Buildings/Landmarks', en: 'Buildings/Landmarks', id_lang: 'Bangunan/Tengara' },
+  { id: 'Business/Finance', en: 'Business/Finance', id_lang: 'Bisnis/Keuangan' },
+  { id: 'Education', en: 'Education', id_lang: 'Pendidikan' },
+  { id: 'Food and drink', en: 'Food and drink', id_lang: 'Makanan dan Minuman' },
+  { id: 'Healthcare/Medical', en: 'Healthcare/Medical', id_lang: 'Kesehatan/Medis' },
+  { id: 'Holidays', en: 'Holidays', id_lang: 'Liburan' },
+  { id: 'Industrial', en: 'Industrial', id_lang: 'Industri' },
+  { id: 'Nature', en: 'Nature', id_lang: 'Alam' },
+  { id: 'Objects', en: 'Objects', id_lang: 'Objek' },
+  { id: 'People', en: 'People', id_lang: 'Orang' },
+  { id: 'Religion', en: 'Religion', id_lang: 'Agama' },
+  { id: 'Science', en: 'Science', id_lang: 'Sains' },
+  { id: 'Signs/Symbols', en: 'Signs/Symbols', id_lang: 'Tanda/Simbol' },
+  { id: 'Sports/Recreation', en: 'Sports/Recreation', id_lang: 'Olahraga/Rekreasi' },
+  { id: 'Technology', en: 'Technology', id_lang: 'Teknologi' },
+  { id: 'Transportation', en: 'Transportation', id_lang: 'Transportasi' }
+];
+
 export const INITIAL_METADATA: FileMetadata = {
   en: { title: '', keywords: '' },
   ind: { title: '', keywords: '' },
