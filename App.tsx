@@ -460,6 +460,9 @@ const App: React.FC = () => {
     
     setFilesMap(prev => ({ ...prev, [activeDataKey]: [] }));
     
+    // TAMBAHAN: Matikan otomatis EPS Mode saat layar dibersihkan
+    setSettings(prev => ({ ...prev, epsMode: false })); 
+    
     if (processingMode === activeTab) {
         setIsProcessing(false);
         setIsPaused(false);
