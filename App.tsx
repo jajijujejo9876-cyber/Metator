@@ -646,7 +646,7 @@ const App: React.FC = () => {
         const filename = downloadTXT(targetFiles, filenameToUse);
         addLog(`Exported TXT: ${filename}`, 'success', activeTab as AppMode);
     } else {
-        const filename = downloadCSV(targetFiles, filenameToUse, settings.metadataPlatform);
+        const filename = downloadCSV(targetFiles, filenameToUse, settings.metadataPlatform, settings);
         addLog(`Exported CSV: ${filename}`, 'success', activeTab as AppMode);
     }
   };
