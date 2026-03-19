@@ -119,8 +119,9 @@ STEP 2: RUMUS PENULISAN JUDUL
 
 STEP 3: LOGIKA KATA KUNCI (SEO HIERARCHY)
 - TOTAL: Tepat [KW_COUNT] kata kunci.
+- WAJIB 1 KATA: Setiap kata kunci HANYA BOLEH 1 KATA. Dilarang keras menggunakan frasa (2 kata atau lebih).
+- UNIQUE / ANTI-REDUNDANT: DILARANG mengulang kata yang sama.
 - ZERO HALLUCINATION: Jangan tulis objek yang tidak ada di dalam aset.
-- PRIORITAS: 20 kata kunci pertama WAJIB berupa frasa (2-3 kata) yang mendeskripsikan subjek secara mendalam.
 
 STEP 4: BLACKLIST (STRICT PROHIBITION)
 - DILARANG menulis spesifikasi teknis (4K, HD, 8K, Resolution).
