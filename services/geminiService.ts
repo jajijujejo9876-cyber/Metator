@@ -1,6 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, QcResult } from "../types";
-// TAMBAHAN: Impor kategori video Shutterstock
 import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES } from "../constants";
 import { extractVideoFrames } from "../utils/helpers";
 
@@ -131,7 +130,8 @@ STEP 4: BLACKLIST (STRICT PROHIBITION)
 - DILARANG menggunakan template umum.
 
 ASSIGN CATEGORY:
-- Pilih tepat SATU kategori dari list yang diberikan berdasarkan subjek literal utama.
+- [PENTING] WAJIB ikuti "ATURAN KATEGORI" di bawah terkait jumlah kategori yang harus dipilih.
+- Pilih kategori yang paling akurat dari list yang diberikan.
 `;
 
 export const generateMetadataForFile = async (
@@ -164,11 +164,9 @@ export const generateMetadataForFile = async (
     if (mode === 'metadata') {
         const platform = settings.metadataPlatform || 'Adobe Stock';
         
-        // === LOGIKA PEMILIHAN KATEGORI (GAMBAR VS VIDEO) ===
         let activeCategories = CATEGORIES;
         if (platform === 'Shutterstock') {
             if (fileItem.type === FileType.Video) {
-                // JIKA FILE ADALAH VIDEO DAN PLATFORM SHUTTERSTOCK
                 activeCategories = SHUTTERSTOCK_VIDEO_CATEGORIES || SHUTTERSTOCK_CATEGORIES;
             } else {
                 activeCategories = SHUTTERSTOCK_CATEGORIES;
@@ -177,6 +175,11 @@ export const generateMetadataForFile = async (
         
         const categoryList = activeCategories.map(c => `"${c.id}" = ${c.en}`).join('\n');
         
+        // === LOGIKA ATURAN KATEGORI DINAMIS (1 ATAU 2) ===
+        const categoryRule = platform === 'Shutterstock' 
+            ? "Pilih TEPAT 2 kategori dari daftar, pisahkan dengan koma (contoh: 'Animals/Wildlife, Nature' atau ID-nya)." 
+            : "Pilih TEPAT 1 kategori dari daftar.";
+        
         const minChars = settings.titleMin || 50;
         const maxChars = settings.titleMax || 150;
         const kwTotal = settings.slideKeyword || 40;
@@ -184,7 +187,7 @@ export const generateMetadataForFile = async (
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
             .replace('[KW_COUNT]', kwTotal.toString());
 
-        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.\nPLATFORM: ${platform}\nCATEGORIES:\n${categoryList}`;
+        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.\nPLATFORM: ${platform}\nATURAN KATEGORI: ${categoryRule}\nCATEGORIES:\n${categoryList}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
