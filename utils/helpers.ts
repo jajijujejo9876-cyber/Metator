@@ -1,4 +1,3 @@
-
 import { Category, FileItem, AppSettings } from "../types";
 import { CATEGORIES, SHUTTERSTOCK_CATEGORIES } from "../constants";
 
@@ -32,8 +31,8 @@ export const getCategoryName = (id: string, lang: 'ENG' | 'IND', platform: strin
   return lang === 'ENG' ? cat.en : cat.id_lang;
 };
 
-// CSV Export
-export const downloadCSV = (files: FileItem[], customFilename?: string, platform: string = 'Adobe Stock'): string => {
+// CSV Export - DITAMBAHKAN PARAMETER settings UNTUK BACA epsMode
+export const downloadCSV = (files: FileItem[], customFilename?: string, platform: string = 'Adobe Stock', settings?: AppSettings): string => {
   const isIdeaExport = files.some(f => f.sourceData !== undefined);
   const isPromptMode = isIdeaExport && !files[0].metadata.en.title.includes('|||') && files[0].sourceData?.originalKeywords !== undefined;
   const isShutterstock = platform === 'Shutterstock';
@@ -96,12 +95,20 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
      const titleHeader = isShutterstock ? 'description' : 'title';
      header = ['filename', titleHeader, 'keywords', 'category'];
      rows = files.map(f => {
+        // === LOGIKA SULAP EKSTENSI EPS ===
+        let finalFilename = f.file.name;
+        if (settings && settings.epsMode) {
+            // Hilangkan semua ekstensi gambar, ganti jadi .eps
+            finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
+        }
+        // =================================
+
         const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
         const keywords = `"${f.metadata.en.keywords.replace(/"/g, '""')}"`;
         const categoryName = getCategoryName(f.metadata.category, 'ENG', platform);
         
         return [
-          f.file.name,
+          finalFilename,
           title,
           keywords,
           categoryName
