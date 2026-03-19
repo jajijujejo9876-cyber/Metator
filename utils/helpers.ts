@@ -91,29 +91,70 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
         });
      }
   } else {
-     // Metadata Mode
-     const titleHeader = isShutterstock ? 'description' : 'title';
-     header = ['filename', titleHeader, 'keywords', 'category'];
-     rows = files.map(f => {
-        // === LOGIKA SULAP EKSTENSI EPS ===
-        let finalFilename = f.file.name;
-        if (settings && settings.epsMode) {
-            // Hilangkan semua ekstensi gambar, ganti jadi .eps
-            finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
-        }
-        // =================================
+     // === LOGIKA METADATA MODE ===
+     
+     if (isShutterstock) {
+         // FORMAT KHUSUS SHUTTERSTOCK
+         header = ['Filename', 'Description', 'Keywords', 'Categories', 'Editorial', 'Mature content', 'illustration'];
+         
+         rows = files.map(f => {
+            // Logika EPS Mode
+            let finalFilename = f.file.name;
+            if (settings && settings.epsMode) {
+                finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
+            }
+            
+            const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
+            
+            // Logika Anti-Redundant Keyword (Set memastikan tidak ada duplikat)
+            const rawKeywords = f.metadata.en.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k !== "");
+            const uniqueKeywords = Array.from(new Set(rawKeywords)).join(', ');
+            const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
+            
+            const categoryName = getCategoryName(f.metadata.category, 'ENG', platform);
+            
+            // Logika Illustration
+            const isIllustration = (f.type === 'Vector' || (settings && settings.epsMode)) ? 'yes' : 'no';
 
-        const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
-        const keywords = `"${f.metadata.en.keywords.replace(/"/g, '""')}"`;
-        const categoryName = getCategoryName(f.metadata.category, 'ENG', platform);
-        
-        return [
-          finalFilename,
-          title,
-          keywords,
-          categoryName
-        ].join(',');
-      });
+            return [
+              finalFilename,
+              title,
+              keywords,
+              categoryName,
+              'no',   // Editorial
+              'no',   // Mature content
+              isIllustration // illustration
+            ].join(',');
+          });
+          
+     } else {
+         // FORMAT LAMA (ADOBE STOCK)
+         header = ['filename', 'title', 'keywords', 'category'];
+         
+         rows = files.map(f => {
+            // Logika EPS Mode
+            let finalFilename = f.file.name;
+            if (settings && settings.epsMode) {
+                finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
+            }
+
+            const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
+            
+            // Logika Anti-Redundant Keyword
+            const rawKeywords = f.metadata.en.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k !== "");
+            const uniqueKeywords = Array.from(new Set(rawKeywords)).join(', ');
+            const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
+            
+            const categoryName = getCategoryName(f.metadata.category, 'ENG', platform);
+            
+            return [
+              finalFilename,
+              title,
+              keywords,
+              categoryName
+            ].join(',');
+          });
+     }
   }
 
   const csvContent = [header.join(','), ...rows].join('\n');
