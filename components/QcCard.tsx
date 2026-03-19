@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Check, Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages, RefreshCw, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages, RefreshCw } from 'lucide-react';
 import { FileItem, Language, ProcessingStatus, FileType } from '../types';
 
 interface Props {
@@ -31,44 +31,41 @@ const QcCard: React.FC<Props> = ({
   const labelClassFull = "text-[10px] font-bold px-1.5 rounded border uppercase inline-flex items-center select-none tracking-wide h-6 w-full justify-center shrink-0";
   const textBaseClass = "w-full text-xs px-2 py-1.5 rounded border transition-colors leading-relaxed block";
   const viewClass = "border-transparent bg-transparent overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200";
-  const viewContainerClass = "border rounded p-1";
+  const viewContainerClass = "border border-blue-200 rounded p-1 bg-blue-50/10";
 
   const FileTypeIcon = item.type === FileType.Video ? VideoIcon : item.type === FileType.Vector ? PenTool : ImageIcon;
 
-  let statusBg = 'bg-gray-50 border-gray-200';
-  let statusText = 'text-gray-600';
-  let statusLabel = 'MENUNGGU';
-  let StatusIcon = Loader2;
+  // Pewarnaan Status Dinamis
+  let statusBg = 'bg-transparent border-transparent';
+  let statusText = 'text-gray-400';
+  let statusLabel = '';
 
   if (isCompleted && result) {
     if (result.status === 'Pass') {
       statusBg = 'bg-green-50 border-green-200';
       statusText = 'text-green-700';
       statusLabel = language === 'ENG' ? 'PASSED' : 'LULUS';
-      StatusIcon = CheckCircle;
     } else if (result.status === 'Warning') {
       statusBg = 'bg-amber-50 border-amber-200';
       statusText = 'text-amber-700';
       statusLabel = language === 'ENG' ? 'WARNING' : 'PERINGATAN';
-      StatusIcon = Info;
     } else {
       statusBg = 'bg-red-50 border-red-200';
       statusText = 'text-red-700';
       statusLabel = language === 'ENG' ? 'REJECTED' : 'GAGAL';
-      StatusIcon = XCircle;
     }
   } else if (isFailed) {
     statusBg = 'bg-red-50 border-red-200';
     statusText = 'text-red-700';
     statusLabel = 'ERROR';
-    StatusIcon = XCircle;
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col overflow-hidden relative group hover:shadow-md transition-shadow h-full">
+    <div className="bg-white rounded-lg shadow-sm border border-blue-200 flex flex-col overflow-hidden relative group hover:shadow-md transition-shadow h-full">
       
-      <div className="grid grid-cols-3 gap-2 p-2 bg-slate-50/50 border-b border-slate-100">
-        <button onClick={() => onPreview(item)} className="flex flex-row items-center justify-center gap-2 py-1.5 rounded border bg-white border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors" title="Preview File">
+      {/* 1. TOP TOOLBAR (Tanpa Edit, Lebar Terbagi Rata) */}
+      <div className="grid grid-cols-3 gap-2 p-2 bg-blue-50/50 border-b border-blue-100">
+        <button onClick={() => onPreview(item)} className="flex flex-row items-center justify-center gap-2 py-1.5 rounded border bg-white border-blue-200 text-blue-600 hover:bg-blue-100 transition-colors" title="Preview File">
           <Eye size={14} />
           <span className="text-[10px] font-bold uppercase tracking-tight truncate">Preview</span>
         </button>
@@ -78,13 +75,14 @@ const QcCard: React.FC<Props> = ({
            <span className="text-[10px] font-bold uppercase tracking-tight truncate">{language}</span>
         </button>
 
-        <button onClick={() => onDelete(item.id)} disabled={disabled} className="flex flex-row items-center justify-center gap-2 py-1.5 rounded border bg-white border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Delete File">
+        <button onClick={() => onDelete(item.id)} disabled={disabled} className="flex flex-row items-center justify-center gap-2 py-1.5 rounded border bg-white border-blue-200 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Delete File">
           <Trash2 size={14} />
           <span className="text-[10px] font-bold uppercase tracking-tight truncate">Delete</span>
         </button>
       </div>
 
-      <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 mb-1">
+      {/* 2. Filename & Loading Status Row */}
+      <div className="px-3 py-2 flex items-center gap-2 border-b border-blue-100 mb-1">
          <div className="shrink-0">
             {isProcessing ? (
               <Loader2 className="animate-spin text-blue-500" size={16} />
@@ -103,63 +101,72 @@ const QcCard: React.FC<Props> = ({
          </div>
       </div>
 
-      <div className="flex flex-col gap-2 px-3 pb-3 flex-1 min-h-[140px]">
+      {/* 3. QC Content Area (Senada dengan Metadata) */}
+      <div className="flex flex-col gap-1 px-3 pb-3 flex-1">
          
+         {/* STATUS ROW (Setara dengan Category Row di Metadata) */}
          <div className="flex gap-2 items-center">
-           <span className={`${labelClass} bg-slate-50 text-slate-600 border-slate-200`}>STATUS</span>
+           <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>STATUS</span>
            <div className="h-6 w-full relative">
-              <div className={`${viewContainerClass} h-full !p-0 px-2 flex items-center justify-between ${statusBg}`}>
-                 <div className="flex items-center gap-1.5">
-                    <StatusIcon size={12} className={statusText} />
-                    <span className={`text-[10px] font-black tracking-wider ${statusText}`}>{statusLabel}</span>
-                 </div>
-                 {result && (
-                    <span className={`text-[10px] font-black ${statusText}`}>SKOR: {result.score}/100</span>
+              <div className={`border rounded p-1 h-full px-2 flex items-center justify-between ${statusBg}`}>
+                 <span className={`text-[10px] font-black tracking-widest ${statusText}`}>
+                    {isProcessing ? 'MEMERIKSA...' : statusLabel}
+                 </span>
+                 {isCompleted && result && (
+                    <span className={`text-[10px] font-black mr-1 ${statusText}`}>
+                       SCORE: {result.score}/100
+                    </span>
                  )}
               </div>
            </div>
          </div>
 
-         <div className="flex flex-col gap-1 flex-1">
-            <span className={`${labelClassFull} bg-violet-50 text-violet-600 border-violet-200`}>QC REPORT</span>
-            <div className="flex-1 h-[6.5rem] w-full relative">
-                <div className={`${viewContainerClass} h-full bg-slate-50/30 border-slate-200`}>
-                    <div className={`${textBaseClass} ${viewClass} h-full text-gray-600 whitespace-normal break-words !border-0 !p-1.5 flex flex-col gap-2`}>
+         {/* QC REPORT ROW (Setara dengan Title/Keywords di Metadata) */}
+         <div className="flex flex-col gap-1 flex-1 mt-1">
+            <span className={`${labelClassFull} bg-blue-50 text-blue-600 border-blue-200`}>QC REPORT</span>
+            <div className="h-[7.5rem] w-full relative">
+                <div className={`${viewContainerClass} h-full`}>
+                    <div className={`${textBaseClass} ${viewClass} h-full text-gray-700 whitespace-normal break-words !border-0 !p-1`}>
                       
-                      {isProcessing && <span className="text-blue-500 text-xs animate-pulse">Sedang menganalisis visual...</span>}
-                      {isFailed && <span className="text-red-500 text-xs">{item.error || 'Gagal menganalisis.'}</span>}
+                      {isFailed && <span className="text-red-500 text-xs font-medium">{item.error || 'Gagal menganalisis.'}</span>}
                       
                       {isCompleted && result && (
-                         <>
+                         <div className="flex flex-col gap-1.5 pb-1">
+                            {/* Hak Cipta */}
                             {result.ipIssues && result.ipIssues.length > 0 && (
                                <div>
-                                  <span className="text-[10px] font-bold text-red-600 uppercase block mb-0.5">⚠️ IP / Trademark:</span>
-                                  <ul className="list-disc pl-4 text-red-500 text-[10px] leading-tight space-y-0.5">
+                                  <span className="text-[10px] font-bold text-red-600 uppercase block mb-0.5">⚠️ IP / TRADEMARK:</span>
+                                  <ul className="list-disc pl-4 text-red-600 text-[10px] leading-tight space-y-0.5">
                                     {result.ipIssues.map((iss, i) => <li key={i}>{iss}</li>)}
                                   </ul>
                                </div>
                             )}
 
+                            {/* Masalah Teknis */}
                             {result.technicalIssues && result.technicalIssues.length > 0 && (
                                <div>
-                                  <span className="text-[10px] font-bold text-amber-600 uppercase block mb-0.5">🔍 Technical Issues:</span>
-                                  <ul className="list-disc pl-4 text-amber-600 text-[10px] leading-tight space-y-0.5">
+                                  <span className="text-[10px] font-bold text-amber-600 uppercase block mb-0.5">🔍 TECHNICAL:</span>
+                                  <ul className="list-disc pl-4 text-amber-700 text-[10px] leading-tight space-y-0.5">
                                     {result.technicalIssues.map((iss, i) => <li key={i}>{iss}</li>)}
                                   </ul>
                                </div>
                             )}
 
+                            {/* Saran Komersial */}
                             {result.commercialAdvice && (
                                <div>
-                                  <span className="text-[10px] font-bold text-blue-600 uppercase block mb-0.5">💡 Commercial Advice:</span>
-                                  <p className="text-blue-700/80 text-[10px] leading-tight">{result.commercialAdvice}</p>
+                                  <span className="text-[10px] font-bold text-blue-600 uppercase block mb-0.5">💡 ADVICE:</span>
+                                  <p className="text-gray-600 text-[10px] leading-tight">{result.commercialAdvice}</p>
                                </div>
                             )}
 
+                            {/* Jika Lulus Bersih */}
                             {result.status === 'Pass' && (!result.ipIssues || result.ipIssues.length === 0) && (!result.technicalIssues || result.technicalIssues.length === 0) && (
-                               <p className="text-green-600 text-[10px] font-medium text-center mt-2">✨ Tidak ditemukan masalah. File siap dijual!</p>
+                               <div className="flex items-center justify-center h-full pt-4">
+                                  <span className="text-[10px] font-bold text-green-600 tracking-wide text-center">✨ Aset Bersih & Aman.</span>
+                               </div>
                             )}
-                         </>
+                         </div>
                       )}
 
                     </div>
