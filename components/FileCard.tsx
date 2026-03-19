@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, memo } from 'react';
 import { Edit2, Check, RefreshCw, Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages } from 'lucide-react';
 import { FileItem, Language, ProcessingStatus, FileType } from '../types';
-import { CATEGORIES, SHUTTERSTOCK_CATEGORIES } from '../constants';
+// TAMBAHAN: Import SHUTTERSTOCK_VIDEO_CATEGORIES
+import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES } from '../constants';
 import { getCategoryName } from '../utils/helpers';
 
 interface Props {
@@ -34,25 +34,44 @@ const FileCard: React.FC<Props> = ({
   // Local state for editing fields
   const [editTitle, setEditTitle] = useState('');
   const [editKeywords, setEditKeywords] = useState('');
-  const [editCategory, setEditCategory] = useState('');
+  // Kategori dipecah jadi 2 state khusus untuk Shutterstock
+  const [editCategory1, setEditCategory1] = useState('');
+  const [editCategory2, setEditCategory2] = useState('');
   
   // Derive current display values based on active Language
   const currentTitle = language === 'ENG' ? item.metadata.en.title : item.metadata.ind.title;
   const currentKeywords = language === 'ENG' ? item.metadata.en.keywords : item.metadata.ind.keywords;
-  const currentCategory = item.metadata.category;
+  const currentCategory = item.metadata.category || '';
 
   // Sync local state when entering edit mode or when item/language changes
   useEffect(() => {
     setEditTitle(currentTitle);
     setEditKeywords(currentKeywords);
-    setEditCategory(currentCategory);
-  }, [item.metadata, language, isEditing]);
+    
+    if (isShutterstock) {
+        // Jika mode Shutterstock, pisahkan kategori dari koma
+        const cats = currentCategory.split(',').map(c => c.trim());
+        setEditCategory1(cats[0] || '');
+        setEditCategory2(cats[1] || '');
+    } else {
+        // Jika mode Adobe Stock, tetap 1 kategori
+        setEditCategory1(currentCategory);
+        setEditCategory2('');
+    }
+  }, [item.metadata, language, isEditing, isShutterstock, currentCategory]);
 
   const toggleEdit = () => {
     if (isEditing) {
       if (editTitle !== currentTitle) onUpdate(item.id, 'title', editTitle, language);
       if (editKeywords !== currentKeywords) onUpdate(item.id, 'keywords', editKeywords, language);
-      if (editCategory !== currentCategory) onUpdate(item.id, 'category', editCategory, language);
+      
+      // Gabungkan 2 kategori jika Shutterstock
+      const newCategory = isShutterstock 
+          ? [editCategory1, editCategory2].filter(Boolean).join(', ') 
+          : editCategory1;
+
+      if (newCategory !== currentCategory) onUpdate(item.id, 'category', newCategory, language);
+      
       setIsEditing(false);
     } else {
       setIsEditing(true);
@@ -71,7 +90,11 @@ const FileCard: React.FC<Props> = ({
   const viewContainerClass = "border border-blue-200 rounded p-1 bg-blue-50/10";
 
   const FileTypeIcon = item.type === FileType.Video ? VideoIcon : item.type === FileType.Vector ? PenTool : ImageIcon;
-  const activeCategories = isShutterstock ? SHUTTERSTOCK_CATEGORIES : CATEGORIES;
+  
+  // Pengecekan otomatis: Pilih daftar kategori berdasarkan Shutterstock & Tipe File (Video/Bukan)
+  const activeCategories = isShutterstock 
+      ? (item.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES) 
+      : CATEGORIES;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-blue-200 flex flex-col overflow-hidden relative group hover:shadow-md transition-shadow">
@@ -138,19 +161,42 @@ const FileCard: React.FC<Props> = ({
          
          <div className="flex gap-2 items-center">
            <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>CATEGORY</span>
-           <div className="h-6 w-full relative">
+           <div className={`h-6 w-full relative ${isEditing && isShutterstock ? 'flex gap-1' : ''}`}>
               {isEditing ? (
-                 <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1`}>
-                   <option value="" disabled></option>
-                   {activeCategories.map(cat => (
-                     <option key={cat.id} value={cat.id}>
-                       {language === 'ENG' ? cat.en : cat.id_lang}
-                     </option>
-                   ))}
-                 </select>
+                 isShutterstock ? (
+                    // TAMPILAN EDIT 2 KATEGORI (SHUTTERSTOCK)
+                    <>
+                       <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                         <option value="" disabled>Kat 1</option>
+                         {activeCategories.map(cat => (
+                           <option key={cat.id} value={cat.id}>
+                             {language === 'ENG' ? cat.en : cat.id_lang}
+                           </option>
+                         ))}
+                       </select>
+                       <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                         <option value="">Kat 2 (Opsional)</option>
+                         {activeCategories.map(cat => (
+                           <option key={cat.id} value={cat.id}>
+                             {language === 'ENG' ? cat.en : cat.id_lang}
+                           </option>
+                         ))}
+                       </select>
+                    </>
+                 ) : (
+                    // TAMPILAN EDIT 1 KATEGORI (ADOBE STOCK)
+                    <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1`}>
+                       <option value="" disabled></option>
+                       {activeCategories.map(cat => (
+                         <option key={cat.id} value={cat.id}>
+                           {language === 'ENG' ? cat.en : cat.id_lang}
+                         </option>
+                       ))}
+                    </select>
+                 )
               ) : (
                  <div className={`${viewContainerClass} h-full !p-0 px-1`}>
-                    <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0`}>
+                    <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0 truncate text-[10px]`}>
                       {item.metadata.category ? getCategoryName(item.metadata.category, language, platform) : ""}
                     </div>
                  </div>
