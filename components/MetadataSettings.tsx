@@ -179,11 +179,17 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
               : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
+          {/* LOGIKA TAMPILAN TOMBOL UPLOAD */}
           {settings.epsMode ? (
-              <div className="flex items-center justify-center h-full gap-2.5">
-                  <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />
-                  <span className={`text-xs font-bold uppercase tracking-widest ${isDragging ? 'text-blue-700' : 'text-blue-600'}`}>UPLOAD JPG/PNG</span>
-              </div>
+              <>
+                  <div className="flex items-center gap-2.5">
+                    <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />
+                    <span className={`text-xs uppercase tracking-widest ${isDragging ? 'font-black' : ''}`}>UPLOAD JPG/PNG</span>
+                  </div>
+                  <p className={`text-[9px] font-bold uppercase tracking-tighter ${isDragging ? 'text-blue-600' : 'text-gray-400'}`}>
+                    Converted to .eps format
+                  </p>
+              </>
           ) : (
               <>
                   <div className="flex items-center gap-2.5">
