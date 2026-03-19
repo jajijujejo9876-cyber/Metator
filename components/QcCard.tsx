@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages, RefreshCw } from 'lucide-react';
+import { Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages, RefreshCw, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { FileItem, Language, ProcessingStatus, FileType } from '../types';
 
 interface Props {
@@ -31,39 +31,40 @@ const QcCard: React.FC<Props> = ({
   const labelClassFull = "text-[10px] font-bold px-1.5 rounded border uppercase inline-flex items-center select-none tracking-wide h-6 w-full justify-center shrink-0";
   const textBaseClass = "w-full text-xs px-2 py-1.5 rounded border transition-colors leading-relaxed block";
   const viewClass = "border-transparent bg-transparent overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200";
-  const viewContainerClass = "border border-blue-200 rounded p-1 bg-blue-50/10";
+  const viewContainerClass = "border rounded p-1";
 
   const FileTypeIcon = item.type === FileType.Video ? VideoIcon : item.type === FileType.Vector ? PenTool : ImageIcon;
 
-  // Pewarnaan Status Dinamis
-  let statusBg = 'bg-transparent border-transparent';
-  let statusText = 'text-gray-400';
+  // Pewarnaan Status Dinamis (Default: Putih Bergaris, Tanpa Teks)
+  let statusBg = 'bg-white border-gray-200';
+  let statusText = 'text-transparent'; // Warna transparan agar tidak terlihat jika kosong
   let statusLabel = '';
+  let StatusIcon: any = null;
 
+  // Ubah warna dan teks HANYA jika proses sudah selesai dan ada hasilnya
   if (isCompleted && result) {
     if (result.status === 'Pass') {
       statusBg = 'bg-green-50 border-green-200';
       statusText = 'text-green-700';
       statusLabel = language === 'ENG' ? 'PASSED' : 'LULUS';
+      StatusIcon = CheckCircle2;
     } else if (result.status === 'Warning') {
       statusBg = 'bg-amber-50 border-amber-200';
       statusText = 'text-amber-700';
       statusLabel = language === 'ENG' ? 'WARNING' : 'PERINGATAN';
+      StatusIcon = AlertTriangle;
     } else {
       statusBg = 'bg-red-50 border-red-200';
       statusText = 'text-red-700';
       statusLabel = language === 'ENG' ? 'REJECTED' : 'GAGAL';
+      StatusIcon = XCircle;
     }
-  } else if (isFailed) {
-    statusBg = 'bg-red-50 border-red-200';
-    statusText = 'text-red-700';
-    statusLabel = 'ERROR';
   }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-blue-200 flex flex-col overflow-hidden relative group hover:shadow-md transition-shadow h-full">
       
-      {/* 1. TOP TOOLBAR (Tanpa Edit, Lebar Terbagi Rata) */}
+      {/* 1. TOP TOOLBAR */}
       <div className="grid grid-cols-3 gap-2 p-2 bg-blue-50/50 border-b border-blue-100">
         <button onClick={() => onPreview(item)} className="flex flex-row items-center justify-center gap-2 py-1.5 rounded border bg-white border-blue-200 text-blue-600 hover:bg-blue-100 transition-colors" title="Preview File">
           <Eye size={14} />
@@ -101,17 +102,21 @@ const QcCard: React.FC<Props> = ({
          </div>
       </div>
 
-      {/* 3. QC Content Area (Senada dengan Metadata) */}
+      {/* 3. QC Content Area */}
       <div className="flex flex-col gap-1 px-3 pb-3 flex-1">
          
-         {/* STATUS ROW (Setara dengan Category Row di Metadata) */}
+         {/* STATUS ROW */}
          <div className="flex gap-2 items-center">
            <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>STATUS</span>
            <div className="h-6 w-full relative">
+              {/* Kotak Status: Latar belakang & garis berubah sesuai kondisi */}
               <div className={`border rounded p-1 h-full px-2 flex items-center justify-between ${statusBg}`}>
-                 <span className={`text-[10px] font-black tracking-widest ${statusText}`}>
-                    {isProcessing ? 'MEMERIKSA...' : statusLabel}
-                 </span>
+                 <div className="flex items-center gap-1.5">
+                    {StatusIcon && <StatusIcon size={12} className={statusText} />}
+                    <span className={`text-[10px] font-black tracking-widest ${statusText}`}>
+                       {statusLabel}
+                    </span>
+                 </div>
                  {isCompleted && result && (
                     <span className={`text-[10px] font-black mr-1 ${statusText}`}>
                        SCORE: {result.score}/100
@@ -121,18 +126,18 @@ const QcCard: React.FC<Props> = ({
            </div>
          </div>
 
-         {/* QC REPORT ROW (Setara dengan Title/Keywords di Metadata) */}
+         {/* QC REPORT ROW */}
          <div className="flex flex-col gap-1 flex-1 mt-1">
             <span className={`${labelClassFull} bg-blue-50 text-blue-600 border-blue-200`}>QC REPORT</span>
             <div className="h-[7.5rem] w-full relative">
-                <div className={`${viewContainerClass} h-full`}>
+                {/* Kotak QC Report dibikin putih solid defaultnya */}
+                <div className={`${viewContainerClass} h-full bg-white border-gray-200`}>
                     <div className={`${textBaseClass} ${viewClass} h-full text-gray-700 whitespace-normal break-words !border-0 !p-1`}>
                       
-                      {isFailed && <span className="text-red-500 text-xs font-medium">{item.error || 'Gagal menganalisis.'}</span>}
-                      
+                      {/* Konten HANYA muncul kalau sudah selesai (isCompleted) dan ada result-nya */}
                       {isCompleted && result && (
                          <div className="flex flex-col gap-1.5 pb-1">
-                            {/* Hak Cipta */}
+                            {/* Hak Cipta / IP Issues */}
                             {result.ipIssues && result.ipIssues.length > 0 && (
                                <div>
                                   <span className="text-[10px] font-bold text-red-600 uppercase block mb-0.5">⚠️ IP / TRADEMARK:</span>
