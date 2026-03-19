@@ -24,7 +24,7 @@ export interface FileMetadata {
   category: string; 
 }
 
-// === STRUKTUR RAPOR QC (BARU) ===
+// === STRUKTUR RAPOR QC ===
 export interface QcResult {
   score: number;             // Skor Kelayakan (1-100)
   status: 'Pass' | 'Fail' | 'Warning'; 
@@ -33,7 +33,7 @@ export interface QcResult {
   commercialAdvice: string;  // Nilai jual komersial (Saran dari AI)
   resolutionInfo?: string;   // Pengecekan lokal (Misal: "Lolos (>4MP)" atau "Gagal (<4MP)")
 }
-// ================================
+// =========================
 
 export interface FileItem {
   id: string;
@@ -47,7 +47,7 @@ export interface FileItem {
   error?: string;
   sourceData?: ScrapedDataRow; 
   generatedImageUrl?: string; 
-  qcResult?: QcResult; // <--- Rapor QC nempel di sini Lek
+  qcResult?: QcResult; 
 }
 
 export interface Category {
@@ -56,7 +56,6 @@ export interface Category {
   id_lang: string; 
 }
 
-// === TAMBAHAN MODE 'qc' DI SINI ===
 export type AppMode = 'idea' | 'idea_free' | 'idea_paid' | 'prompt' | 'metadata' | 'quran' | 'qc';
 
 export interface ScrapedDataRow {
@@ -112,6 +111,9 @@ export interface AppSettings {
   promptSourceFiles?: File[]; 
   csvFilename: string;
   outputFormat: 'csv' | 'txt';
+  
+  // === TAMBAHAN BARU UNTUK MODE EPS ===
+  epsMode: boolean; 
 }
 
 export type Language = 'ENG' | 'IND';
