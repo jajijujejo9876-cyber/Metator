@@ -199,12 +199,12 @@ const FileCard: React.FC<Props> = ({
                     <>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                           <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0 truncate text-[10px]`}>
-                            {cat1Name || (isProcessing ? "" : "Kat 1")}
+                            {cat1Name}
                           </div>
                        </div>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                           <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0 truncate text-[10px]`}>
-                            {cat2Name || (isProcessing ? "" : "Kat 2")}
+                            {cat2Name}
                           </div>
                        </div>
                     </>
