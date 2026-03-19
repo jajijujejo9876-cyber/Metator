@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X } from 'lucide-react';
+import { Download, Trash2, Wand2, UploadCloud, FolderOutput, CheckCircle, XCircle, Clock, Database, Activity, Sparkles, Eraser, Lightbulb, Command, Settings, Pause, Play, Copy, Loader2, Menu, PlayCircle, Coffee, Volume2, X, ShieldCheck } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import ApiKeyPanel from './components/ApiKeyPanel';
@@ -11,6 +11,8 @@ import IdeaListComponent from './components/IdeaListComponent';
 import PromptListComponent from './components/PromptListComponent';
 import PreviewModal from './components/PreviewModal';
 import QuranPanel from './components/QuranPanel'; 
+import QcSettings from './components/QcSettings'; // IMPORT BARU
+import QcCard from './components/QcCard';         // IMPORT BARU
 import { generateMetadataForFile, translateMetadataContent } from './services/geminiService';
 import { downloadCSV, downloadTXT, extractSlugFromUrl } from './utils/helpers';
 import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode } from './types';
@@ -115,14 +117,13 @@ const App: React.FC = () => {
   const [isMounted, setIsMounted] = useState(false);
   
   const menuScrollRef = useRef<HTMLDivElement>(null);
+  const settingBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => { 
       setIsMounted(true); 
-      // Jeda 300ms biar render kelar dulu baru scroll
       setTimeout(() => {
           if (menuScrollRef.current && settingBtnRef.current) {
               const offsetLeft = settingBtnRef.current.offsetLeft;
-              // Geser pas ke tombol setting, dikurangi 6px biar garisnya mepet pojok kiri
               menuScrollRef.current.scrollTo({
                   left: offsetLeft - 6,
                   behavior: 'smooth'
@@ -257,13 +258,15 @@ const App: React.FC = () => {
     return defaultSettings;
   });
   
+  // === STATE MAP DITAMBAH 'qc' ===
   const [filesMap, setFilesMap] = useState<Record<string, FileItem[]>>({
     metadata_adobe: [],
     metadata_shutter: [],
     idea_free: [],
     idea_paid: [],
     prompt_text: [], 
-    prompt_file: []  
+    prompt_file: [],
+    qc: [] // TAMBAHAN BARU
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -292,6 +295,7 @@ const App: React.FC = () => {
     if (activeTab === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
     if (activeTab === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
     if (activeTab === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+    if (activeTab === 'qc') return 'qc'; // TAMBAHAN BARU
     return activeTab as string;
   };
 
@@ -336,6 +340,7 @@ const App: React.FC = () => {
                 if (processingMode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
                 if (processingMode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
                 if (processingMode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+                if (processingMode === 'qc') return 'qc'; // TAMBAHAN BARU
                 return processingMode as string;
             })();
 
@@ -768,7 +773,7 @@ const App: React.FC = () => {
         return;
       }
   
-      // ==================== MODE METADATA ====================
+      // ==================== MODE METADATA & QC ====================
       const targetList = filesMap[activeDataKey];
       const targetFiles = targetList.filter(f => f.status === ProcessingStatus.Pending || f.status === ProcessingStatus.Failed);
       
@@ -794,6 +799,7 @@ const App: React.FC = () => {
         if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
         if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
         if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+        if (mode === 'qc') return 'qc'; // TAMBAHAN BARU
         return mode as string;
       })();
 
@@ -897,13 +903,14 @@ const App: React.FC = () => {
                  };
              }
         } else {
-             const { metadata, thumbnail, generatedImageUrl } = await generateMetadataForFile(currentFileItem, settings, selectedKey, mode);
+             // UPDATE: Menerima qcResult dari fungsi
+             const { metadata, thumbnail, generatedImageUrl, qcResult } = await generateMetadataForFile(currentFileItem, settings, selectedKey, mode);
       
              if (fileIndex !== -1) {
                  processingFilesRef.current[fileIndex] = { 
                      ...processingFilesRef.current[fileIndex], 
                      status: ProcessingStatus.Completed, 
-                     metadata, thumbnail, generatedImageUrl
+                     metadata, thumbnail, generatedImageUrl, qcResult // TAMBAHAN QC
                  };
              }
              
@@ -968,6 +975,7 @@ const App: React.FC = () => {
                 if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
                 if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
                 if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+                if (mode === 'qc') return 'qc'; // TAMBAHAN BARU
                 return mode as string;
               })();
 
@@ -1027,6 +1035,7 @@ const App: React.FC = () => {
         : activeTab === 'quran' ? 'Murottal Al-Quran'
         : activeTab === 'idea' ? 'Idea Generation' 
         : activeTab === 'prompt' ? 'Prompt Engineering'
+        : activeTab === 'qc' ? 'Quality Control' // TAMBAHAN BARU
         : 'Metadata Extraction';
   
   const getStatusBorderColor = () => {
@@ -1082,11 +1091,13 @@ const App: React.FC = () => {
               return !!settings.promptIdea && (settings.promptQuantity || 0) > 0;
           }
       }
-      if (activeMode === 'metadata') {
+      if (activeMode === 'metadata' || activeMode === 'qc') { // TAMBAHAN QC DISINI
           if (currentFiles.length === 0) return false;
-          if (!settings.titleMin || settings.titleMin <= 0) return false;
-          if (!settings.titleMax || settings.titleMax <= 0) return false;
-          if (!settings.slideKeyword || settings.slideKeyword <= 0) return false;
+          if (activeMode === 'metadata') {
+             if (!settings.titleMin || settings.titleMin <= 0) return false;
+             if (!settings.titleMax || settings.titleMax <= 0) return false;
+             if (!settings.slideKeyword || settings.slideKeyword <= 0) return false;
+          }
           if (hasVideoFiles && (!settings.videoFrameCount || settings.videoFrameCount <= 0)) return false;
           return true;
       }
@@ -1101,6 +1112,7 @@ const App: React.FC = () => {
   const getGenerateButtonText = () => {
         if (activeMode === 'idea') return "Generate Ideas";
         if (activeMode === 'prompt') return "Generate Prompts";
+        if (activeMode === 'qc') return "Start QC Check"; // TAMBAHAN BARU
         return "Generate Metadata";
   };
   
@@ -1123,8 +1135,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden relative">
-      
-      {/* ELEMEN RADIO GAIB DENGAN LOGIKA AUTO-NEXT/LOOP */}
       <audio ref={audioRef} onEnded={handleAudioEnded} preload="none" />
 
       {/* POSISI WIDGET MENGUDARA DI LUAR MAIN CONTAINER AGAR TIDAK TERHAPUS OLEH TAB APA PUN */}
@@ -1139,8 +1149,7 @@ const App: React.FC = () => {
                       <span className="text-xs font-medium text-gray-700 truncate w-40">{currentSurahName} - {currentReciterName}</span>
                     </div>
                   </div>
-                  {/* TOMBOL CLOSE DENGAN BACKGROUND MERAH REDUP BIAR JELAS */}
-                  <button onClick={closeMiniPlayer} className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 p-1 rounded-md transition-colors">
+                  <button onClick={closeMiniPlayer} className="bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 p-1 rounded-md transition-colors shadow-sm border border-red-100">
                     <X size={14} />
                   </button>
                 </div>
@@ -1170,11 +1179,10 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
         <aside className={`w-full md:w-[380px] md:ml-2 bg-gray-50 md:border-r border-gray-200 flex flex-col z-20 order-1 md:h-full md:overflow-hidden ${isSidebarOnlyMode ? 'flex-1 md:flex-none' : 'shrink-0'}`}>
   
-          {/* MENU NAVIGASI ATAS DENGAN SCROLL HORIZONTAL & POSISI DEFAULT DI TENGAH */}
           <div className="flex flex-col bg-white border-b border-gray-200 shrink-0 overflow-hidden">
               <div ref={menuScrollRef} className="flex items-center gap-1.5 p-1.5 overflow-x-auto whitespace-nowrap scrollbar-none scroll-smooth">
                   
-                  {/* TOMBOL MUROTTAL */}
+                  {/* MUROTTAL (Sembunyi di kiri) */}
                   <button 
                       onClick={() => handleNavigation('quran' as any)} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
@@ -1182,7 +1190,6 @@ const App: React.FC = () => {
                           ? 'bg-emerald-50 text-emerald-600 border-emerald-300 shadow-sm' 
                           : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                       }`}
-                      title="Murottal Al-Quran"
                   >
                       <PlayCircle className="w-5 h-5" />
                   </button>
@@ -1190,13 +1197,13 @@ const App: React.FC = () => {
                   <div className="w-px h-6 bg-gray-200 shrink-0 mx-0.5"></div>
 
                   <button 
+                      ref={settingBtnRef}
                       onClick={() => handleNavigation('apikeys')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
                           activeTab === 'apikeys' 
                           ? 'bg-blue-50 text-blue-700 border-blue-300' 
-                          : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                       }`}
-                      title="API Configuration"
                   >
                       <Settings className="w-5 h-5" />
                   </button>
@@ -1237,6 +1244,19 @@ const App: React.FC = () => {
                       <span>METADATA</span>
                   </button>
 
+                  {/* TAMBAHAN BARU: TOMBOL QC DI SEBELAH KANAN METADATA */}
+                  <button 
+                      onClick={() => handleNavigation('qc' as any)} 
+                      className={`px-4 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1.5 ${
+                          activeTab === 'qc' 
+                          ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      }`}
+                  >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>QC</span>
+                  </button>
+
                   <button 
                       onClick={() => handleNavigation('logs')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border transition-all ${
@@ -1244,18 +1264,16 @@ const App: React.FC = () => {
                           ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-sm' 
                           : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                       }`}
-                      title="System Logs"
                   >
                       <Activity className="w-5 h-5" />
                   </button>
 
                   <div className="w-px h-6 bg-gray-200 shrink-0 mx-0.5"></div>
 
-                  {/* TOMBOL SUPPORT (WARNA COKLAT/AMBER & LINK BARU) */}
+                  {/* SUPPORT (Sembunyi di kanan) */}
                   <button 
                       onClick={() => window.open('https://lynk.id/isaproject/0581ez0729vx', '_blank')} 
                       className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center border bg-white text-amber-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200 transition-all`}
-                      title="Support IsaProject"
                   >
                       <Coffee className="w-5 h-5" />
                   </button>
@@ -1265,7 +1283,6 @@ const App: React.FC = () => {
   
           <div ref={sidebarContentRef} className="flex-1 bg-gray-50 flex flex-col overflow-y-visible md:overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200">
               <div className="p-4 flex flex-col gap-4">
-                  {/* TAB QURAN (MUROTTAL) DENGAN TAMBAHAN PROPS PLAYBACK MODE */}
                   {activeTab === 'quran' && (
                       <QuranPanel 
                         currentSurahId={currentSurahId}
@@ -1301,6 +1318,16 @@ const App: React.FC = () => {
                       setSettings={setSettings} 
                       isProcessing={isCurrentTabProcessing} 
                       onFilesUpload={(fl) => processFiles(fl, 'metadata')}
+                      hasVideo={hasVideoFiles}
+                  />
+                  )}
+                  {/* TAMBAHAN BARU: PENGATURAN QC */}
+                  {activeTab === 'qc' && (
+                  <QcSettings 
+                      settings={settings} 
+                      setSettings={setSettings} 
+                      isProcessing={isCurrentTabProcessing} 
+                      onFilesUpload={(fl) => processFiles(fl, 'qc')}
                       hasVideo={hasVideoFiles}
                   />
                   )}
@@ -1433,7 +1460,6 @@ const App: React.FC = () => {
               </div>
           </div>
 
-          {/* ACTIVITY & ACTIONS STICKY BOTTOM */}
           {activeTab !== 'logs' && activeTab !== 'apikeys' && activeTab !== 'quran' && (
               <div className="shrink-0 p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-4 z-10">
                   <div className={`bg-white rounded-lg border ${getStatusBorderColor()} shadow-sm transition-all duration-300 overflow-hidden`}>
@@ -1460,7 +1486,6 @@ const App: React.FC = () => {
                               <span className="text-xs font-black text-red-700 tabular-nums">{failedCount}</span>
                           </div>
                       </div>
-                      
                       <div className="p-3 bg-white flex items-center justify-between gap-3">
                           <button 
                               onClick={handleClearAll} 
@@ -1471,7 +1496,6 @@ const App: React.FC = () => {
                           </button>
                       </div>
                   </div>
-
                   <div className="flex gap-1.5 h-10">
                       {isCurrentTabProcessing ? (
                           <div className={`flex-1 bg-gradient-to-r border text-xs font-bold rounded-lg flex items-center justify-center gap-2 shadow-sm select-none transition-all duration-300 ${getLoadingButtonStyle()}`}>
@@ -1488,30 +1512,17 @@ const App: React.FC = () => {
                               <span className="truncate">{getGenerateButtonText()}</span>
                           </button>
                       )}
-                      
                       <button 
                           onClick={togglePause}
                           disabled={!isCurrentTabProcessing}
-                          title={isCurrentTabPaused ? "Resume Process" : "Pause Process"}
-                          className={`w-10 h-10 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${
-                              !isCurrentTabProcessing 
-                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                              : isCurrentTabPaused 
-                                ? 'bg-green-600 border-green-700 text-white hover:bg-green-700' 
-                                : 'bg-amber-100 border-amber-300 text-amber-600 hover:bg-amber-200'
-                          }`}
+                          className={`w-10 h-10 flex items-center justify-center rounded-lg border shadow-sm transition-all active:scale-95 shrink-0 ${!isCurrentTabProcessing ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : isCurrentTabPaused ? 'bg-green-600 border-green-700 text-white hover:bg-green-700' : 'bg-amber-100 border-amber-300 text-amber-600 hover:bg-amber-200'}`}
                       >
                           {isCurrentTabPaused ? <Play size={14} className="fill-current" /> : <Pause size={18} className="fill-current" />}
                       </button>
-
                       <button 
                           onClick={() => handleDownload()} 
                           disabled={completedCount === 0 || (isCurrentTabProcessing && !isCurrentTabPaused)} 
-                          className={`flex-1 text-xs font-bold rounded-lg border shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${
-                              completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) 
-                              ? 'bg-green-600 hover:bg-green-700 text-white border-green-700' 
-                              : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-80'
-                          }`}
+                          className={`flex-1 text-xs font-bold rounded-lg border shadow transition-colors flex items-center justify-center gap-2 uppercase tracking-wide truncate ${completedCount > 0 && (!isCurrentTabProcessing || isCurrentTabPaused) ? 'bg-green-600 hover:bg-green-700 text-white border-green-700' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-80'}`}
                       >
                           <Download size={14} className="shrink-0" /> 
                           <span className="truncate">{getExportLabel()}</span>
@@ -1519,7 +1530,6 @@ const App: React.FC = () => {
                   </div>
               </div>
           )}
-          
         </aside>
 
         <section className={`flex-1 flex-col md:overflow-hidden relative order-2 min-h-0 bg-gray-100 ${isSidebarOnlyMode ? 'hidden md:flex' : 'flex'}`}>
@@ -1542,7 +1552,6 @@ const App: React.FC = () => {
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-blue-50 text-blue-600 border-blue-200`}>{activeTab} MODE</span>
                 </div>
-
                 <div ref={mainContentRef} className={`flex-1 p-4 md:overflow-y-auto min-h-[50vh] md:min-h-0 relative scrollbar-thin scrollbar-thumb-gray-200`}>
                     {currentFiles.length === 0 ? (
                     <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-gray-400">
@@ -1550,6 +1559,8 @@ const App: React.FC = () => {
                         <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'free' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (paid) to start.")}</p></>
                         ) : activeTab === 'prompt' ? (
                         <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload file di panel pengaturan untuk membuat prompt dari analisa gambar/video." : "Enter an Idea, Description, and Quantity to start."}</p></>
+                        ) : activeTab === 'qc' ? ( // TAMBAHAN TAMPILAN KOSONG UNTUK QC
+                        <><ShieldCheck size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">QC Workspace Ready.</p><p className="mt-1 text-sm">Upload files to start quality control.</p></>
                         ) : (
                         <><UploadCloud size={64} className="mb-4 opacity-20" /><p className="text-base font-medium uppercase">No files in {activeTab.toUpperCase()} workspace.</p><p className="mt-1 text-sm">Upload files to start.</p></>
                         )}
@@ -1558,7 +1569,6 @@ const App: React.FC = () => {
                     activeTab === 'idea' ? (
                         <IdeaListComponent 
                           items={currentFiles} 
-                          negativeContext={settings.ideaNegativeContext} 
                           onDelete={handleDelete}
                           onToggleLanguage={handleToggleLanguage}
                           getLanguage={getLanguage}
@@ -1572,30 +1582,39 @@ const App: React.FC = () => {
                             getLanguage={getLanguage} 
                             onPreview={setPreviewItem} 
                         />
+                    ) : activeTab === 'qc' ? ( // TAMBAHAN RENDER QC CARD
+                        <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
+                        {currentFiles.map(file => (
+                            <QcCard 
+                                key={file.id} item={file} onDelete={handleDelete}
+                                onRetry={(id) => {
+                                    const targetKey = getActiveDataKey();
+                                    setFilesMap(prev => ({ ...prev, [targetKey]: prev[targetKey].map(f => f.id === id ? { ...f, status: ProcessingStatus.Pending } : f) }));
+                                }}
+                                onPreview={setPreviewItem} language={getLanguage(file.id)} onToggleLanguage={handleToggleLanguage} disabled={isCurrentTabProcessing}
+                            />
+                        ))}
+                        </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
-                        {currentFiles.map(file => {
-                            return (
-                                <FileCard 
+                        {currentFiles.map(file => (
+                            <FileCard 
                                 key={file.id} item={file} onDelete={handleDelete} onUpdate={handleUpdateMetadata}
                                 onRetry={(id) => {
                                     const targetKey = getActiveDataKey();
                                     setFilesMap(prev => ({ ...prev, [targetKey]: prev[targetKey].map(f => f.id === id ? { ...f, status: ProcessingStatus.Pending } : f) }));
                                 }}
                                 onPreview={setPreviewItem} language={getLanguage(file.id)} onToggleLanguage={handleToggleLanguage} disabled={isCurrentTabProcessing} platform={settings.metadataPlatform}
-                                />
-                            );
-                        })}
+                            />
+                        ))}
                         </div>
                     )
                     )}
                 </div>
               </>
           )}
-
         </section>
       </main>
-
       <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
     </div>
   );
