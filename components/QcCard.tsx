@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Check, Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Check, Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages, RefreshCw, CheckCircle, XCircle, Info } from 'lucide-react';
 import { FileItem, Language, ProcessingStatus, FileType } from '../types';
 
 interface Props {
@@ -35,7 +35,6 @@ const QcCard: React.FC<Props> = ({
 
   const FileTypeIcon = item.type === FileType.Video ? VideoIcon : item.type === FileType.Vector ? PenTool : ImageIcon;
 
-  // Pewarnaan Status Lulus/Gagal
   let statusBg = 'bg-gray-50 border-gray-200';
   let statusText = 'text-gray-600';
   let statusLabel = 'MENUNGGU';
@@ -46,12 +45,12 @@ const QcCard: React.FC<Props> = ({
       statusBg = 'bg-green-50 border-green-200';
       statusText = 'text-green-700';
       statusLabel = language === 'ENG' ? 'PASSED' : 'LULUS';
-      StatusIcon = CheckCircle2;
+      StatusIcon = CheckCircle;
     } else if (result.status === 'Warning') {
       statusBg = 'bg-amber-50 border-amber-200';
       statusText = 'text-amber-700';
       statusLabel = language === 'ENG' ? 'WARNING' : 'PERINGATAN';
-      StatusIcon = AlertTriangle;
+      StatusIcon = Info;
     } else {
       statusBg = 'bg-red-50 border-red-200';
       statusText = 'text-red-700';
@@ -68,7 +67,6 @@ const QcCard: React.FC<Props> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col overflow-hidden relative group hover:shadow-md transition-shadow h-full">
       
-      {/* 1. TOP TOOLBAR - Disesuaikan jadi 3 Tombol (Preview, Bahasa, Delete) */}
       <div className="grid grid-cols-3 gap-2 p-2 bg-slate-50/50 border-b border-slate-100">
         <button onClick={() => onPreview(item)} className="flex flex-row items-center justify-center gap-2 py-1.5 rounded border bg-white border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors" title="Preview File">
           <Eye size={14} />
@@ -86,7 +84,6 @@ const QcCard: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* 2. Filename & Status Row */}
       <div className="px-3 py-2 flex items-center gap-2 border-b border-slate-100 mb-1">
          <div className="shrink-0">
             {isProcessing ? (
@@ -106,10 +103,8 @@ const QcCard: React.FC<Props> = ({
          </div>
       </div>
 
-      {/* 3. QC Content */}
       <div className="flex flex-col gap-2 px-3 pb-3 flex-1 min-h-[140px]">
          
-         {/* STATUS & SKOR ROW (Tingginya h-6 sesuai permintaan) */}
          <div className="flex gap-2 items-center">
            <span className={`${labelClass} bg-slate-50 text-slate-600 border-slate-200`}>STATUS</span>
            <div className="h-6 w-full relative">
@@ -125,7 +120,6 @@ const QcCard: React.FC<Props> = ({
            </div>
          </div>
 
-         {/* PENJELASAN HASIL PENGECEKAN (Sisa ruang, bisa di-scroll) */}
          <div className="flex flex-col gap-1 flex-1">
             <span className={`${labelClassFull} bg-violet-50 text-violet-600 border-violet-200`}>QC REPORT</span>
             <div className="flex-1 h-[6.5rem] w-full relative">
@@ -137,7 +131,6 @@ const QcCard: React.FC<Props> = ({
                       
                       {isCompleted && result && (
                          <>
-                            {/* Hak Cipta */}
                             {result.ipIssues && result.ipIssues.length > 0 && (
                                <div>
                                   <span className="text-[10px] font-bold text-red-600 uppercase block mb-0.5">⚠️ IP / Trademark:</span>
@@ -147,7 +140,6 @@ const QcCard: React.FC<Props> = ({
                                </div>
                             )}
 
-                            {/* Masalah Teknis */}
                             {result.technicalIssues && result.technicalIssues.length > 0 && (
                                <div>
                                   <span className="text-[10px] font-bold text-amber-600 uppercase block mb-0.5">🔍 Technical Issues:</span>
@@ -157,7 +149,6 @@ const QcCard: React.FC<Props> = ({
                                </div>
                             )}
 
-                            {/* Saran Komersial */}
                             {result.commercialAdvice && (
                                <div>
                                   <span className="text-[10px] font-bold text-blue-600 uppercase block mb-0.5">💡 Commercial Advice:</span>
@@ -165,7 +156,6 @@ const QcCard: React.FC<Props> = ({
                                </div>
                             )}
 
-                            {/* Jika Sempurna */}
                             {result.status === 'Pass' && (!result.ipIssues || result.ipIssues.length === 0) && (!result.technicalIssues || result.technicalIssues.length === 0) && (
                                <p className="text-green-600 text-[10px] font-medium text-center mt-2">✨ Tidak ditemukan masalah. File siap dijual!</p>
                             )}
