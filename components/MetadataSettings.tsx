@@ -53,7 +53,6 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
   };
 
   const triggerUpload = () => {
-    // Jika EPS Mode aktif, paksa menggunakan input file biasa (gambar saja)
     if (settings.epsMode) {
        fileInputRef.current?.click();
     } else {
@@ -85,7 +84,6 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
     if (isProcessing) return;
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      // Jika mode EPS, saring manual saat drag-and-drop agar hanya image yang masuk
       if (settings.epsMode) {
          const dt = new DataTransfer();
          Array.from(e.dataTransfer.files).forEach(f => {
@@ -138,7 +136,7 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
       <div className="pt-1">
         <div className="flex items-center justify-between mb-1.5 h-5">
           <label className="text-sm font-medium text-gray-500 tracking-tight">Source Type</label>
-          <div className="flex gap-3">
+          <div className="flex gap-4">
              <button 
                 onClick={() => !settings.epsMode && setUploadType('file')}
                 disabled={settings.epsMode}
@@ -156,9 +154,6 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
                 Folder
               </button>
 
-              <div className="w-px h-3.5 bg-gray-300 my-auto mx-1"></div>
-
-              {/* TOMBOL TOGGLE EPS MODE */}
               <button 
                 onClick={() => setSettings(prev => ({ ...prev, epsMode: !prev.epsMode }))}
                 className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${settings.epsMode ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
@@ -184,7 +179,6 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
               : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          {/* LOGIKA TAMPILAN TOMBOL UPLOAD */}
           {settings.epsMode ? (
               <div className="flex items-center justify-center h-full gap-2.5">
                   <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />
