@@ -26,7 +26,17 @@ export const checkPassword = (input: string): boolean => {
 
 export const getCategoryName = (id: string, lang: 'ENG' | 'IND', platform: string = 'Adobe Stock'): string => {
   const activeList = platform === 'Shutterstock' ? SHUTTERSTOCK_CATEGORIES : CATEGORIES;
-  const cat = activeList.find(c => c.id === id);
+  
+  // Jika ID mengandung koma (berarti ada 2 kategori yang dipilih AI)
+  if (id.includes(',')) {
+      return id.split(',').map(singleId => {
+          const cat = activeList.find(c => c.id === singleId.trim() || c.en === singleId.trim());
+          return cat ? (lang === 'ENG' ? cat.en : cat.id_lang) : singleId.trim();
+      }).join(', ');
+  }
+  
+  // Mode normal (1 kategori)
+  const cat = activeList.find(c => c.id === id || c.en === id);
   if (!cat) return id;
   return lang === 'ENG' ? cat.en : cat.id_lang;
 };
