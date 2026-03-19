@@ -1,6 +1,5 @@
-
 import React, { useRef, useState } from 'react';
-import { Database, FileText, UploadCloud, FolderPlus, FilePlus, CheckSquare, Square } from 'lucide-react';
+import { Database, FileText, UploadCloud, FolderPlus, FilePlus, CheckSquare, Square, PenTool } from 'lucide-react';
 import { AppSettings } from '../types';
 
 interface Props {
@@ -14,7 +13,9 @@ interface Props {
 const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onFilesUpload, hasVideo = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const [uploadType, setUploadType] = useState<'file' | 'folder'>('file');
+  
+  // TAMBAHAN: State uploadType sekarang punya 'eps'
+  const [uploadType, setUploadType] = useState<'file' | 'folder' | 'eps'>('file');
   const [isDragging, setIsDragging] = useState(false);
 
   const handlePlatformChange = (platform: 'Adobe Stock' | 'Shutterstock') => {
@@ -54,7 +55,8 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
   };
 
   const triggerUpload = () => {
-    if (uploadType === 'file') fileInputRef.current?.click();
+    // Kalau eps, pakai input file biasa (tapi accept-nya khusus gambar aja)
+    if (uploadType === 'file' || uploadType === 'eps') fileInputRef.current?.click();
     else folderInputRef.current?.click();
   };
 
@@ -140,10 +142,19 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
                 {uploadType === 'folder' ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
                 Folder
               </button>
+              {/* TAMBAHAN: Tombol EPS */}
+              <button 
+                onClick={() => setUploadType('eps')}
+                className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                {uploadType === 'eps' ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} className="text-gray-300" />}
+                EPS
+              </button>
           </div>
         </div>
 
-        <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,.svg,.eps,.ai,.pdf" onChange={onInputChange} className="hidden" />
+        {/* Input file dibedakan, kalau EPS maka hanya nerima image saja */}
+        <input ref={fileInputRef} type="file" multiple accept={uploadType === 'eps' ? "image/*" : "image/*,video/*,.svg,.eps,.ai,.pdf"} onChange={onInputChange} className="hidden" />
         <input ref={folderInputRef} type="file" multiple {...({ webkitdirectory: "", directory: "" } as any)} onChange={onInputChange} className="hidden" />
         
         <button 
@@ -158,13 +169,25 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
               : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          <div className="flex items-center gap-2.5">
-            {uploadType === 'file' ? <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} /> : <FolderPlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />}
-            <span className={`text-xs uppercase tracking-widest ${isDragging ? 'font-black' : ''}`}>{uploadType === 'file' ? 'Upload Assets' : 'Upload Folder'}</span>
-          </div>
-          <p className={`text-[9px] font-bold uppercase tracking-tighter ${isDragging ? 'text-blue-600' : 'text-gray-400'}`}>
-            JPG, PNG, WEBP, HEIC, MP4, MOV, SVG, EPS, AI, PDF
-          </p>
+          {/* LOGIKA TAMPILAN TOMBOL UPLOAD BERDASARKAN TIPE */}
+          {uploadType === 'eps' ? (
+              // TAMPILAN KHUSUS EPS (Hanya 1 baris di tengah)
+              <div className="flex items-center justify-center h-full gap-2.5">
+                  <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />
+                  <span className={`text-xs uppercase tracking-widest ${isDragging ? 'font-black' : ''}`}>UPLOAD JPG/PNG</span>
+              </div>
+          ) : (
+              // TAMPILAN NORMAL (FILE / FOLDER)
+              <>
+                  <div className="flex items-center gap-2.5">
+                    {uploadType === 'file' ? <FilePlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} /> : <FolderPlus size={18} className={isDragging ? 'text-blue-700' : 'text-blue-500'} />}
+                    <span className={`text-xs uppercase tracking-widest ${isDragging ? 'font-black' : ''}`}>{uploadType === 'file' ? 'Upload Assets' : 'Upload Folder'}</span>
+                  </div>
+                  <p className={`text-[9px] font-bold uppercase tracking-tighter ${isDragging ? 'text-blue-600' : 'text-gray-400'}`}>
+                    JPG, PNG, WEBP, HEIC, MP4, MOV, SVG, EPS, AI, PDF
+                  </p>
+              </>
+          )}
         </button>
       </div>
 
