@@ -152,12 +152,10 @@ export const generateMetadataForFile = async (
       throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
   }
 
-  // DEFAULT DIUBAH MENJADI GEMINI 2.5 FLASH (Sesuai request Lek)
   let targetModel = settings.geminiModel || 'gemini-2.5-flash';
   if (isCanvasMode && targetModel === 'auto') {
       targetModel = 'gemini-2.5-flash'; 
   }
-  
   try {
     let systemInstruction = "";
     let promptText = "";
@@ -176,16 +174,20 @@ export const generateMetadataForFile = async (
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
             .replace('[KW_COUNT]', kwTotal.toString());
 
-        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.`;
         systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
+        // === OBAT KUAT GROQ: PAKSA INGAT ATURAN JUMLAH ===
+        promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
+        promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
+        promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
+
         if (settings.customTitle || settings.customKeyword) {
-            promptText += `\n\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
+            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
         }
         if (settings.negativeMetadata) {
-            promptText += `\n\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
+            promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
         }
 
         outputSchema = {
@@ -301,11 +303,9 @@ export const generateMetadataForFile = async (
 
     let parsed: any;
 
-    // === JALUR KHUSUS GROQ API (OPENAI COMPATIBLE) ===
     if (settings.apiProvider === 'GROQ API') {
         const messages = [];
         
-        // OBAT JSON GROQ (Penting biar metadata masuk laci)
         let expectedJsonSchema = "";
         if (mode === 'metadata') {
             expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
@@ -364,12 +364,10 @@ export const generateMetadataForFile = async (
         const data = await response.json();
         const textResponse = data.choices[0].message.content;
         
-        // PEMBERSIH MARKDOWN GROQ
         const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
         parsed = JSON.parse(cleanJson);
 
     } else {
-        // === JALUR GEMINI API & CANVAS ===
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
         const response: any = await ai.models.generateContent({
           model: targetModel,
@@ -445,7 +443,6 @@ export const translateMetadataContent = async (content: { title: string; keyword
       });
       if (response.ok) {
           const data = await response.json();
-          // PEMBERSIH MARKDOWN GROQ DI TRANSLASI
           const cleanJson = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
           return { title: JSON.parse(cleanJson).title, keywords: content.keywords };
       }
