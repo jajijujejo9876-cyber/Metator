@@ -22,6 +22,7 @@ export interface FileMetadata {
   en: LocalizedContent;
   ind: LocalizedContent;
   category: string; 
+  categoryShutter?: string;
 }
 
 // === STRUKTUR RAPOR QC ===
