@@ -27,7 +27,6 @@ export const checkPassword = (input: string): boolean => {
 export const getCategoryName = (id: string, lang: 'ENG' | 'IND', platform: string = 'Adobe Stock'): string => {
   const activeList = platform === 'Shutterstock' ? SHUTTERSTOCK_CATEGORIES : CATEGORIES;
   
-  // Jika ID mengandung koma (berarti ada 2 kategori yang dipilih AI)
   if (id.includes(',')) {
       return id.split(',').map(singleId => {
           const cat = activeList.find(c => c.id === singleId.trim() || c.en === singleId.trim());
@@ -35,20 +34,19 @@ export const getCategoryName = (id: string, lang: 'ENG' | 'IND', platform: strin
       }).join(', ');
   }
   
-  // Mode normal (1 kategori)
   const cat = activeList.find(c => c.id === id || c.en === id);
   if (!cat) return id;
   return lang === 'ENG' ? cat.en : cat.id_lang;
 };
 
-// CSV Export - DITAMBAHKAN PARAMETER settings UNTUK BACA epsMode
+// CSV Export - UNIVERSAL METADATA GENERATOR DENGAN 7 PLATFORM
 export const downloadCSV = (files: FileItem[], customFilename?: string, platform: string = 'Adobe Stock', settings?: AppSettings): string => {
   const isIdeaExport = files.some(f => f.sourceData !== undefined);
   const isPromptMode = isIdeaExport && !files[0].metadata.en.title.includes('|||') && files[0].sourceData?.originalKeywords !== undefined;
-  const isShutterstock = platform === 'Shutterstock';
 
-  let header: string[];
-  let rows: string[];
+  let header: string[] = [];
+  let rows: string[] = [];
+  let separator = ',';
 
   if (isPromptMode) {
      header = ['Row_ID', 'Prompt_EN', 'Prompt_IND'];
@@ -63,12 +61,7 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
      const isMode1 = files.some(f => f.metadata.en.title.includes('|||'));
 
      if (isMode1) {
-        header = [
-            'Row_ID', 
-            'Title_EN', 'Visual_EN', 'Keywords_EN',
-            'Title_IND', 'Visual_IND', 'Keywords_IND'
-        ];
-        
+        header = ['Row_ID', 'Title_EN', 'Visual_EN', 'Keywords_EN', 'Title_IND', 'Visual_IND', 'Keywords_IND'];
         rows = files.map(f => {
           const rowId = f.sourceData ? `Row_${f.sourceData.id}` : f.file.name;
           const [enTitle, enVisual] = (f.metadata.en.title || "").split('|||').map(s => s.trim());
@@ -101,75 +94,75 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
         });
      }
   } else {
-     // === LOGIKA METADATA MODE ===
+     // === LOGIKA UNIVERSAL METADATA (7 PLATFORM) ===
      
-     if (isShutterstock) {
-         // FORMAT KHUSUS SHUTTERSTOCK
+     // 1. Setup Pemisah Kolom (Freepik butuh titik koma)
+     if (platform === 'Freepik') separator = ';';
+
+     // 2. Setup Auto-Slice Keyword Limit
+     const userKeywordLimit = settings?.slideKeyword || 40;
+     const maxPlatformLimit = platform === 'Dreamstime' ? 80 : 50;
+     const finalKeywordLimit = Math.min(userKeywordLimit, maxPlatformLimit);
+
+     // 3. Setup Header CSV Berdasarkan Platform
+     if (platform === 'Shutterstock') {
          header = ['Filename', 'Description', 'Keywords', 'Categories', 'Editorial', 'Mature content', 'illustration'];
-         
-         rows = files.map(f => {
-            // Logika EPS Mode
-            let finalFilename = f.file.name;
-            if (settings && settings.epsMode) {
-                finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
-            }
-            
-            const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
-            
-            // Logika Anti-Redundant Keyword (Set memastikan tidak ada duplikat)
-            const rawKeywords = f.metadata.en.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k !== "");
-            const uniqueKeywords = Array.from(new Set(rawKeywords)).join(', ');
-            const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
-            
-            // Kategori dikurung kutip ganda agar tidak bergeser kolomnya
-            const categoryName = `"${getCategoryName(f.metadata.category, 'ENG', platform)}"`;
-            
-            // Logika Illustration
-            const isIllustration = (f.type === 'Vector' || (settings && settings.epsMode)) ? 'yes' : 'no';
-
-            return [
-              finalFilename,
-              title,
-              keywords,
-              categoryName,
-              'no',   // Editorial
-              'no',   // Mature content
-              isIllustration // illustration
-            ].join(',');
-          });
-          
+     } else if (platform === 'Dreamstime') {
+         header = ['File Name', 'Title', 'Description', 'Keywords'];
+     } else if (platform === 'Freepik') {
+         header = ['File name', 'Title', 'Keywords', 'Prompt', 'Model'];
+     } else if (platform === 'MiriCanvas') {
+         header = ['fileName', 'name', 'keywords', 'Content Type', 'License', 'AI generated Image'];
+     } else if (platform === 'Vecteezy') {
+         header = ['Filename', 'Title', 'Description', 'Keywords', 'License'];
+     } else if (platform === 'Arabstock') {
+         header = ['Filename', 'Title', 'Description', 'Keywords'];
      } else {
-         // FORMAT LAMA (ADOBE STOCK)
-         header = ['filename', 'title', 'keywords', 'category'];
-         
-         rows = files.map(f => {
-            // Logika EPS Mode
-            let finalFilename = f.file.name;
-            if (settings && settings.epsMode) {
-                finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
-            }
-
-            const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
-            
-            // Logika Anti-Redundant Keyword
-            const rawKeywords = f.metadata.en.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k !== "");
-            const uniqueKeywords = Array.from(new Set(rawKeywords)).join(', ');
-            const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
-            
-            // Kategori dikurung kutip ganda agar tidak bergeser kolomnya
-            const categoryName = `"${getCategoryName(f.metadata.category, 'ENG', platform)}"`;
-            
-            return [
-              finalFilename,
-              title,
-              keywords,
-              categoryName
-            ].join(',');
-          });
+         header = ['filename', 'title', 'keywords', 'category']; // Default: Adobe Stock
      }
+
+     rows = files.map(f => {
+        let finalFilename = f.file.name;
+        
+        if (settings?.epsMode) {
+            finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
+        }
+
+        // JURUS NINJA DREAMSTIME: Ganti akhiran video jadi .jpg
+        if (platform === 'Dreamstime' && /\.(mp4|mov)$/i.test(finalFilename)) {
+            finalFilename = finalFilename.replace(/\.(mp4|mov)$/i, '.jpg');
+        }
+        
+        const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
+        
+        // AUTO-SLICE KEYWORD: Potong sesuai limit yang dihitung di atas
+        const rawKeywords = f.metadata.en.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k !== "");
+        const uniqueKeywords = Array.from(new Set(rawKeywords)).slice(0, finalKeywordLimit).join(', ');
+        const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
+        
+        const categoryName = `"${getCategoryName(f.metadata.category, 'ENG', platform)}"`;
+        const isIllustration = (f.type === 'Vector' || settings?.epsMode) ? 'yes' : 'no';
+
+        // 4. Susun Baris Sesuai Platform
+        if (platform === 'Shutterstock') {
+            return [finalFilename, title, keywords, categoryName, 'no', 'no', isIllustration].join(separator);
+        } else if (platform === 'Dreamstime') {
+            return [finalFilename, title, title, keywords].join(separator); // Title di-copy ke Deskripsi
+        } else if (platform === 'Freepik') {
+            return [finalFilename, title, keywords, '""', '""'].join(separator);
+        } else if (platform === 'MiriCanvas') {
+            return [finalFilename, title, keywords, '""', 'Premium', 'Y'].join(separator);
+        } else if (platform === 'Vecteezy') {
+            return [finalFilename, title, title, keywords, 'Free'].join(separator);
+        } else if (platform === 'Arabstock') {
+            return [finalFilename, title, title, keywords].join(separator);
+        } else {
+            return [finalFilename, title, keywords, categoryName].join(separator); // Default: Adobe Stock
+        }
+     });
   }
 
-  const csvContent = [header.join(','), ...rows].join('\n');
+  const csvContent = [header.join(separator), ...rows].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   
@@ -208,18 +201,7 @@ export const downloadTXT = (files: FileItem[], customFilename?: string): string 
           const [enTitle, enVisual] = (f.metadata.en.title || "").split('|||').map(s => s.trim());
           const [indTitle, indVisual] = (f.metadata.ind.title || "").split('|||').map(s => s.trim());
 
-          return `=== ${rowId} ===
-[EN]
-Title: ${enTitle}
-Visual: ${enVisual}
-Keywords: ${f.metadata.en.keywords}
-
-[IND]
-Title: ${indTitle}
-Visual: ${indVisual}
-Keywords: ${f.metadata.ind.keywords}
-----------------------------------------
-`;
+          return `=== ${rowId} ===\n[EN]\nTitle: ${enTitle}\nVisual: ${enVisual}\nKeywords: ${f.metadata.en.keywords}\n\n[IND]\nTitle: ${indTitle}\nVisual: ${indVisual}\nKeywords: ${f.metadata.ind.keywords}\n----------------------------------------\n`;
         }).join('\n');
      } else {
         content = files.map(f => {
@@ -267,7 +249,6 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
     const ctx = canvas.getContext('2d');
     const frames: string[] = [];
     
-    // Generate timestamps evenly across the duration
     const timestamps: number[] = [];
     if (frameCount <= 1) {
         timestamps.push(0.5);
@@ -287,7 +268,6 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
     video.crossOrigin = "anonymous";
 
     video.onloadedmetadata = () => {
-      // SET MAX RESOLUTION TO 1024px TO PREVENT OUT OF MEMORY
       const MAX_SIZE = 1024;
       let width = video.videoWidth;
       let height = video.videoHeight;
@@ -316,7 +296,6 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
         return;
       }
       
-      // Draw image with calculated downscaled width and height
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       frames.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
 
@@ -335,8 +314,6 @@ export const extractVideoFrames = async (videoFile: File, frameCount: number = 3
     };
   });
 };
-
-// === TEXT PROCESSING ===
 
 const BAD_WORDS = [
   'porn', 'sex', 'nude', 'naked', 'xxx', 'erotic', 'boobs', 'tits', 'pussy', 
@@ -361,7 +338,6 @@ export const extractSlugFromUrl = (url: string): string => {
     const cleanUrl = url.trim();
     let text = "";
 
-    // 1. Check for Query Params first (e.g. ?k=, ?q=, ?search=)
     if (cleanUrl.includes('?')) {
         try {
             const urlObj = new URL(cleanUrl);
@@ -378,13 +354,12 @@ export const extractSlugFromUrl = (url: string): string => {
         } catch (e) {}
     }
 
-    // 2. Path Extraction logic
     const pathParts = cleanUrl.replace(/^https?:\/\/[^\/]+\//, '').split('?')[0].split('/');
     
     let bestSegment = "";
     for (let i = pathParts.length - 1; i >= 0; i--) {
         const seg = pathParts[i];
-        if (!seg || /^\d+$/.test(seg)) continue; // Skip IDs
+        if (!seg || /^\d+$/.test(seg)) continue;
         if (['video', 'image', 'photo', 'vector', 'search', 'contributor', 'portfolio'].includes(seg.toLowerCase())) continue;
         bestSegment = seg;
         break;
@@ -392,7 +367,6 @@ export const extractSlugFromUrl = (url: string): string => {
     
     if (!bestSegment) return url;
 
-    // 3. Post-processing Segment
     bestSegment = bestSegment.replace(/\.(jpg|jpeg|png|eps|ai|svg|mp4|html|php|htm|zip|7z)$/i, '');
     bestSegment = bestSegment.replace(/[-_]\d{5,15}$/, '');
     bestSegment = bestSegment.replace(/[-_+]/g, ' ');
