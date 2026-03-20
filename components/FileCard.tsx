@@ -7,7 +7,8 @@ import { getCategoryName } from '../utils/helpers';
 interface Props {
   item: FileItem;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, field: 'title' | 'keywords' | 'category', value: string, language: Language) => void; 
+  // UPDATE: Tambah opsi categoryShutter agar tombol Save tidak error
+  onUpdate: (id: string, field: 'title' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => void; 
   onRetry: (id: string) => void;
   onPreview: (item: FileItem) => void;
   language: Language;
@@ -29,28 +30,29 @@ const FileCard: React.FC<Props> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   
-  // LOGIKA PINTAR PLATFORM
   const isShutterstock = platform === 'Shutterstock';
   const usesCategory = ['Adobe Stock', 'Shutterstock'].includes(platform);
   const usesDescription = ['Shutterstock', 'Dreamstime', 'Vecteezy', 'Arabstock'].includes(platform);
   
-  // Local state for editing fields
   const [editTitle, setEditTitle] = useState('');
   const [editKeywords, setEditKeywords] = useState('');
   const [editCategory1, setEditCategory1] = useState('');
   const [editCategory2, setEditCategory2] = useState('');
   
-  // Derive current display values based on active Language
   const currentTitle = language === 'ENG' ? item.metadata.en.title : item.metadata.ind.title;
   const currentKeywords = language === 'ENG' ? item.metadata.en.keywords : item.metadata.ind.keywords;
-  const currentCategory = item.metadata.category || '';
+  
+  // === JURUS DUAL LACI: BACA DARI TEMPAT YANG TEPAT ===
+  const currentCategory = isShutterstock ? (item.metadata.categoryShutter || '') : (item.metadata.category || '');
 
-  // Ekstrak nama kategori untuk mode Read-Only
   const displayCats = currentCategory ? currentCategory.split(',').map(c => c.trim()) : [];
   const cat1Name = displayCats[0] ? getCategoryName(displayCats[0], language, platform) : "";
   const cat2Name = displayCats[1] ? getCategoryName(displayCats[1], language, platform) : "";
 
-  // Sync local state when entering edit mode or when item/language changes
+  const activeCategories = isShutterstock 
+      ? (item.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES) 
+      : CATEGORIES;
+
   useEffect(() => {
     setEditTitle(currentTitle);
     setEditKeywords(currentKeywords);
@@ -59,7 +61,7 @@ const FileCard: React.FC<Props> = ({
         setEditCategory1(displayCats[0] || '');
         setEditCategory2(displayCats[1] || '');
     } else {
-        setEditCategory1(currentCategory);
+        setEditCategory1(displayCats[0] || '');
         setEditCategory2('');
     }
   }, [item.metadata, language, isEditing, isShutterstock, currentCategory]);
@@ -69,12 +71,14 @@ const FileCard: React.FC<Props> = ({
       if (editTitle !== currentTitle) onUpdate(item.id, 'title', editTitle, language);
       if (editKeywords !== currentKeywords) onUpdate(item.id, 'keywords', editKeywords, language);
       
-      // Gabungkan 2 kategori jika Shutterstock
       const newCategory = isShutterstock 
           ? [editCategory1, editCategory2].filter(Boolean).join(', ') 
           : editCategory1;
 
-      if (newCategory !== currentCategory && usesCategory) onUpdate(item.id, 'category', newCategory, language);
+      if (newCategory !== currentCategory && usesCategory) {
+          // === JURUS DUAL LACI: SIMPAN KE TEMPAT YANG TEPAT ===
+          onUpdate(item.id, isShutterstock ? 'categoryShutter' : 'category', newCategory, language);
+      }
       
       setIsEditing(false);
     } else {
@@ -94,10 +98,6 @@ const FileCard: React.FC<Props> = ({
   const viewContainerClass = "border border-blue-200 rounded p-1 bg-blue-50/10";
 
   const FileTypeIcon = item.type === FileType.Video ? VideoIcon : item.type === FileType.Vector ? PenTool : ImageIcon;
-  
-  const activeCategories = isShutterstock 
-      ? (item.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES) 
-      : CATEGORIES;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-blue-200 flex flex-col overflow-hidden relative group hover:shadow-md transition-shadow">
@@ -125,7 +125,7 @@ const FileCard: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* 2. Filename & Status Row */}
+      {/* 2. Filename Row */}
       <div className="px-3 py-2 flex items-center gap-2 border-b border-blue-100 mb-1">
          <div className="shrink-0">
             {isProcessing ? (
@@ -148,7 +148,6 @@ const FileCard: React.FC<Props> = ({
       {/* 3. Metadata Content */}
       <div className="flex flex-col gap-1 px-3 pb-3 flex-1">
          
-         {/* Teks Title / Description Dinamis */}
          <div className="flex gap-2 items-start">
            <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>{usesDescription ? 'DESC' : 'TITLE'}</span>
            <div className="h-10 w-full relative">
@@ -164,12 +163,10 @@ const FileCard: React.FC<Props> = ({
            </div>
          </div>
          
-         {/* Logika Kotak Kategori Anti-Joget */}
          <div className="flex gap-2 items-center">
            <span className={`${labelClass} ${usesCategory ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>CATEGORY</span>
            <div className={`h-6 w-full relative ${isShutterstock && usesCategory ? 'flex gap-1' : ''}`}>
               {!usesCategory ? (
-                  // TAMPILAN KOSONG / NOT REQUIRED BILA PLATFORM TIDAK BUTUH KATEGORI
                   <div className={`${viewContainerClass} h-full w-full !p-0 px-1 bg-gray-50/50 border-gray-200 opacity-60`}>
                      <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center text-gray-400 !py-0 !border-0 !p-0 text-[10px] uppercase tracking-widest font-bold`}>
                         AUTO / NOT REQUIRED
@@ -177,10 +174,9 @@ const FileCard: React.FC<Props> = ({
                   </div>
               ) : isEditing ? (
                  isShutterstock ? (
-                    // TAMPILAN EDIT 2 KATEGORI (SHUTTERSTOCK)
                     <>
                        <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled>Kategori 1</option>
+                         <option value="" disabled hidden>Pilih Kategori 1</option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
@@ -188,7 +184,7 @@ const FileCard: React.FC<Props> = ({
                          ))}
                        </select>
                        <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled>Kategori 2</option>
+                         <option value="" disabled hidden>Kategori 2 (Opsional)</option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
@@ -197,9 +193,8 @@ const FileCard: React.FC<Props> = ({
                        </select>
                     </>
                  ) : (
-                    // TAMPILAN EDIT 1 KATEGORI (ADOBE STOCK)
-                    <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1`}>
-                       <option value="" disabled></option>
+                    <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                       <option value="" disabled hidden>Pilih Kategori</option>
                        {activeCategories.map(cat => (
                          <option key={cat.id} value={cat.id}>
                            {language === 'ENG' ? cat.en : cat.id_lang}
@@ -209,24 +204,22 @@ const FileCard: React.FC<Props> = ({
                  )
               ) : (
                  isShutterstock ? (
-                    // TAMPILAN READ-ONLY 2 KATEGORI (SHUTTERSTOCK)
                     <>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0 truncate text-[10px]`}>
-                            {cat1Name}
+                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat1Name ? 'text-gray-600' : 'text-amber-500 italic font-semibold'}`}>
+                            {cat1Name || 'Pilih Kategori 1'}
                           </div>
                        </div>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0 truncate text-[10px]`}>
-                            {cat2Name}
+                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat2Name ? 'text-gray-600' : 'text-gray-400 italic'}`}>
+                            {cat2Name || 'Kosong'}
                           </div>
                        </div>
                     </>
                  ) : (
-                    // TAMPILAN READ-ONLY 1 KATEGORI (ADOBE STOCK)
                     <div className={`${viewContainerClass} h-full w-full !p-0 px-1`}>
-                       <div className={`${textBaseClass} ${viewClass} h-full flex items-center text-gray-600 !py-0 !border-0 !p-0 truncate text-[10px]`}>
-                         {item.metadata.category ? getCategoryName(item.metadata.category, language, platform) : ""}
+                       <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat1Name ? 'text-gray-600' : 'text-amber-500 italic font-semibold'}`}>
+                         {cat1Name || 'Pilih Kategori'}
                        </div>
                     </div>
                  )
