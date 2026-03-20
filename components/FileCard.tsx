@@ -7,7 +7,6 @@ import { getCategoryName } from '../utils/helpers';
 interface Props {
   item: FileItem;
   onDelete: (id: string) => void;
-  // UPDATE: Tambah opsi categoryShutter agar tombol Save tidak error
   onUpdate: (id: string, field: 'title' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => void; 
   onRetry: (id: string) => void;
   onPreview: (item: FileItem) => void;
@@ -42,7 +41,9 @@ const FileCard: React.FC<Props> = ({
   const currentTitle = language === 'ENG' ? item.metadata.en.title : item.metadata.ind.title;
   const currentKeywords = language === 'ENG' ? item.metadata.en.keywords : item.metadata.ind.keywords;
   
-  // === JURUS DUAL LACI: BACA DARI TEMPAT YANG TEPAT ===
+  // === JURUS MENGHITUNG KEYWORDS OTOMATIS ===
+  const keywordCount = currentKeywords ? currentKeywords.split(',').filter(k => k.trim().length > 0).length : 0;
+
   const currentCategory = isShutterstock ? (item.metadata.categoryShutter || '') : (item.metadata.category || '');
 
   const displayCats = currentCategory ? currentCategory.split(',').map(c => c.trim()) : [];
@@ -76,7 +77,6 @@ const FileCard: React.FC<Props> = ({
           : editCategory1;
 
       if (newCategory !== currentCategory && usesCategory) {
-          // === JURUS DUAL LACI: SIMPAN KE TEMPAT YANG TEPAT ===
           onUpdate(item.id, isShutterstock ? 'categoryShutter' : 'category', newCategory, language);
       }
       
@@ -176,9 +176,7 @@ const FileCard: React.FC<Props> = ({
                  isShutterstock ? (
                     <>
                        <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled hidden style={{ display: 'none' }}>
-                           Pilih Kategori 1
-                         </option>
+                         <option value="" disabled hidden style={{ display: 'none' }}></option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
@@ -186,9 +184,7 @@ const FileCard: React.FC<Props> = ({
                          ))}
                        </select>
                        <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled hidden style={{ display: 'none' }}>
-                           Pilih Kategori 2
-                         </option>
+                         <option value="" disabled hidden style={{ display: 'none' }}></option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
@@ -198,7 +194,7 @@ const FileCard: React.FC<Props> = ({
                     </>
                  ) : (
                     <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                       <option value="" disabled hidden>Pilih Kategori</option>
+                       <option value="" disabled hidden style={{ display: 'none' }}></option>
                        {activeCategories.map(cat => (
                          <option key={cat.id} value={cat.id}>
                            {language === 'ENG' ? cat.en : cat.id_lang}
@@ -210,19 +206,19 @@ const FileCard: React.FC<Props> = ({
                  isShutterstock ? (
                     <>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat1Name ? 'text-gray-600' : 'text-amber-500 italic font-semibold'}`}>
+                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
                             {cat1Name || ''}
                           </div>
                        </div>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat2Name ? 'text-gray-600' : 'text-gray-400 italic'}`}>
+                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
                             {cat2Name || ''}
                           </div>
                        </div>
                     </>
                  ) : (
                     <div className={`${viewContainerClass} h-full w-full !p-0 px-1`}>
-                       <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat1Name ? 'text-gray-600' : 'text-amber-500 italic font-semibold'}`}>
+                       <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
                          {cat1Name || ''}
                        </div>
                     </div>
@@ -232,7 +228,9 @@ const FileCard: React.FC<Props> = ({
          </div>
 
          <div className="flex flex-col gap-1 flex-1">
-            <span className={`${labelClassFull} bg-violet-50 text-violet-600 border-violet-200`}>KEYWORDS</span>
+            <span className={`${labelClassFull} bg-violet-50 text-violet-600 border-violet-200`}>
+                KEYWORDS = {keywordCount}
+            </span>
             <div className="h-[5.5rem] w-full relative">
                 {isEditing ? (
                   <textarea value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} className={`${textBaseClass} ${editClass} h-full`} spellCheck={false} />
