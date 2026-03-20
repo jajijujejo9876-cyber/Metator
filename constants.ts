@@ -87,10 +87,16 @@ export const INITIAL_METADATA: FileMetadata = {
 
 // MODEL LISTS (Hanya yang didukung internal Gemini Canvas)
 export const GEMINI_MODELS = [
-  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Fast & Accurate)' },
-  { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Deep Reasoning)' },
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Fast & Accurate)' },
+  { value: 'gemini-3-pro-preview', label: 'Gemini 3 Pro (Deep Reasoning)' },
+];
+
+export const GROQ_MODELS = [
+  { value: 'moonshotai/kimi-k2-instruct-0905', label: 'Kimi K2 0905 (Idea & Prompt)' },
+  { value: 'qwen/qwen3-32b', label: 'Qwen3-32B (Idea & Prompt)' },
+  { value: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout 17B 16E (Metadata)' },
 ];
 
 // TEMPLATE PROMPT (Wajib untuk Halaman Generate Prompt)
