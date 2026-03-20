@@ -22,10 +22,16 @@ interface Props {
 }
 
 const API_PRESETS = [
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   { value: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash' },
   { value: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
+];
+
+const GROQ_PRESETS = [
+  { value: 'moonshotai/kimi-k2-instruct-0905', label: 'Kimi K2 0905 (Idea & Prompt)' },
+  { value: 'qwen/qwen3-32b', label: 'Qwen3-32B (Idea & Prompt)' },
+  { value: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout 17B (Metadata)' },
 ];
 
 const CANVAS_PRESETS = [
@@ -38,7 +44,7 @@ const ApiKeyPanel: React.FC<Props> = ({
   isProcessing, 
   provider = 'GEMINI CANVAS',
   setProvider,
-  geminiModel = 'auto', // Default untuk canvas sebaiknya auto, tapi ngikut props
+  geminiModel = 'auto',
   setGeminiModel,
   workerCount,
   setWorkerCount,
@@ -79,13 +85,19 @@ const ApiKeyPanel: React.FC<Props> = ({
     localStorage.setItem('ISA_USER_MODELS', JSON.stringify(userModels));
   }, [userModels]);
 
-  // Handle pergantian provider (opsional tapi bagus untuk auto-switch model)
+  // AUTO-SWITCH MODEL SAAT GANTI PROVIDER
   useEffect(() => {
     if (setGeminiModel) {
-        if (provider === 'GEMINI CANVAS' && geminiModel !== 'auto' && !userModels.includes(geminiModel) && !CANVAS_PRESETS.find(p => p.value === geminiModel)) {
-            setGeminiModel('masukkan model name');
-        } else if (provider === 'GEMINI API' && geminiModel === 'auto') {
-            setGeminiModel('masukkan model name');
+        if (provider === 'GROQ API') {
+            if (!GROQ_PRESETS.find(p => p.value === geminiModel) && !userModels.includes(geminiModel || '')) {
+                setGeminiModel('qwen/qwen3-32b');
+            }
+        } else if (provider === 'GEMINI API') {
+            if (!API_PRESETS.find(p => p.value === geminiModel) && !userModels.includes(geminiModel || '')) {
+                setGeminiModel('gemini-2.5-pro');
+            }
+        } else {
+            setGeminiModel('auto');
         }
     }
   }, [provider]);
@@ -158,13 +170,16 @@ const ApiKeyPanel: React.FC<Props> = ({
 
   const filteredKeys = useMemo(() => apiKeys.filter(k => k.toLowerCase().includes(searchTerm.toLowerCase())), [apiKeys, searchTerm]);
 
-  // BASE URL MENYESUAIKAN PROVIDER
+  // DYNAMIC URL & LABELS
   const getBaseUrl = () => {
     if (provider === 'GEMINI CANVAS') return "https://gemini.google.com/api/canvas";
+    if (provider === 'GROQ API') return "https://api.groq.com/openai/v1/chat/completions";
     return "https://generativelanguage.googleapis.com";
   };
 
   const isCanvasMode = provider === 'GEMINI CANVAS';
+  const apiName = provider === 'GROQ API' ? 'Groq' : 'Google Gemini';
+  const apiKeyLink = provider === 'GROQ API' ? 'https://console.groq.com/keys' : 'https://aistudio.google.com/app/api-keys';
 
   return (
     <div className="flex flex-col gap-4">
@@ -190,6 +205,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                     >
                       <option value="GEMINI CANVAS">Gemini Canvas</option>
                       <option value="GEMINI API">Gemini API</option>
+                      <option value="GROQ API">Groq API</option>
                     </select>
                  </div>
                  
@@ -229,7 +245,7 @@ const ApiKeyPanel: React.FC<Props> = ({
                         <input 
                             type="text" 
                             className={`${inputClass} pr-8`} 
-                            placeholder={isCanvasMode ? "e.g. gemini-2.5-pro" : "e.g. gemini-2.5-pro"} 
+                            placeholder={provider === 'GROQ API' ? "e.g. qwen/qwen3-32b" : "e.g. gemini-2.5-pro"} 
                             value={geminiModel} 
                             onChange={(e) => setGeminiModel && setGeminiModel(e.target.value)} 
                             disabled={isProcessing} 
@@ -252,6 +268,10 @@ const ApiKeyPanel: React.FC<Props> = ({
                           <optgroup label="System Models">
                             {isCanvasMode ? (
                                 CANVAS_PRESETS.map(m => (
+                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                ))
+                            ) : provider === 'GROQ API' ? (
+                                GROQ_PRESETS.map(m => (
                                     <option key={m.value} value={m.value}>{m.label}</option>
                                 ))
                             ) : (
@@ -309,10 +329,10 @@ const ApiKeyPanel: React.FC<Props> = ({
         <div className={`flex flex-col transition-all duration-300`}>
             <div className="flex items-center justify-between leading-none mb-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                  Google Gemini API Keys
+                  {apiName} API Keys
                 </label>
                 <button 
-                    onClick={() => window.open("https://aistudio.google.com/app/api-keys", '_blank')}
+                    onClick={() => window.open(apiKeyLink, '_blank')}
                     className={`text-[10px] underline font-medium flex items-center gap-1 ${isCanvasMode ? 'text-gray-400 pointer-events-none' : 'text-blue-500 hover:text-blue-700'}`}
                     disabled={isCanvasMode}
                 >
@@ -322,7 +342,7 @@ const ApiKeyPanel: React.FC<Props> = ({
             
             <div className="w-full h-[70px] flex gap-2 p-1">
                 <textarea 
-                    placeholder={isCanvasMode ? "Using Internal Canvas Routing. Input disabled." : "Paste your Gemini API Keys here (one per line)..."}
+                    placeholder={isCanvasMode ? "Using Internal Canvas Routing. Input disabled." : `Paste your ${apiName} API Keys here (one per line)...`}
                     className="flex-1 h-full p-2 text-xs font-mono border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none bg-white scrollbar-thin scrollbar-thumb-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                     value={bulkInput}
                     onChange={(e) => setBulkInput(e.target.value)}
@@ -395,7 +415,7 @@ const ApiKeyPanel: React.FC<Props> = ({
               {filteredKeys.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 opacity-60">
                       <ListOrdered size={24} />
-                      <span className="text-[11px] font-medium">No API Keys found. Add some to start.</span>
+                      <span className="text-[11px] font-medium">No {apiName} Keys found. Add some to start.</span>
                   </div>
               ) : (
                   <div className="flex flex-col">
