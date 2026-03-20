@@ -218,7 +218,7 @@ const App: React.FC = () => {
       metadataPlatform: 'Adobe Stock',
       titleMin: 50, 
       titleMax: 100,
-      slideKeyword: 100,
+      slideKeyword: 40,
       videoFrameCount: 3,
       workerCount: 5,
       apiDelay: 3,      
