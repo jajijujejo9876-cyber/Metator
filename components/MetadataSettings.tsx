@@ -130,7 +130,7 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
           value={settings.metadataPlatform}
           onChange={(e) => handlePlatformChange(e.target.value)}
           disabled={isProcessing}
-          className={`${inputClass} !h-[46px] cursor-pointer font-medium text-blue-700 bg-gray-50 border-gray-300 hover:bg-gray-100`}
+          className={`${inputClass} !h-[42px] cursor-pointer font-medium text-blue-700 bg-gray-50 border-gray-300 hover:bg-gray-100`}
         >
           {PLATFORMS.map((platform) => (
             <option key={platform} value={platform} className="text-gray-800 font-medium">
