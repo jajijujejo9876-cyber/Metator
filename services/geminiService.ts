@@ -129,9 +129,10 @@ STEP 4: BLACKLIST (STRICT PROHIBITION)
 - DILARANG menulis nama brand, logo, atau tokoh publik.
 - DILARANG menggunakan template umum.
 
-ASSIGN CATEGORY:
-- [PENTING] WAJIB ikuti "ATURAN KATEGORI" di bawah terkait jumlah kategori yang harus dipilih.
-- Pilih kategori yang paling akurat dari list yang diberikan.
+STEP 5: ASSIGN DUAL CATEGORY (MANDATORY)
+Anda WAJIB memberikan DUA jenis kategori untuk 2 platform yang berbeda secara bersamaan:
+1. 'categoryAdobe': Pilih TEPAT 1 Kategori yang paling akurat dari DAFTAR ADOBE.
+2. 'categoryShutter': Pilih TEPAT 2 Kategori yang paling akurat dari DAFTAR SHUTTERSTOCK. Pisahkan dengan koma (contoh: "1, 4").
 `;
 
 export const generateMetadataForFile = async (
@@ -162,23 +163,10 @@ export const generateMetadataForFile = async (
     let outputSchema: any;
 
     if (mode === 'metadata') {
-        const platform = settings.metadataPlatform || 'Adobe Stock';
         
-        let activeCategories = CATEGORIES;
-        if (platform === 'Shutterstock') {
-            if (fileItem.type === FileType.Video) {
-                activeCategories = SHUTTERSTOCK_VIDEO_CATEGORIES || SHUTTERSTOCK_CATEGORIES;
-            } else {
-                activeCategories = SHUTTERSTOCK_CATEGORIES;
-            }
-        }
-        
-        const categoryList = activeCategories.map(c => `"${c.id}" = ${c.en}`).join('\n');
-        
-        // === LOGIKA ATURAN KATEGORI DINAMIS (1 ATAU 2) ===
-        const categoryRule = platform === 'Shutterstock' 
-            ? "Pilih TEPAT 2 kategori dari daftar, pisahkan dengan koma (contoh: 'Animals/Wildlife, Nature' atau ID-nya)." 
-            : "Pilih TEPAT 1 kategori dari daftar.";
+        // KITA MASUKKAN KEDUA DAFTAR KATEGORI SEKALIGUS KE OTAK AI
+        const listAdobe = CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
+        const listShutter = (fileItem.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES).map(c => `"${c.id}" = ${c.en}`).join('\n');
         
         const minChars = settings.titleMin || 50;
         const maxChars = settings.titleMax || 150;
@@ -187,7 +175,8 @@ export const generateMetadataForFile = async (
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
             .replace('[KW_COUNT]', kwTotal.toString());
 
-        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.\nPLATFORM: ${platform}\nATURAN KATEGORI: ${categoryRule}\nCATEGORIES:\n${categoryList}`;
+        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.`;
+        systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
@@ -203,9 +192,10 @@ export const generateMetadataForFile = async (
           properties: {
             en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
             ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-            category: { type: Type.STRING }
+            categoryAdobe: { type: Type.STRING }, // <--- LACI 1
+            categoryShutter: { type: Type.STRING } // <--- LACI 2
           },
-          required: ["en", "ind", "category"]
+          required: ["en", "ind", "categoryAdobe", "categoryShutter"]
         };
 
     } else if (mode === 'idea') {
@@ -346,11 +336,13 @@ export const generateMetadataForFile = async (
         };
     }
 
+    // === RETURN FORMAT DUAL CATEGORY ===
     return {
       metadata: { 
         en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
         ind: { title: parsed.ind?.title || "", keywords: parsed.ind?.keywords || "" }, 
-        category: parsed.category || "Objects" 
+        category: parsed.categoryAdobe || "2", // Laci Adobe masuk ke category default
+        categoryShutter: parsed.categoryShutter || "" // Laci Shutterstock masuk ke laci baru
       }
     };
   } catch (error: any) {
