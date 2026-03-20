@@ -153,11 +153,10 @@ export const generateMetadataForFile = async (
   }
 
   // DEFAULT DIUBAH MENJADI GEMINI 2.5 PRO
-  let targetModel = settings.geminiModel || 'gemini-2.5-pro';
+  let targetModel = settings.geminiModel || 'gemini-2.5-flash';
   if (isCanvasMode && targetModel === 'auto') {
-      targetModel = 'gemini-2.5-pro'; 
+      targetModel = 'gemini-2.5-flash'; 
   }
-
   try {
     let systemInstruction = "";
     let promptText = "";
