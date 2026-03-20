@@ -140,7 +140,8 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
         const uniqueKeywords = Array.from(new Set(rawKeywords)).slice(0, finalKeywordLimit).join(', ');
         const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
         
-        const categoryName = `"${getCategoryName(f.metadata.category, 'ENG', platform)}"`;
+        const targetCat = platform === 'Shutterstock' ? f.metadata.categoryShutter : f.metadata.category;
+        const categoryName = `"${getCategoryName(targetCat || '', 'ENG', platform)}"`;
         const isIllustration = (f.type === 'Vector' || settings?.epsMode) ? 'yes' : 'no';
 
         // 4. Susun Baris Sesuai Platform
