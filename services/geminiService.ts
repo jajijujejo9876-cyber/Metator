@@ -102,7 +102,7 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
   });
 };
 
-// === FUNGSI MANDOR PENGECEK (VALIDATOR) ===
+// === FUNGSI MANDOR PENGECEK (VALIDATOR) YANG LEBIH GALAK ===
 const validateMetadata = (parsed: any, settings: AppSettings) => {
   const errors: string[] = [];
   const titleEn = parsed.en?.title || "";
@@ -128,8 +128,14 @@ const validateMetadata = (parsed: any, settings: AppSettings) => {
         errors.push(`Anda membuat terlalu banyak keyword (${kwArray.length}). HAPUS ${kwArray.length - targetK} keyword agar tepat berjumlah ${targetK}.`);
     }
   }
+
+  // 3. CEK 1-KATA PER KEYWORD (ANTI-FRASA) - INI CAMBUKNYA 💥
+  const multiWords = kwArray.filter((k: string) => k.includes(' '));
+  if (multiWords.length > 0) {
+      errors.push(`ATURAN DILANGGAR: Terdapat ${multiWords.length} keyword yang mengandung LEBIH DARI 1 KATA (contoh yang salah: "${multiWords[0]}"). SETIAP KEYWORD WAJIB 1 KATA TUNGGAL! Dilarang ada spasi di dalam keyword. Pisahkan menjadi kata-kata mandiri!`);
+  }
   
-  // 3. Cek Kata Terlarang (Negative Metadata)
+  // 4. Cek Kata Terlarang (Negative Metadata)
   if (settings.negativeMetadata) {
     const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
     const combinedText = (titleEn + " " + kwEn).toLowerCase();
@@ -222,6 +228,7 @@ export const generateMetadataForFile = async (
         promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
         promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
         promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
+        promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
 
         if (settings.customTitle || settings.customKeyword) {
             promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
@@ -324,9 +331,8 @@ export const generateMetadataForFile = async (
         };
     }
 
-    // === LOOP MANDOR (MAKSIMAL 2 KALI JALAN) ===
     let attempt = 0;
-    let maxAttempts = 2; // AI dikasih kesempatan 1x revisi jika gagal validasi
+    let maxAttempts = 2; 
     let finalParsed: any = null;
     let activePromptText = promptText;
 
@@ -425,16 +431,14 @@ export const generateMetadataForFile = async (
             parsed = JSON.parse(response.text);
         }
 
-        // === PENGECEKAN HASIL METADATA OLEH MANDOR ===
         if (mode === 'metadata') {
             const errors = validateMetadata(parsed, settings);
             
             if (errors.length === 0 || attempt === maxAttempts - 1) {
                 finalParsed = parsed; 
-                break; // Lolos Mandor atau kesempatan revisi udah habis (fallback ke hasil terakhir)
+                break; 
             } else {
-                // AI GAGAL! KITA MARAHI DAN SURUH TULIS ULANG
-                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI DAN TULIS ULANG JSON DARI AWAL! Patuhi batasan karakter dan hitung jumlah keyword dengan benar!`;
+                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI DAN TULIS ULANG JSON DARI AWAL! Hapus semua spasi dari keyword!`;
                 attempt++;
                 console.warn(`Auto-correction triggered. Errors:`, errors);
             }
@@ -444,7 +448,6 @@ export const generateMetadataForFile = async (
         }
     }
 
-    // === RETURN DATA KE KARTU (Pakai finalParsed) ===
     if (mode === 'idea') {
         return {
             metadata: {
