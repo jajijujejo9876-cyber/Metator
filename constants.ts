@@ -77,10 +77,12 @@ export const SHUTTERSTOCK_VIDEO_CATEGORIES: Category[] = [
   { id: 'Transportation', en: 'Transportation', id_lang: 'Transportasi' }
 ];
 
+// LACI KATEGORI DITAMBAHKAN "categoryShutter"
 export const INITIAL_METADATA: FileMetadata = {
   en: { title: '', keywords: '' },
   ind: { title: '', keywords: '' },
   category: '',
+  categoryShutter: '', // <--- Ini laci barunya
 };
 
 // MODEL LISTS (Hanya yang didukung internal Gemini Canvas)
