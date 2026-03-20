@@ -211,19 +211,19 @@ const FileCard: React.FC<Props> = ({
                     <>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                           <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat1Name ? 'text-gray-600' : 'text-amber-500 italic font-semibold'}`}>
-                            {cat1Name || 'Pilih Kategori 1'}
+                            {cat1Name || ''}
                           </div>
                        </div>
                        <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                           <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat2Name ? 'text-gray-600' : 'text-gray-400 italic'}`}>
-                            {cat2Name || 'Kosong'}
+                            {cat2Name || ''}
                           </div>
                        </div>
                     </>
                  ) : (
                     <div className={`${viewContainerClass} h-full w-full !p-0 px-1`}>
                        <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] ${cat1Name ? 'text-gray-600' : 'text-amber-500 italic font-semibold'}`}>
-                         {cat1Name || 'Pilih Kategori'}
+                         {cat1Name || ''}
                        </div>
                     </div>
                  )
