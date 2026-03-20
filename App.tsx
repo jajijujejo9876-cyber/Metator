@@ -260,8 +260,7 @@ const App: React.FC = () => {
   
   // === STATE MAP DITAMBAH 'qc' ===
   const [filesMap, setFilesMap] = useState<Record<string, FileItem[]>>({
-    metadata_adobe: [],
-    metadata_shutter: [],
+    metadata_universal: [],
     idea_free: [],
     idea_paid: [],
     prompt_text: [], 
@@ -294,7 +293,7 @@ const App: React.FC = () => {
   const getActiveDataKey = () => {
     if (activeTab === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
     if (activeTab === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
-    if (activeTab === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+    if (activeTab === 'metadata') return 'metadata_universal';
     if (activeTab === 'qc') return 'qc'; // TAMBAHAN BARU
     return activeTab as string;
   };
@@ -339,7 +338,7 @@ const App: React.FC = () => {
             const processingDataKey = (() => {
                 if (processingMode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
                 if (processingMode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
-                if (processingMode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+                return 'metadata_universal';
                 if (processingMode === 'qc') return 'qc'; // TAMBAHAN BARU
                 return processingMode as string;
             })();
@@ -437,13 +436,7 @@ const App: React.FC = () => {
       
     setFilesMap(prev => {
       const newState = { ...prev };
-      if (targetMode === 'metadata') {
-         newState.metadata_adobe = [...prev.metadata_adobe, ...createdItems];
-         const clones = createdItems.map(item => ({...item, id: uuidv4(), metadata: JSON.parse(JSON.stringify(INITIAL_METADATA))}));
-         newState.metadata_shutter = [...prev.metadata_shutter, ...clones];
-      } else {
-         newState[activeDataKey] = [...prev[activeDataKey], ...createdItems];
-      }
+      newState[activeDataKey] = [...(prev[activeDataKey] || []), ...createdItems];
       return newState;
     });
   };
@@ -801,7 +794,7 @@ const App: React.FC = () => {
       const processingDataKey = (() => {
         if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
         if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
-        if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+        return 'metadata_universal';
         if (mode === 'qc') return 'qc'; // TAMBAHAN BARU
         return mode as string;
       })();
@@ -977,7 +970,7 @@ const App: React.FC = () => {
               const processingDataKey = (() => {
                 if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
                 if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
-                if (mode === 'metadata') return settings.metadataPlatform === 'Adobe Stock' ? 'metadata_adobe' : 'metadata_shutter';
+                return 'metadata_universal';
                 if (mode === 'qc') return 'qc'; // TAMBAHAN BARU
                 return mode as string;
               })();
