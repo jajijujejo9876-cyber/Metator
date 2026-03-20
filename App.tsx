@@ -566,8 +566,8 @@ const App: React.FC = () => {
       [activeDataKey]: prev[activeDataKey].map(f => {
         if (f.id !== id) return f;
         const newMeta = { ...f.metadata };
-        if (field === 'category') {
-           newMeta.category = value; 
+        if (field === 'category' || field === 'categoryShutter') {
+           newMeta[field] = value;
         } else {
            if (language === 'ENG') {
              newMeta.en = { ...newMeta.en, [field]: value };
