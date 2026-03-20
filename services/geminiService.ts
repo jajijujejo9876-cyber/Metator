@@ -152,11 +152,12 @@ export const generateMetadataForFile = async (
       throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
   }
 
-  // DEFAULT DIUBAH MENJADI GEMINI 2.5 PRO
+  // DEFAULT DIUBAH MENJADI GEMINI 2.5 FLASH (Sesuai request Lek)
   let targetModel = settings.geminiModel || 'gemini-2.5-flash';
   if (isCanvasMode && targetModel === 'auto') {
       targetModel = 'gemini-2.5-flash'; 
   }
+  
   try {
     let systemInstruction = "";
     let promptText = "";
@@ -304,7 +305,20 @@ export const generateMetadataForFile = async (
     if (settings.apiProvider === 'GROQ API') {
         const messages = [];
         
-        const groqSystemInstruction = systemInstruction + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the requested schema.`;
+        // OBAT JSON GROQ (Penting biar metadata masuk laci)
+        let expectedJsonSchema = "";
+        if (mode === 'metadata') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
+        } else if (mode === 'idea') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
+        } else if (mode === 'prompt') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
+        } else if (mode === 'qc') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
+        }
+        
+        const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
+        
         if (systemInstruction) {
             messages.push({ role: "system", content: groqSystemInstruction });
         }
@@ -349,7 +363,10 @@ export const generateMetadataForFile = async (
 
         const data = await response.json();
         const textResponse = data.choices[0].message.content;
-        parsed = JSON.parse(textResponse);
+        
+        // PEMBERSIH MARKDOWN GROQ
+        const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsed = JSON.parse(cleanJson);
 
     } else {
         // === JALUR GEMINI API & CANVAS ===
@@ -405,7 +422,6 @@ export const generateMetadataForFile = async (
   }
 };
 
-// DEFAULT TRANSLASI DIUBAH MENJADI GEMINI 2.5 FLASH
 export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = "", apiProvider: string = 'GEMINI CANVAS', groqModel: string = 'qwen/qwen3-32b'): Promise<{ title: string; keywords: string }> => {
   const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
   
@@ -429,7 +445,9 @@ export const translateMetadataContent = async (content: { title: string; keyword
       });
       if (response.ok) {
           const data = await response.json();
-          return { title: JSON.parse(data.choices[0].message.content).title, keywords: content.keywords };
+          // PEMBERSIH MARKDOWN GROQ DI TRANSLASI
+          const cleanJson = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
+          return { title: JSON.parse(cleanJson).title, keywords: content.keywords };
       }
       return content;
   } else {
