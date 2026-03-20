@@ -102,6 +102,46 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
   });
 };
 
+// === FUNGSI MANDOR PENGECEK (VALIDATOR) ===
+const validateMetadata = (parsed: any, settings: AppSettings) => {
+  const errors: string[] = [];
+  const titleEn = parsed.en?.title || "";
+  const kwEn = parsed.en?.keywords || "";
+  
+  // Pecah keyword jadi array untuk dihitung jumlahnya
+  const kwArray = kwEn.split(',').map((k: string) => k.trim()).filter((k: string) => k.length > 0);
+  
+  const minT = settings.titleMin || 50;
+  const maxT = settings.titleMax || 150;
+  const targetK = settings.slideKeyword || 40;
+
+  // 1. Cek Panjang Judul
+  if (titleEn.length < minT || titleEn.length > maxT) {
+    errors.push(`Panjang Judul (Title) saat ini ${titleEn.length} huruf. Anda WAJIB menulis ulang judul menjadi antara ${minT} hingga ${maxT} huruf.`);
+  }
+  
+  // 2. Cek Jumlah Keyword
+  if (kwArray.length !== targetK) {
+    if (kwArray.length < targetK) {
+        errors.push(`Anda hanya membuat ${kwArray.length} keyword. TAMBAHKAN ${targetK - kwArray.length} keyword lagi agar tepat berjumlah ${targetK}.`);
+    } else {
+        errors.push(`Anda membuat terlalu banyak keyword (${kwArray.length}). HAPUS ${kwArray.length - targetK} keyword agar tepat berjumlah ${targetK}.`);
+    }
+  }
+  
+  // 3. Cek Kata Terlarang (Negative Metadata)
+  if (settings.negativeMetadata) {
+    const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
+    const combinedText = (titleEn + " " + kwEn).toLowerCase();
+    const found = negWords.filter(nw => combinedText.includes(nw));
+    if (found.length > 0) {
+      errors.push(`TERDETEKSI KATA TERLARANG: "${found.join(', ')}". Anda dilarang keras menggunakan kata ini. Hapus dan ganti kata tersebut!`);
+    }
+  }
+  
+  return errors;
+};
+
 const SUPREME_METADATA_PROTOCOL = `
 ### SUPREME STOCK METADATA SEO PROTOCOL (LITERAL ANALYSIS ONLY) ###
 Anda adalah Analis SEO Microstock Elit. Ikuti protokol ketat ini:
@@ -156,6 +196,7 @@ export const generateMetadataForFile = async (
   if (isCanvasMode && targetModel === 'auto') {
       targetModel = 'gemini-2.5-flash'; 
   }
+  
   try {
     let systemInstruction = "";
     let promptText = "";
@@ -178,7 +219,6 @@ export const generateMetadataForFile = async (
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
-        // === OBAT KUAT GROQ: PAKSA INGAT ATURAN JUMLAH ===
         promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
         promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
         promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
@@ -284,113 +324,140 @@ export const generateMetadataForFile = async (
         };
     }
 
-    let parts: any[] = [];
-    
-    if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-      parts = [{ text: promptText }];
-    } else {
-      if (fileItem.type === FileType.Video) {
-        const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
-        parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-        parts.push({ text: promptText });
-      } else {
-        const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-          ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-          : await compressImage(fileItem.file);
-        parts = [mediaPart, { text: promptText }];
-      }
-    }
+    // === LOOP MANDOR (MAKSIMAL 2 KALI JALAN) ===
+    let attempt = 0;
+    let maxAttempts = 2; // AI dikasih kesempatan 1x revisi jika gagal validasi
+    let finalParsed: any = null;
+    let activePromptText = promptText;
 
-    let parsed: any;
+    while (attempt < maxAttempts) {
+        let parts: any[] = [];
+        
+        if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+          parts = [{ text: activePromptText }];
+        } else {
+          if (fileItem.type === FileType.Video) {
+            const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
+            parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+            parts.push({ text: activePromptText });
+          } else {
+            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+              : await compressImage(fileItem.file);
+            parts = [mediaPart, { text: activePromptText }];
+          }
+        }
 
-    if (settings.apiProvider === 'GROQ API') {
-        const messages = [];
-        
-        let expectedJsonSchema = "";
-        if (mode === 'metadata') {
-            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
-        } else if (mode === 'idea') {
-            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
-        } else if (mode === 'prompt') {
-            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
-        } else if (mode === 'qc') {
-            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
-        }
-        
-        const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
-        
-        if (systemInstruction) {
-            messages.push({ role: "system", content: groqSystemInstruction });
-        }
-        
-        let hasImage = false;
-        const userContent: any[] = [];
-        
-        for (const part of parts) {
-            if (part.text) {
-                userContent.push({ type: "text", text: part.text });
-            } else if (part.inlineData) {
-                hasImage = true;
-                userContent.push({
-                    type: "image_url",
-                    image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
-                });
+        let parsed: any;
+
+        if (settings.apiProvider === 'GROQ API') {
+            const messages = [];
+            
+            let expectedJsonSchema = "";
+            if (mode === 'metadata') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
+            } else if (mode === 'idea') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
+            } else if (mode === 'prompt') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
+            } else if (mode === 'qc') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
             }
+            
+            const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
+            
+            if (systemInstruction) {
+                messages.push({ role: "system", content: groqSystemInstruction });
+            }
+            
+            let hasImage = false;
+            const userContent: any[] = [];
+            
+            for (const part of parts) {
+                if (part.text) {
+                    userContent.push({ type: "text", text: part.text });
+                } else if (part.inlineData) {
+                    hasImage = true;
+                    userContent.push({
+                        type: "image_url",
+                        image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+                    });
+                }
+            }
+            
+            messages.push({ role: "user", content: hasImage ? userContent : activePromptText });
+
+            const payload = {
+                model: targetModel,
+                messages: messages,
+                temperature: temperature,
+                response_format: { type: "json_object" }
+            };
+
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${actualApiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            const textResponse = data.choices[0].message.content;
+            
+            const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+            parsed = JSON.parse(cleanJson);
+
+        } else {
+            const ai = new GoogleGenAI({ apiKey: actualApiKey });
+            const response: any = await ai.models.generateContent({
+              model: targetModel,
+              contents: { parts },
+              config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
+            });
+            
+            parsed = JSON.parse(response.text);
         }
-        
-        messages.push({ role: "user", content: hasImage ? userContent : promptText });
 
-        const payload = {
-            model: targetModel,
-            messages: messages,
-            temperature: temperature,
-            response_format: { type: "json_object" }
-        };
-
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${actualApiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
+        // === PENGECEKAN HASIL METADATA OLEH MANDOR ===
+        if (mode === 'metadata') {
+            const errors = validateMetadata(parsed, settings);
+            
+            if (errors.length === 0 || attempt === maxAttempts - 1) {
+                finalParsed = parsed; 
+                break; // Lolos Mandor atau kesempatan revisi udah habis (fallback ke hasil terakhir)
+            } else {
+                // AI GAGAL! KITA MARAHI DAN SURUH TULIS ULANG
+                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI DAN TULIS ULANG JSON DARI AWAL! Patuhi batasan karakter dan hitung jumlah keyword dengan benar!`;
+                attempt++;
+                console.warn(`Auto-correction triggered. Errors:`, errors);
+            }
+        } else {
+            finalParsed = parsed;
+            break;
         }
-
-        const data = await response.json();
-        const textResponse = data.choices[0].message.content;
-        
-        const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-        parsed = JSON.parse(cleanJson);
-
-    } else {
-        const ai = new GoogleGenAI({ apiKey: actualApiKey });
-        const response: any = await ai.models.generateContent({
-          model: targetModel,
-          contents: { parts },
-          config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
-        });
-        
-        parsed = JSON.parse(response.text);
     }
 
+    // === RETURN DATA KE KARTU (Pakai finalParsed) ===
     if (mode === 'idea') {
         return {
             metadata: {
-                en: { title: parsed.en_idea, keywords: "" },
-                ind: { title: parsed.ind_idea, keywords: "" },
+                en: { title: finalParsed.en_idea, keywords: "" },
+                ind: { title: finalParsed.ind_idea, keywords: "" },
                 category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
             }
         };
     } else if (mode === 'prompt') {
         return {
             metadata: {
-                en: { title: parsed.en_prompt, keywords: "" },
-                ind: { title: parsed.ind_prompt, keywords: "" },
+                en: { title: finalParsed.en_prompt, keywords: "" },
+                ind: { title: finalParsed.ind_prompt, keywords: "" },
                 category: 'Prompt'
             }
         };
@@ -398,21 +465,21 @@ export const generateMetadataForFile = async (
         return {
             metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, 
             qcResult: {
-                score: parsed.score,
-                status: parsed.status,
-                technicalIssues: parsed.technicalIssues || [],
-                ipIssues: parsed.ipIssues || [],
-                commercialAdvice: parsed.commercialAdvice
+                score: finalParsed.score,
+                status: finalParsed.status,
+                technicalIssues: finalParsed.technicalIssues || [],
+                ipIssues: finalParsed.ipIssues || [],
+                commercialAdvice: finalParsed.commercialAdvice
             }
         };
     }
 
     return {
       metadata: { 
-        en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
-        ind: { title: parsed.ind?.title || "", keywords: parsed.ind?.keywords || "" }, 
-        category: parsed.categoryAdobe || "2", 
-        categoryShutter: parsed.categoryShutter || "" 
+        en: { title: finalParsed.en?.title || "", keywords: finalParsed.en?.keywords || "" }, 
+        ind: { title: finalParsed.ind?.title || "", keywords: finalParsed.ind?.keywords || "" }, 
+        category: finalParsed.categoryAdobe || "2", 
+        categoryShutter: finalParsed.categoryShutter || "" 
       }
     };
   } catch (error: any) {
