@@ -176,7 +176,9 @@ const FileCard: React.FC<Props> = ({
                  isShutterstock ? (
                     <>
                        <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled hidden>Pilih Kategori 1</option>
+                         <option value="" disabled hidden style={{ display: 'none' }}>
+                           Pilih Kategori 1
+                         </option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
@@ -184,7 +186,9 @@ const FileCard: React.FC<Props> = ({
                          ))}
                        </select>
                        <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled hidden>Kategori 2 (Opsional)</option>
+                         <option value="" disabled hidden style={{ display: 'none' }}>
+                           Pilih Kategori 2
+                         </option>
                          {activeCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>
                              {language === 'ENG' ? cat.en : cat.id_lang}
