@@ -808,12 +808,19 @@ const App: React.FC = () => {
       activeKeysRef.current.clear(); 
       
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
-      const userMaxWorkers = isLocalExtraction ? (settings.ideaWorkerCount || 50) : (settings.workerCount || 10);
+      // 1. Ambil settingan target dari user (default 5 jika kosong)
+      const userMaxWorkers = isLocalExtraction ? (settings.ideaWorkerCount || 50) : (settings.workerCount || 5);
       
-      let maxConcurrency = isLocalExtraction ? Math.min(userMaxWorkers, filesToProcess.length) : userMaxWorkers;
+      // 2. LOGIKA CERDAS: Cari angka TERKECIL antara Setting User vs Jumlah Target (File/Generate)
+      let maxConcurrency = Math.min(userMaxWorkers, filesToProcess.length);
+      
+      // 3. Kalau pakai GEMINI API, adu lagi angkanya dengan jumlah API Key
       if (settings.apiProvider === 'GEMINI API' && apiKeys.length > 0) {
-          maxConcurrency = Math.min(maxConcurrency, Math.max(1, apiKeys.length));
+          maxConcurrency = Math.min(maxConcurrency, apiKeys.length);
       }
+      
+      // 4. Safety net: Pastikan minimal 1 worker jalan kalau memang ada file
+      maxConcurrency = Math.max(1, maxConcurrency);
         
       addLog(`Menjalankan ${maxConcurrency} worker menggunakan ${settings.apiProvider}...`, 'info', mode);
   
