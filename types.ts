@@ -79,6 +79,9 @@ export type IdeaCategory =
   | 'custom'
   | 'file';
 
+// === TAMBAHAN 7 PLATFORM BARU ===
+export type MetadataPlatform = 'Adobe Stock' | 'Shutterstock' | 'Dreamstime' | 'Freepik' | 'MiriCanvas' | 'Vecteezy' | 'Arabstock';
+
 export interface AppSettings {
   apiProvider: ApiProvider;
   geminiModel: string;   
@@ -86,7 +89,7 @@ export interface AppSettings {
   customKeyword: string;
   negativeMetadata: string; 
   ideaNegativeContext: string; 
-  metadataPlatform: 'Adobe Stock' | 'Shutterstock';
+  metadataPlatform: MetadataPlatform; // <--- DIUBAH JADI PANGGILAN 7 PLATFORM
   titleMin: number;
   titleMax: number;
   slideKeyword: number; 
