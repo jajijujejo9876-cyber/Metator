@@ -94,7 +94,7 @@ const ApiKeyPanel: React.FC<Props> = ({
             }
         } else if (provider === 'GEMINI API') {
             if (!API_PRESETS.find(p => p.value === geminiModel) && !userModels.includes(geminiModel || '')) {
-                setGeminiModel('gemini-2.5-pro');
+                setGeminiModel('gemini-2.5-flash');
             }
         } else {
             setGeminiModel('auto');
