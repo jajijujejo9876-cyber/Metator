@@ -28,7 +28,11 @@ const FileCard: React.FC<Props> = ({
   platform = 'Adobe Stock'
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  
+  // LOGIKA PINTAR PLATFORM
   const isShutterstock = platform === 'Shutterstock';
+  const usesCategory = ['Adobe Stock', 'Shutterstock'].includes(platform);
+  const usesDescription = ['Shutterstock', 'Dreamstime', 'Vecteezy', 'Arabstock'].includes(platform);
   
   // Local state for editing fields
   const [editTitle, setEditTitle] = useState('');
@@ -70,7 +74,7 @@ const FileCard: React.FC<Props> = ({
           ? [editCategory1, editCategory2].filter(Boolean).join(', ') 
           : editCategory1;
 
-      if (newCategory !== currentCategory) onUpdate(item.id, 'category', newCategory, language);
+      if (newCategory !== currentCategory && usesCategory) onUpdate(item.id, 'category', newCategory, language);
       
       setIsEditing(false);
     } else {
@@ -143,8 +147,10 @@ const FileCard: React.FC<Props> = ({
 
       {/* 3. Metadata Content */}
       <div className="flex flex-col gap-1 px-3 pb-3 flex-1">
+         
+         {/* Teks Title / Description Dinamis */}
          <div className="flex gap-2 items-start">
-           <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>{isShutterstock ? 'DESCRIPTION' : 'TITLE'}</span>
+           <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>{usesDescription ? 'DESC' : 'TITLE'}</span>
            <div className="h-10 w-full relative">
               {isEditing ? (
                  <textarea value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`${textBaseClass} ${editClass} h-full`} spellCheck={false} />
@@ -158,10 +164,18 @@ const FileCard: React.FC<Props> = ({
            </div>
          </div>
          
+         {/* Logika Kotak Kategori Anti-Joget */}
          <div className="flex gap-2 items-center">
-           <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>CATEGORY</span>
-           <div className={`h-6 w-full relative ${isShutterstock ? 'flex gap-1' : ''}`}>
-              {isEditing ? (
+           <span className={`${labelClass} ${usesCategory ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>CATEGORY</span>
+           <div className={`h-6 w-full relative ${isShutterstock && usesCategory ? 'flex gap-1' : ''}`}>
+              {!usesCategory ? (
+                  // TAMPILAN KOSONG / NOT REQUIRED BILA PLATFORM TIDAK BUTUH KATEGORI
+                  <div className={`${viewContainerClass} h-full w-full !p-0 px-1 bg-gray-50/50 border-gray-200 opacity-60`}>
+                     <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center text-gray-400 !py-0 !border-0 !p-0 text-[10px] uppercase tracking-widest font-bold`}>
+                        AUTO / NOT REQUIRED
+                     </div>
+                  </div>
+              ) : isEditing ? (
                  isShutterstock ? (
                     // TAMPILAN EDIT 2 KATEGORI (SHUTTERSTOCK)
                     <>
