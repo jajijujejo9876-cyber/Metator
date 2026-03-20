@@ -119,6 +119,7 @@ STEP 2: RUMUS PENULISAN JUDUL
 
 STEP 3: LOGIKA KATA KUNCI (SEO HIERARCHY)
 - TOTAL: Tepat [KW_COUNT] kata kunci.
+- TOP 20 SEO: 20 kata kunci pertama WAJIB merupakan kata kunci pokok yang paling relevan, akurat sesuai visual, dan memiliki pencarian/nilai komersial tertinggi.
 - WAJIB 1 KATA: Setiap kata kunci HANYA BOLEH 1 KATA. Dilarang keras menggunakan frasa (2 kata atau lebih).
 - UNIQUE / ANTI-REDUNDANT: DILARANG mengulang kata yang sama. Setiap kata harus 100% unik.
 - ZERO HALLUCINATION: Jangan tulis objek yang tidak ada di dalam aset.
@@ -148,12 +149,13 @@ export const generateMetadataForFile = async (
       : providedApiKey;
 
   if (!isCanvasMode && !actualApiKey) {
-      throw new Error("API Key kosong. Masukkan API Key di pengaturan untuk mode GEMINI API.");
+      throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
   }
 
-  let targetModel = settings.geminiModel || 'gemini-3.1-pro';
+  // DEFAULT DIUBAH MENJADI GEMINI 2.5 PRO
+  let targetModel = settings.geminiModel || 'gemini-2.5-pro';
   if (isCanvasMode && targetModel === 'auto') {
-      targetModel = 'gemini-3.1-pro'; 
+      targetModel = 'gemini-2.5-pro'; 
   }
 
   try {
@@ -164,7 +166,6 @@ export const generateMetadataForFile = async (
 
     if (mode === 'metadata') {
         
-        // KITA MASUKKAN KEDUA DAFTAR KATEGORI SEKALIGUS KE OTAK AI
         const listAdobe = CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
         const listShutter = (fileItem.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES).map(c => `"${c.id}" = ${c.en}`).join('\n');
         
@@ -192,8 +193,8 @@ export const generateMetadataForFile = async (
           properties: {
             en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
             ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-            categoryAdobe: { type: Type.STRING }, // <--- LACI 1
-            categoryShutter: { type: Type.STRING } // <--- LACI 2
+            categoryAdobe: { type: Type.STRING }, 
+            categoryShutter: { type: Type.STRING } 
           },
           required: ["en", "ind", "categoryAdobe", "categoryShutter"]
         };
@@ -298,14 +299,70 @@ export const generateMetadataForFile = async (
       }
     }
 
-    const ai = new GoogleGenAI({ apiKey: actualApiKey });
-    const response: any = await ai.models.generateContent({
-      model: targetModel,
-      contents: { parts },
-      config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
-    });
-    
-    const parsed = JSON.parse(response.text);
+    let parsed: any;
+
+    // === JALUR KHUSUS GROQ API (OPENAI COMPATIBLE) ===
+    if (settings.apiProvider === 'GROQ API') {
+        const messages = [];
+        
+        const groqSystemInstruction = systemInstruction + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the requested schema.`;
+        if (systemInstruction) {
+            messages.push({ role: "system", content: groqSystemInstruction });
+        }
+        
+        let hasImage = false;
+        const userContent: any[] = [];
+        
+        for (const part of parts) {
+            if (part.text) {
+                userContent.push({ type: "text", text: part.text });
+            } else if (part.inlineData) {
+                hasImage = true;
+                userContent.push({
+                    type: "image_url",
+                    image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+                });
+            }
+        }
+        
+        messages.push({ role: "user", content: hasImage ? userContent : promptText });
+
+        const payload = {
+            model: targetModel,
+            messages: messages,
+            temperature: temperature,
+            response_format: { type: "json_object" }
+        };
+
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${actualApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const textResponse = data.choices[0].message.content;
+        parsed = JSON.parse(textResponse);
+
+    } else {
+        // === JALUR GEMINI API & CANVAS ===
+        const ai = new GoogleGenAI({ apiKey: actualApiKey });
+        const response: any = await ai.models.generateContent({
+          model: targetModel,
+          contents: { parts },
+          config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
+        });
+        
+        parsed = JSON.parse(response.text);
+    }
 
     if (mode === 'idea') {
         return {
@@ -336,13 +393,12 @@ export const generateMetadataForFile = async (
         };
     }
 
-    // === RETURN FORMAT DUAL CATEGORY ===
     return {
       metadata: { 
         en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
         ind: { title: parsed.ind?.title || "", keywords: parsed.ind?.keywords || "" }, 
-        category: parsed.categoryAdobe || "2", // Laci Adobe masuk ke category default
-        categoryShutter: parsed.categoryShutter || "" // Laci Shutterstock masuk ke laci baru
+        category: parsed.categoryAdobe || "2", 
+        categoryShutter: parsed.categoryShutter || "" 
       }
     };
   } catch (error: any) {
@@ -350,7 +406,8 @@ export const generateMetadataForFile = async (
   }
 };
 
-export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = ""): Promise<{ title: string; keywords: string }> => {
+// DEFAULT TRANSLASI DIUBAH MENJADI GEMINI 2.5 FLASH
+export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = "", apiProvider: string = 'GEMINI CANVAS', groqModel: string = 'qwen/qwen3-32b'): Promise<{ title: string; keywords: string }> => {
   const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
   
   if (!actualApiKey) {
@@ -358,13 +415,33 @@ export const translateMetadataContent = async (content: { title: string; keyword
       return content; 
   }
 
-  const ai = new GoogleGenAI({ apiKey: actualApiKey });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.1-flash', 
-    contents: `Translate to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}: ${content.title}`,
-    config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
-  });
-  return { title: JSON.parse(response.text).title, keywords: content.keywords };
+  const instruction = `Translate the following text to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}. Return ONLY valid JSON: {"title": "translated string"}. Text: "${content.title}"`;
+
+  if (apiProvider === 'GROQ API') {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${actualApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              model: groqModel,
+              messages: [{ role: "user", content: instruction }],
+              temperature: 0.1,
+              response_format: { type: "json_object" }
+          })
+      });
+      if (response.ok) {
+          const data = await response.json();
+          return { title: JSON.parse(data.choices[0].message.content).title, keywords: content.keywords };
+      }
+      return content;
+  } else {
+      const ai = new GoogleGenAI({ apiKey: actualApiKey });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash', 
+        contents: instruction,
+        config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
+      });
+      return { title: JSON.parse(response.text).title, keywords: content.keywords };
+  }
 };
 
 export const translateText = async (text: string, targetLang: string, settings: AppSettings, providedApiKey: string = ""): Promise<string> => {
@@ -375,11 +452,28 @@ export const translateText = async (text: string, targetLang: string, settings: 
         
     if (!actualApiKey) return text;
 
-    const ai = new GoogleGenAI({ apiKey: actualApiKey });
-    const response = await ai.models.generateContent({
-      model: settings.geminiModel || 'gemini-3.1-flash',
-      contents: `Translate text to ${targetLang}: ${text}`,
-      config: { temperature: 0.1 }
-    });
-    return response.text || text;
+    if (settings.apiProvider === 'GROQ API') {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${actualApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: settings.geminiModel || 'qwen/qwen3-32b',
+                messages: [{ role: "user", content: `Translate text to ${targetLang}: ${text}` }],
+                temperature: 0.1
+            })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.choices[0].message.content || text;
+        }
+        return text;
+    } else {
+        const ai = new GoogleGenAI({ apiKey: actualApiKey });
+        const response = await ai.models.generateContent({
+          model: settings.geminiModel || 'gemini-2.5-flash',
+          contents: `Translate text to ${targetLang}: ${text}`,
+          config: { temperature: 0.1 }
+        });
+        return response.text || text;
+    }
 };
