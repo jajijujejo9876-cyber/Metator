@@ -220,7 +220,7 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
       apiProvider: 'GEMINI CANVAS', 
-      geminiModel: 'gemini-2.5-pro', // Default 2.5 Pro
+      geminiModel: 'gemini-2.5-flash',
       customTitle: '',
       customKeyword: '',
       negativeMetadata: DEFAULT_FORBIDDEN_WORDS,
