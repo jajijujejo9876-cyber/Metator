@@ -11,11 +11,11 @@ import IdeaListComponent from './components/IdeaListComponent';
 import PromptListComponent from './components/PromptListComponent';
 import PreviewModal from './components/PreviewModal';
 import QuranPanel from './components/QuranPanel'; 
-import QcSettings from './components/QcSettings'; // IMPORT BARU
-import QcCard from './components/QcCard';         // IMPORT BARU
+import QcSettings from './components/QcSettings'; 
+import QcCard from './components/QcCard';         
 import { generateMetadataForFile, translateMetadataContent } from './services/geminiService';
 import { downloadCSV, downloadTXT, extractSlugFromUrl } from './utils/helpers';
-import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode } from './types';
+import { AppSettings, FileItem, FileType, ProcessingStatus, Language, AppMode, ApiProvider } from './types';
 import { INITIAL_METADATA } from './constants';
 
 // === KOMPONEN WIDGET MELAYANG (DRAGGABLE) ===
@@ -196,9 +196,16 @@ const App: React.FC = () => {
   };
   // ===============================================
 
+  // === LACI MEMORI API KEMBAR (GEMINI & GROQ) ===
   const [apiKeys, setApiKeys] = useState<string[]>(() => {
       try {
           const saved = localStorage.getItem('ISA_GEMINI_KEYS');
+          return saved ? JSON.parse(saved) : [];
+      } catch (e) { return []; }
+  });
+  const [groqKeys, setGroqKeys] = useState<string[]>(() => {
+      try {
+          const saved = localStorage.getItem('ISA_GROQ_KEYS');
           return saved ? JSON.parse(saved) : [];
       } catch (e) { return []; }
   });
@@ -206,11 +213,14 @@ const App: React.FC = () => {
   useEffect(() => {
       localStorage.setItem('ISA_GEMINI_KEYS', JSON.stringify(apiKeys));
   }, [apiKeys]);
+  useEffect(() => {
+      localStorage.setItem('ISA_GROQ_KEYS', JSON.stringify(groqKeys));
+  }, [groqKeys]);
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaultSettings: AppSettings = {
       apiProvider: 'GEMINI CANVAS', 
-      geminiModel: 'gemini-3.1-pro', 
+      geminiModel: 'gemini-2.5-pro', // Default 2.5 Pro
       customTitle: '',
       customKeyword: '',
       negativeMetadata: DEFAULT_FORBIDDEN_WORDS,
@@ -258,14 +268,13 @@ const App: React.FC = () => {
     return defaultSettings;
   });
   
-  // === STATE MAP DITAMBAH 'qc' ===
   const [filesMap, setFilesMap] = useState<Record<string, FileItem[]>>({
     metadata_universal: [],
     idea_free: [],
     idea_paid: [],
     prompt_text: [], 
     prompt_file: [],
-    qc: [] // TAMBAHAN BARU
+    qc: []
   });
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -294,7 +303,7 @@ const App: React.FC = () => {
     if (activeTab === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
     if (activeTab === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
     if (activeTab === 'metadata') return 'metadata_universal';
-    if (activeTab === 'qc') return 'qc'; // TAMBAHAN BARU
+    if (activeTab === 'qc') return 'qc';
     return activeTab as string;
   };
 
@@ -338,9 +347,8 @@ const App: React.FC = () => {
             const processingDataKey = (() => {
                 if (processingMode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
                 if (processingMode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
+                if (processingMode === 'qc') return 'qc';
                 return 'metadata_universal';
-                if (processingMode === 'qc') return 'qc'; // TAMBAHAN BARU
-                return processingMode as string;
             })();
 
             setFilesMap(prev => ({
@@ -453,7 +461,6 @@ const App: React.FC = () => {
     
     setFilesMap(prev => ({ ...prev, [activeDataKey]: [] }));
     
-    // TAMBAHAN: Matikan otomatis EPS Mode saat layar dibersihkan
     setSettings(prev => ({ ...prev, epsMode: false })); 
     
     if (processingMode === activeTab) {
@@ -558,7 +565,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleUpdateMetadata = async (id: string, field: 'title' | 'keywords' | 'category', value: string, language: Language) => {
+  const handleUpdateMetadata = async (id: string, field: 'title' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => {
     if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
     
     setFilesMap(prev => ({
@@ -656,8 +663,13 @@ const App: React.FC = () => {
           return;
       }
 
+      // === LOGIKA CEK KUNCI PROVIDER YANG BENAR ===
       if (settings.apiProvider === 'GEMINI API' && apiKeys.length === 0) {
           alert("Kamu memilih mode GEMINI API tapi belum memasukkan API Key satupun. Silakan masukkan API Key di menu Settings.");
+          return;
+      }
+      if (settings.apiProvider === 'GROQ API' && groqKeys.length === 0) {
+          alert("Kamu memilih mode GROQ API tapi belum memasukkan API Key satupun. Silakan masukkan API Key di menu Settings.");
           return;
       }
       
@@ -794,9 +806,8 @@ const App: React.FC = () => {
       const processingDataKey = (() => {
         if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
         if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
+        if (mode === 'qc') return 'qc';
         return 'metadata_universal';
-        if (mode === 'qc') return 'qc'; // TAMBAHAN BARU
-        return mode as string;
       })();
 
       setFilesMap(currentMap => {
@@ -808,18 +819,17 @@ const App: React.FC = () => {
       activeKeysRef.current.clear(); 
       
       const isLocalExtraction = mode === 'idea' && settings.ideaMode === 'paid';
-      // 1. Ambil settingan target dari user (default 5 jika kosong)
       const userMaxWorkers = isLocalExtraction ? (settings.ideaWorkerCount || 50) : (settings.workerCount || 5);
       
-      // 2. LOGIKA CERDAS: Cari angka TERKECIL antara Setting User vs Jumlah Target (File/Generate)
+      // === LOGIKA BOTTLENECK CERDAS UNTUK WORKER ===
       let maxConcurrency = Math.min(userMaxWorkers, filesToProcess.length);
       
-      // 3. Kalau pakai GEMINI API, adu lagi angkanya dengan jumlah API Key
       if (settings.apiProvider === 'GEMINI API' && apiKeys.length > 0) {
           maxConcurrency = Math.min(maxConcurrency, apiKeys.length);
+      } else if (settings.apiProvider === 'GROQ API' && groqKeys.length > 0) {
+          maxConcurrency = Math.min(maxConcurrency, groqKeys.length);
       }
       
-      // 4. Safety net: Pastikan minimal 1 worker jalan kalau memang ada file
       maxConcurrency = Math.max(1, maxConcurrency);
         
       addLog(`Menjalankan ${maxConcurrency} worker menggunakan ${settings.apiProvider}...`, 'info', mode);
@@ -860,16 +870,19 @@ const App: React.FC = () => {
       activeWorkersRef.current++;
 
       let selectedKey: string = "";
-      const totalKeys = apiKeys.length;
+      
+      // === AMBIL LACI KUNCI YANG SESUAI PROVIDER ===
+      const currentKeyList = settings.apiProvider === 'GROQ API' ? groqKeys : apiKeys;
+      const totalKeys = currentKeyList.length;
 
-      if (settings.apiProvider === 'GEMINI API' && totalKeys > 0) {
+      if ((settings.apiProvider === 'GEMINI API' || settings.apiProvider === 'GROQ API') && totalKeys > 0) {
           for (const [key, expiry] of cooldownKeysRef.current.entries()) {
             if (now > expiry) cooldownKeysRef.current.delete(key);
           }
       
           for (let i = 0; i < totalKeys; i++) {
             const idx = (nextKeyIdxRef.current + i) % totalKeys;
-            const keyCandidate = apiKeys[idx];
+            const keyCandidate = currentKeyList[idx];
             if (!activeKeysRef.current.has(keyCandidate) && !cooldownKeysRef.current.has(keyCandidate)) {
               selectedKey = keyCandidate;
               nextKeyIdxRef.current = (idx + 1) % totalKeys;
@@ -906,18 +919,17 @@ const App: React.FC = () => {
                  };
              }
         } else {
-             // UPDATE: Menerima qcResult dari fungsi
              const { metadata, thumbnail, generatedImageUrl, qcResult } = await generateMetadataForFile(currentFileItem, settings, selectedKey, mode);
       
              if (fileIndex !== -1) {
                  processingFilesRef.current[fileIndex] = { 
                      ...processingFilesRef.current[fileIndex], 
                      status: ProcessingStatus.Completed, 
-                     metadata, thumbnail, generatedImageUrl, qcResult // TAMBAHAN QC
+                     metadata, thumbnail, generatedImageUrl, qcResult 
                  };
              }
              
-             const keyLabel = settings.apiProvider === 'GEMINI CANVAS' ? `Canvas Routing` : `Key ${apiKeys.indexOf(selectedKey) + 1}`;
+             const keyLabel = settings.apiProvider === 'GEMINI CANVAS' ? `Canvas Routing` : `Key ${currentKeyList.indexOf(selectedKey) + 1}`;
              addLog(`Worker ${workerId} (${keyLabel}) [Sukses] ${currentFileItem.file.name}`, 'success', mode);
              if (selectedKey) activeKeysRef.current.delete(selectedKey);
         }
@@ -935,12 +947,12 @@ const App: React.FC = () => {
         if (isTemporaryError) {
           queueRef.current.push(fileId);
           
-          if (settings.apiProvider === 'GEMINI API' && selectedKey) {
+          if ((settings.apiProvider === 'GEMINI API' || settings.apiProvider === 'GROQ API') && selectedKey) {
              cooldownKeysRef.current.set(selectedKey, Date.now() + 60000); 
              addLog(`Worker ${workerId} Terlimit (Ganti Kunci / Cooldown 60s). Detail: ${rawErrorMsg}`, 'warning', mode);
           } else {
              globalCooldownRef.current = Date.now() + 60000; 
-             addLog(`LIMIT SERVER GEMINI CANVAS! Semua worker istirahat 60 detik. Detail: ${rawErrorMsg}`, 'warning', mode);
+             addLog(`LIMIT SERVER ${settings.apiProvider}! Semua worker istirahat 60 detik. Detail: ${rawErrorMsg}`, 'warning', mode);
           }
           
           if (fileIndex !== -1) {
@@ -977,9 +989,8 @@ const App: React.FC = () => {
               const processingDataKey = (() => {
                 if (mode === 'idea') return settings.ideaMode === 'free' ? 'idea_free' : 'idea_paid';
                 if (mode === 'prompt') return settings.promptPlatform === 'file' ? 'prompt_file' : 'prompt_text';
+                if (mode === 'qc') return 'qc';
                 return 'metadata_universal';
-                if (mode === 'qc') return 'qc'; // TAMBAHAN BARU
-                return mode as string;
               })();
 
               setFilesMap(prev => {
@@ -1038,7 +1049,7 @@ const App: React.FC = () => {
         : activeTab === 'quran' ? 'Murottal Al-Quran'
         : activeTab === 'idea' ? 'Idea Generation' 
         : activeTab === 'prompt' ? 'Prompt Engineering'
-        : activeTab === 'qc' ? 'Quality Control' // TAMBAHAN BARU
+        : activeTab === 'qc' ? 'Quality Control'
         : 'Metadata Extraction';
   
   const getStatusBorderColor = () => {
@@ -1068,8 +1079,10 @@ const App: React.FC = () => {
   const canGenerate = (() => {
       if (isProcessing) return false;
 
-      const isApiKeyEmpty = settings.apiProvider === 'GEMINI API' && apiKeys.length === 0;
+      // === LOGIKA CEK API KEY GANDA ===
+      const isApiKeyEmpty = (settings.apiProvider === 'GEMINI API' && apiKeys.length === 0) || (settings.apiProvider === 'GROQ API' && groqKeys.length === 0);
       const isIdeaMode2 = activeMode === 'idea' && settings.ideaMode === 'paid';
+      
       if (isApiKeyEmpty && !isIdeaMode2) return false;
 
       if (activeMode === 'idea') {
@@ -1094,7 +1107,7 @@ const App: React.FC = () => {
               return !!settings.promptIdea && (settings.promptQuantity || 0) > 0;
           }
       }
-      if (activeMode === 'metadata' || activeMode === 'qc') { // TAMBAHAN QC DISINI
+      if (activeMode === 'metadata' || activeMode === 'qc') {
           if (currentFiles.length === 0) return false;
           if (activeMode === 'metadata') {
              if (!settings.titleMin || settings.titleMin <= 0) return false;
@@ -1115,7 +1128,7 @@ const App: React.FC = () => {
   const getGenerateButtonText = () => {
         if (activeMode === 'idea') return "Generate Ideas";
         if (activeMode === 'prompt') return "Generate Prompts";
-        if (activeMode === 'qc') return "Start QC Check"; // TAMBAHAN BARU
+        if (activeMode === 'qc') return "Start QC Check";
         return "Generate Metadata";
   };
   
@@ -1247,7 +1260,6 @@ const App: React.FC = () => {
                       <span>METADATA</span>
                   </button>
 
-                  {/* TAMBAHAN BARU: TOMBOL QC DI SEBELAH KANAN METADATA */}
                   <button 
                       onClick={() => handleNavigation('qc' as any)} 
                       className={`px-4 h-9 rounded-lg text-xs font-bold border transition-all flex flex-row items-center justify-center gap-1.5 ${
@@ -1324,7 +1336,6 @@ const App: React.FC = () => {
                       hasVideo={hasVideoFiles}
                   />
                   )}
-                  {/* TAMBAHAN BARU: PENGATURAN QC */}
                   {activeTab === 'qc' && (
                   <QcSettings 
                       settings={settings} 
@@ -1336,8 +1347,9 @@ const App: React.FC = () => {
                   )}
                   {activeTab === 'apikeys' && (
                       <ApiKeyPanel 
-                          apiKeys={apiKeys}
-                          setApiKeys={setApiKeys}
+                          // MENGIRIM KUNCI YANG SESUAI DENGAN PROVIDER YANG DIPILIH
+                          apiKeys={settings.apiProvider === 'GROQ API' ? groqKeys : apiKeys}
+                          setApiKeys={settings.apiProvider === 'GROQ API' ? setGroqKeys : setApiKeys}
                           isProcessing={isProcessing} 
                           mode='metadata' 
                           provider={settings.apiProvider}
@@ -1426,7 +1438,7 @@ const App: React.FC = () => {
                                           </div>
                                           <div className="bg-white p-3 rounded border border-amber-100 shadow-sm">
                                               <span className="font-black text-red-600 text-sm">Network Error / Fetch Failed</span>
-                                              <p className="mt-1"><b>Penyebab:</b> Koneksi internet putus, atau VPN/Proxy/DNS komputer memblokir jalur ke server Google.</p>
+                                              <p className="mt-1"><b>Penyebab:</b> Koneksi internet putus, atau VPN/Proxy/DNS komputer memblokir jalur ke server.</p>
                                           </div>
                                       </div>
                                   </div>
@@ -1562,7 +1574,7 @@ const App: React.FC = () => {
                         <><Lightbulb size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Idea Workspace Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.ideaMode === 'free' ? (settings.ideaCategory === 'file' ? "Upload a file in Idea Settings to generate concepts." : "Select a category and quantity to generate new concepts."): (settings.ideaSourceLines && settings.ideaSourceLines.length > 0 ? "Database loaded. Specify Start Row & Quantity, then click 'Generate' to start extraction." : "Upload a Database file in Idea Settings (paid) to start.")}</p></>
                         ) : activeTab === 'prompt' ? (
                         <><Command size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">Prompt Generator Ready.</p><p className="mt-1 max-w-xs text-center text-sm text-gray-500">{settings.promptPlatform === 'file' ? "Upload file di panel pengaturan untuk membuat prompt dari analisa gambar/video." : "Enter an Idea, Description, and Quantity to start."}</p></>
-                        ) : activeTab === 'qc' ? ( // TAMBAHAN TAMPILAN KOSONG UNTUK QC
+                        ) : activeTab === 'qc' ? ( 
                         <><ShieldCheck size={64} className="mb-4 text-blue-500 opacity-20" /><p className="text-base font-medium uppercase">QC Workspace Ready.</p><p className="mt-1 text-sm">Upload files to start quality control.</p></>
                         ) : (
                         <><UploadCloud size={64} className="mb-4 opacity-20" /><p className="text-base font-medium uppercase">No files in {activeTab.toUpperCase()} workspace.</p><p className="mt-1 text-sm">Upload files to start.</p></>
@@ -1585,7 +1597,7 @@ const App: React.FC = () => {
                             getLanguage={getLanguage} 
                             onPreview={setPreviewItem} 
                         />
-                    ) : activeTab === 'qc' ? ( // TAMBAHAN RENDER QC CARD
+                    ) : activeTab === 'qc' ? ( 
                         <div className="grid grid-cols-1 gap-4 pb-20 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:pb-0">
                         {currentFiles.map(file => (
                             <QcCard 
