@@ -10,15 +10,25 @@ interface Props {
   hasVideo?: boolean;
 }
 
+const PLATFORMS = [
+  'Adobe Stock', 
+  'Shutterstock', 
+  'Dreamstime', 
+  'Freepik', 
+  'MiriCanvas', 
+  'Vecteezy', 
+  'Arabstock'
+];
+
 const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing, onFilesUpload, hasVideo = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<'file' | 'folder'>('file');
   const [isDragging, setIsDragging] = useState(false);
 
-  const handlePlatformChange = (platform: 'Adobe Stock' | 'Shutterstock') => {
+  const handlePlatformChange = (platform: string) => {
     if (isProcessing) return;
-    setSettings(prev => ({ ...prev, metadataPlatform: platform }));
+    setSettings(prev => ({ ...prev, metadataPlatform: platform as any }));
   };
 
   const handleChange = (field: keyof AppSettings, value: string) => {
@@ -36,7 +46,7 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
     if (field === 'titleMin' && num > 100) num = 100;
     if (field === 'titleMax' && num > 150) num = 150;
     if (field === 'slideKeyword') {
-      if (num > 50) num = 50; 
+      if (num > 100) num = 100; // Limit dinaikkan jadi 100
       if (num < 0) num = 0;
     } 
     if (field === 'videoFrameCount') {
@@ -100,8 +110,9 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
   const areaClass = "w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 h-14";
   const labelClass = "block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center";
   
-  const isShutterstock = settings.metadataPlatform === 'Shutterstock';
-  const titleLabel = isShutterstock ? 'Description' : 'Title';
+  // Logika dinamis untuk label Title / Description
+  const usesDescription = ['Shutterstock', 'Dreamstime', 'Vecteezy', 'Arabstock'].includes(settings.metadataPlatform);
+  const titleLabel = usesDescription ? 'Description' : 'Title';
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 flex flex-col gap-4">
@@ -114,30 +125,26 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
 
       <div className="pt-2">
         <label className={labelClass}>Platform</label>
-        <div className={`flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px] ${isProcessing ? 'opacity-60 cursor-not-allowed' : ''}`}>
-          {['Adobe Stock', 'Shutterstock'].map((platform) => {
-            const isActive = settings.metadataPlatform === platform;
-            return (
-              <button
-                key={platform}
-                onClick={() => handlePlatformChange(platform as any)}
-                disabled={isProcessing}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 text-base font-medium rounded-md transition-all ${
-                  isActive ? 'bg-white text-blue-600 shadow-sm border border-blue-100' : 'text-gray-500 hover:bg-gray-200'
-                }`}
-              >
-                {platform}
-              </button>
-            );
-          })}
-        </div>
+        {/* Dropdown Menu untuk 7 Platform */}
+        <select
+          value={settings.metadataPlatform}
+          onChange={(e) => handlePlatformChange(e.target.value)}
+          disabled={isProcessing}
+          className={`${inputClass} !h-[46px] cursor-pointer font-medium text-blue-700 bg-gray-50 border-gray-300 hover:bg-gray-100`}
+        >
+          {PLATFORMS.map((platform) => (
+            <option key={platform} value={platform} className="text-gray-800 font-medium">
+              {platform}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="pt-1">
         <div className="flex items-center justify-between mb-1.5 h-5">
           <label className="text-sm font-medium text-gray-500 tracking-tight">Source Type</label>
           <div className="flex gap-4">
-             <button 
+              <button 
                 onClick={() => !settings.epsMode && setUploadType('file')}
                 disabled={settings.epsMode}
                 className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider transition-colors ${settings.epsMode ? 'opacity-40 cursor-not-allowed' : 'text-gray-600 hover:text-blue-600'}`}
@@ -179,7 +186,6 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
               : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
           } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
-          {/* LOGIKA TAMPILAN TOMBOL UPLOAD */}
           {settings.epsMode ? (
               <>
                   <div className="flex items-center gap-2.5">
@@ -277,8 +283,8 @@ const MetadataSettings: React.FC<Props> = ({ settings, setSettings, isProcessing
           <input
             type="number"
             min="0"
-            max="50"
-            placeholder="Max 50"
+            max="100"
+            placeholder="Max 100"
             className={inputClass}
             value={settings.slideKeyword === 0 ? '' : settings.slideKeyword}
             onChange={(e) => handleNumberChange('slideKeyword', e.target.value)}
