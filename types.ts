@@ -11,7 +11,7 @@ export enum ProcessingStatus {
   Failed = 'failed',
 }
 
-export type ApiProvider = 'GEMINI CANVAS';
+export type ApiProvider = 'GEMINI CANVAS' | 'GEMINI API' | 'GROQ API';
 
 export interface LocalizedContent {
   title: string;
