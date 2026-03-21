@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, Pause, Search, BookOpen, Volume2, RefreshCw, Repeat1, ListVideo, CheckCircle2, Circle } from 'lucide-react';
+import { Play, Pause, Search, BookOpen, Volume2, RefreshCw, Repeat1, ListVideo, CheckSquare, Square } from 'lucide-react';
 
 interface Surah {
   id: number;
@@ -168,45 +168,45 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
          </div>
       </div>
 
-      {/* FILTER SEARCH BAR & TOMBOL GANDA */}
       <div className="pt-1">
-         <label className="block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center">Cari Data</label>
-         <div className="flex items-center gap-2 mb-2">
-            <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder={searchMode === 'surat' ? "Cari surat (ex: Kahf, Yaseen)..." : "Cari Syaikh (ex: Sudais)..."} 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`${inputClass} pl-10`}
-              />
-            </div>
-            {/* TOMBOL TOGGLE (SURAT / QARI) */}
-            <div className="flex bg-gray-100 p-1 rounded-lg shrink-0 h-[42px]">
-                <button 
-                    onClick={() => { setSearchMode('surat'); setSearchTerm(''); }}
-                    className={`flex items-center justify-center gap-1.5 px-3 rounded-md text-xs font-bold transition-all ${searchMode === 'surat' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200' : 'text-gray-500 hover:bg-gray-200'}`}
-                >
-                    {searchMode === 'surat' ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Circle size={14} className="text-gray-300" />}
-                    Surat
-                </button>
-                <button 
-                    onClick={() => { setSearchMode('qari'); setSearchTerm(''); }}
-                    className={`flex items-center justify-center gap-1.5 px-3 rounded-md text-xs font-bold transition-all ${searchMode === 'qari' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200' : 'text-gray-500 hover:bg-gray-200'}`}
-                >
-                    {searchMode === 'qari' ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Circle size={14} className="text-gray-300" />}
-                    Qari
-                </button>
-            </div>
-         </div>
+        <div className="flex items-center justify-between mb-1.5 h-5">
+           <label className="text-sm font-medium text-gray-500 tracking-tight">Cari Data</label>
+           {/* SWITCH GAYA FILE/FOLDER/EPS (Diubah jadi Surat/Qari) */}
+           <div className="flex gap-4">
+              <button 
+                onClick={() => { setSearchMode('surat'); setSearchTerm(''); }}
+                className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider transition-colors ${searchMode === 'surat' ? 'text-emerald-600 font-bold' : 'text-gray-500 hover:text-emerald-600'}`}
+              >
+                {searchMode === 'surat' ? <CheckSquare size={14} className="text-emerald-500" /> : <Square size={14} className="text-gray-300" />}
+                Surat
+              </button>
+              <button 
+                onClick={() => { setSearchMode('qari'); setSearchTerm(''); }}
+                className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider transition-colors ${searchMode === 'qari' ? 'text-emerald-600 font-bold' : 'text-gray-500 hover:text-emerald-600'}`}
+              >
+                {searchMode === 'qari' ? <CheckSquare size={14} className="text-emerald-500" /> : <Square size={14} className="text-gray-300" />}
+                Qari
+              </button>
+           </div>
+        </div>
+        
+        <div className="relative mb-3">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input 
+            type="text" 
+            placeholder={searchMode === 'surat' ? "Cari surat (ex: Kahf, Yaseen)..." : "Cari nama Qari (ex: Mishary, Sudais)..."} 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`${inputClass} pl-10`}
+          />
+        </div>
       </div>
 
-      <div className="pt-1">
+      <div className="pt-0">
         <label className={labelClass}>
             <span>Qari / Syaikh</span>
             {searchMode === 'qari' && searchTerm && (
-                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">Ditemukan: {filteredReciters.length}</span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold tracking-wider">DITEMUKAN: {filteredReciters.length}</span>
             )}
         </label>
         <select 
@@ -228,7 +228,7 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
       </div>
 
       <div className="pt-1">
-         <label className={labelClass}>Daftar Surat</label>
+         <label className="block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center">Daftar Surat</label>
          <div className="border border-gray-200 rounded-md bg-gray-50 flex flex-col h-[350px] md:h-[400px] overflow-hidden shadow-inner">
            {isLoadingSurah ? (
              <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 gap-2 opacity-50">
@@ -273,7 +273,7 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
                  );
                })}
                {filteredSurahs.length === 0 && (
-                  <div className="h-full flex items-center justify-center text-xs text-gray-400">Surat tidak ditemukan.</div>
+                  <div className="h-full flex items-center justify-center text-xs text-gray-400 font-medium uppercase tracking-wider">Surat tidak ditemukan.</div>
                )}
              </div>
            )}
