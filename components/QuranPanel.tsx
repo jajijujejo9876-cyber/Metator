@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, Search, BookOpen, Volume2, RefreshCw, Repeat1, ListVideo } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Play, Pause, Search, BookOpen, Volume2, RefreshCw, Repeat1, ListVideo, CheckCircle2, Circle } from 'lucide-react';
 
 interface Surah {
   id: number;
@@ -26,7 +26,10 @@ interface Props {
 const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogglePlay, playbackMode, setPlaybackMode }) => {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [reciters, setReciters] = useState<Reciter[]>([]);
+  
+  // STATE BARU: Pencarian Ganda
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchMode, setSearchMode] = useState<'surat' | 'qari'>('surat');
   
   // Baca memori pilihan Qari terakhir
   const [selectedReciterId, setSelectedReciterId] = useState<number>(() => {
@@ -83,9 +86,34 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
       }
   }, [selectedReciterId]);
 
-  const filteredSurahs = surahs.filter(s => 
-    s.name_simple.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // === LOGIKA PENCARIAN GANDA ===
+  const filteredSurahs = useMemo(() => {
+    if (searchMode === 'qari') return surahs; // Kalau nyari Qari, daftar surat tampil utuh
+    if (!searchTerm) return surahs;
+    return surahs.filter(s => 
+      s.name_simple.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.name_arabic.includes(searchTerm) ||
+      s.id.toString() === searchTerm
+    );
+  }, [surahs, searchTerm, searchMode]);
+
+  const filteredReciters = useMemo(() => {
+    if (searchMode === 'surat') return reciters; // Kalau nyari Surat, daftar Qari tampil utuh
+    if (!searchTerm) return reciters;
+    return reciters.filter(r => 
+      r.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [reciters, searchTerm, searchMode]);
+
+  // Auto-select Qari pertama jika hasil filter Qari berubah dan pilihan saat ini tidak ada di list
+  useEffect(() => {
+    if (searchMode === 'qari' && filteredReciters.length > 0) {
+        const isCurrentReciterVisible = filteredReciters.some(r => r.id === selectedReciterId);
+        if (!isCurrentReciterVisible) {
+            setSelectedReciterId(filteredReciters[0].id);
+        }
+    }
+  }, [filteredReciters, searchMode, selectedReciterId]);
 
   const handlePlayClick = (surah: Surah) => {
     if (currentSurahId === surah.id) {
@@ -103,7 +131,7 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
     onPlay(surah.id, audioUrl, surah.name_simple, reciter.name, baseUrl, surahs);
   };
 
-  const labelClass = "block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center";
+  const labelClass = "block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center justify-between";
   const inputClass = "w-full text-base p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 placeholder:text-gray-300 h-[42px]";
 
   return (
@@ -117,7 +145,7 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
       <div className="border-t border-emerald-100 -my-2"></div>
 
       <div className="pt-2">
-         <label className={labelClass}>Mode Pemutaran</label>
+         <label className="block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center">Mode Pemutaran</label>
          <div className="flex gap-3 p-1 bg-gray-100 rounded-lg w-full h-[46px]">
             <button
                onClick={() => setPlaybackMode('autonext')}
@@ -140,8 +168,47 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
          </div>
       </div>
 
+      {/* FILTER SEARCH BAR & TOMBOL GANDA */}
       <div className="pt-1">
-        <label className={labelClass}>Qari / Syaikh</label>
+         <label className="block text-sm font-medium text-gray-500 mb-1 h-5 flex items-center">Cari Data</label>
+         <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder={searchMode === 'surat' ? "Cari surat (ex: Kahf, Yaseen)..." : "Cari Syaikh (ex: Sudais)..."} 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`${inputClass} pl-10`}
+              />
+            </div>
+            {/* TOMBOL TOGGLE (SURAT / QARI) */}
+            <div className="flex bg-gray-100 p-1 rounded-lg shrink-0 h-[42px]">
+                <button 
+                    onClick={() => { setSearchMode('surat'); setSearchTerm(''); }}
+                    className={`flex items-center justify-center gap-1.5 px-3 rounded-md text-xs font-bold transition-all ${searchMode === 'surat' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200' : 'text-gray-500 hover:bg-gray-200'}`}
+                >
+                    {searchMode === 'surat' ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Circle size={14} className="text-gray-300" />}
+                    Surat
+                </button>
+                <button 
+                    onClick={() => { setSearchMode('qari'); setSearchTerm(''); }}
+                    className={`flex items-center justify-center gap-1.5 px-3 rounded-md text-xs font-bold transition-all ${searchMode === 'qari' ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200' : 'text-gray-500 hover:bg-gray-200'}`}
+                >
+                    {searchMode === 'qari' ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Circle size={14} className="text-gray-300" />}
+                    Qari
+                </button>
+            </div>
+         </div>
+      </div>
+
+      <div className="pt-1">
+        <label className={labelClass}>
+            <span>Qari / Syaikh</span>
+            {searchMode === 'qari' && searchTerm && (
+                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">Ditemukan: {filteredReciters.length}</span>
+            )}
+        </label>
         <select 
           className={inputClass}
           value={selectedReciterId}
@@ -149,9 +216,11 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
           disabled={isLoadingReciter}
         >
           {isLoadingReciter ? (
-            <option>Memuat 150+ daftar Qari...</option>
+            <option>Memuat daftar Qari...</option>
+          ) : filteredReciters.length === 0 ? (
+            <option disabled>Qari tidak ditemukan</option>
           ) : (
-            reciters.map(r => (
+            filteredReciters.map(r => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))
           )}
@@ -160,17 +229,6 @@ const QuranPanel: React.FC<Props> = ({ currentSurahId, isPlaying, onPlay, onTogg
 
       <div className="pt-1">
          <label className={labelClass}>Daftar Surat</label>
-         <div className="relative mb-3">
-           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-           <input 
-             type="text" 
-             placeholder="Cari surat (ex: Kahf, Yaseen)..." 
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-             className={`${inputClass} pl-10`}
-           />
-         </div>
-
          <div className="border border-gray-200 rounded-md bg-gray-50 flex flex-col h-[350px] md:h-[400px] overflow-hidden shadow-inner">
            {isLoadingSurah ? (
              <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 gap-2 opacity-50">
