@@ -102,50 +102,68 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
   });
 };
 
-// === FUNGSI MANDOR PENGECEK (VALIDATOR) YANG LEBIH GALAK ===
-const validateMetadata = (parsed: any, settings: AppSettings) => {
+// === FUNGSI JAGAL OTOMATIS & MANDOR PENGECEK (HARD-CODED FIXER) 💥 ===
+const validateAndFixMetadata = (parsed: any, settings: AppSettings) => {
   const errors: string[] = [];
   const titleEn = parsed.en?.title || "";
-  const kwEn = parsed.en?.keywords || "";
-  
-  // Pecah keyword jadi array untuk dihitung jumlahnya
-  const kwArray = kwEn.split(',').map((k: string) => k.trim()).filter((k: string) => k.length > 0);
+  const rawKwEn = parsed.en?.keywords || "";
   
   const minT = settings.titleMin || 50;
   const maxT = settings.titleMax || 150;
   const targetK = settings.slideKeyword || 40;
 
-  // 1. Cek Panjang Judul
-  if (titleEn.length < minT || titleEn.length > maxT) {
-    errors.push(`Panjang Judul (Title) saat ini ${titleEn.length} huruf. Anda WAJIB menulis ulang judul menjadi antara ${minT} hingga ${maxT} huruf.`);
-  }
-  
-  // 2. Cek Jumlah Keyword
-  if (kwArray.length !== targetK) {
-    if (kwArray.length < targetK) {
-        errors.push(`Anda hanya membuat ${kwArray.length} keyword. TAMBAHKAN ${targetK - kwArray.length} keyword lagi agar tepat berjumlah ${targetK}.`);
-    } else {
-        errors.push(`Anda membuat terlalu banyak keyword (${kwArray.length}). HAPUS ${kwArray.length - targetK} keyword agar tepat berjumlah ${targetK}.`);
-    }
+  // 1. TUKANG JAGAL KEYWORD (Otomatis benerin tanpa nanya AI)
+  let kwArray = rawKwEn
+      .replace(/,/g, ' ') // Ubah semua koma jadi spasi dulu
+      .split(/\s+/) // Pecah otomatis kalau ada spasi (Misal "baju merah" jadi "baju", "merah")
+      .map((k: string) => k.trim().toLowerCase()) // Bersihkan dan kecilkan huruf
+      .filter((k: string) => k.length > 2); // Buang kata sampah yang cuma 1-2 huruf
+
+  // Hapus kata terlarang otomatis
+  if (settings.negativeMetadata) {
+      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
+      kwArray = kwArray.filter((k: string) => !negWords.some(nw => k.includes(nw)));
   }
 
-  // 3. CEK 1-KATA PER KEYWORD (ANTI-FRASA) - INI CAMBUKNYA 💥
-  const multiWords = kwArray.filter((k: string) => k.includes(' '));
-  if (multiWords.length > 0) {
-      errors.push(`ATURAN DILANGGAR: Terdapat ${multiWords.length} keyword yang mengandung LEBIH DARI 1 KATA (contoh yang salah: "${multiWords[0]}"). SETIAP KEYWORD WAJIB 1 KATA TUNGGAL! Dilarang ada spasi di dalam keyword. Pisahkan menjadi kata-kata mandiri!`);
+  // Hapus kata duplikat
+  kwArray = [...new Set(kwArray)];
+
+  // EKSEKUSI JUMLAH KEYWORD
+  if (kwArray.length > targetK) {
+      // Kalau AI bandel ngasih 60 keyword, langsung TEBAS jadi 40 otomatis!
+      kwArray = kwArray.slice(0, targetK);
+  } else if (kwArray.length < targetK) {
+      // Nah kalau kurang, baru kita marahin AI-nya buat mikir lagi.
+      errors.push(`Keyword Anda hanya ${kwArray.length} setelah dibersihkan. WAJIB tepat ${targetK} keyword tunggal. Tambahkan ${targetK - kwArray.length} keyword relevan lagi!`);
   }
+
+  // Simpan hasil tebasan ke JSON aslinya
+  parsed.en.keywords = kwArray.join(', ');
   
-  // 4. Cek Kata Terlarang (Negative Metadata)
+  // Sinkronkan jumlah keyword Indonesia biar nggak jomplang
+  if (parsed.ind?.keywords) {
+      let kwIndArray = parsed.ind.keywords.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
+      kwIndArray = [...new Set(kwIndArray)].slice(0, kwArray.length);
+      parsed.ind.keywords = kwIndArray.join(', ');
+  } else {
+      parsed.ind = { ...parsed.ind, keywords: parsed.en.keywords };
+  }
+
+  // 2. CEK PANJANG JUDUL (Nggak bisa ditebas otomatis, AI harus nulis ulang)
+  if (titleEn.length < minT || titleEn.length > maxT) {
+      errors.push(`Panjang Judul (Title) saat ini ${titleEn.length} karakter. Anda WAJIB menulis ulang judul menjadi antara ${minT} hingga ${maxT} karakter.`);
+  }
+
+  // Cek Kata Terlarang di Judul
   if (settings.negativeMetadata) {
-    const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
-    const combinedText = (titleEn + " " + kwEn).toLowerCase();
-    const found = negWords.filter(nw => combinedText.includes(nw));
-    if (found.length > 0) {
-      errors.push(`TERDETEKSI KATA TERLARANG: "${found.join(', ')}". Anda dilarang keras menggunakan kata ini. Hapus dan ganti kata tersebut!`);
-    }
+      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
+      const foundInTitle = negWords.filter(nw => titleEn.toLowerCase().includes(nw));
+      if (foundInTitle.length > 0) {
+          errors.push(`Judul mengandung kata terlarang: "${foundInTitle.join(', ')}". Ganti kata tersebut!`);
+      }
   }
-  
-  return errors;
+
+  return { errors, fixedParsed: parsed };
 };
 
 const SUPREME_METADATA_PROTOCOL = `
@@ -332,7 +350,7 @@ export const generateMetadataForFile = async (
     }
 
     let attempt = 0;
-    let maxAttempts = 2; 
+    let maxAttempts = 3; // Naik jadi 3x percobaan buat AI yang lelet mikir
     let finalParsed: any = null;
     let activePromptText = promptText;
 
@@ -431,16 +449,17 @@ export const generateMetadataForFile = async (
             parsed = JSON.parse(response.text);
         }
 
+        // === PENGECEKAN & PENJAGALAN OLEH MANDOR ===
         if (mode === 'metadata') {
-            const errors = validateMetadata(parsed, settings);
+            const { errors, fixedParsed } = validateAndFixMetadata(parsed, settings);
+            finalParsed = fixedParsed; // Update dengan versi yang udah ditebas otomatis
             
             if (errors.length === 0 || attempt === maxAttempts - 1) {
-                finalParsed = parsed; 
-                break; 
+                break; // Lolos tanpa cela ATAU nyerah karena udah 3x percobaan (minimal keyword udah ditebas sempurna)
             } else {
-                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI DAN TULIS ULANG JSON DARI AWAL! Hapus semua spasi dari keyword!`;
+                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI SEKARANG JUGA! Hasilkan ulang sesuai standar!`;
                 attempt++;
-                console.warn(`Auto-correction triggered. Errors:`, errors);
+                console.warn(`Auto-correction triggered (Attempt ${attempt}). Errors:`, errors);
             }
         } else {
             finalParsed = parsed;
