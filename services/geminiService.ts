@@ -4,213 +4,166 @@ import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES } fr
 import { extractVideoFrames } from "../utils/helpers";
 
 const fileToPart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (reader.result) {
-        const base64String = (reader.result as string).split(',')[1];
-        resolve({
-          inlineData: {
-            data: base64String,
-            mimeType: file.type || 'application/octet-stream', 
-          },
-        });
-      } else {
-        reject(new Error("Failed to read file"));
-      }
-    };
-    reader.readAsDataURL(file);
-  });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (reader.result) {
+        const base64String = (reader.result as string).split(',')[1];
+        resolve({
+          inlineData: {
+            data: base64String,
+            mimeType: file.type || 'application/octet-stream', 
+          },
+        });
+      } else {
+        reject(new Error("Failed to read file"));
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 };
 
 const convertSvgToWhiteBgJpeg = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error("Canvas context failed"));
-          return;
-        }
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-        const base64String = dataUrl.split(',')[1];
-        resolve({
-          inlineData: {
-            data: base64String,
-            mimeType: 'image/jpeg', 
-          },
-        });
-      };
-      img.onerror = () => reject(new Error("Failed to load SVG image"));
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error("Canvas context failed"));
+          return;
+        }
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        const base64String = dataUrl.split(',')[1];
+        resolve({
+          inlineData: {
+            data: base64String,
+            mimeType: 'image/jpeg', 
+          },
+        });
+      };
+      img.onerror = () => reject(new Error("Failed to load SVG image"));
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 };
 
 const compressImage = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX_WIDTH = 3000; 
-        const MAX_HEIGHT = 3000;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error("Canvas context failed"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.95); 
-        const base64String = dataUrl.split(',')[1];
-        resolve({
-          inlineData: {
-            data: base64String,
-            mimeType: 'image/jpeg', 
-          },
-        });
-      };
-      img.onerror = () => reject(new Error("Failed to load image for compression"));
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_WIDTH = 3000; 
+        const MAX_HEIGHT = 3000;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error("Canvas context failed"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95); 
+        const base64String = dataUrl.split(',')[1];
+        resolve({
+          inlineData: {
+            data: base64String,
+            mimeType: 'image/jpeg', 
+          },
+        });
+      };
+      img.onerror = () => reject(new Error("Failed to load image for compression"));
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 };
 
 // === FUNGSI JAGAL OTOMATIS & MANDOR PENGECEK (HARD-CODED FIXER) 💥 ===
 const validateAndFixMetadata = (parsed: any, settings: AppSettings) => {
-  const errors: string[] = [];
-  let titleEn = parsed.en?.title || "";
-  let titleInd = parsed.ind?.title || "";
-  let rawKwEn = parsed.en?.keywords || "";
-  
-  const minT = settings.titleMin || 50;
-  const maxT = settings.titleMax || 150;
-  const targetK = settings.slideKeyword || 40;
+  const errors: string[] = [];
+  const titleEn = parsed.en?.title || "";
+  const rawKwEn = parsed.en?.keywords || "";
+  
+  const minT = settings.titleMin || 50;
+  const maxT = settings.titleMax || 150;
+  const targetK = settings.slideKeyword || 40;
 
-  // --- 1. TUKANG JAGAL KEYWORD (Otomatis benerin) ---
-  let kwArray = rawKwEn.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
+  // 1. TUKANG JAGAL KEYWORD (Otomatis benerin tanpa nanya AI)
+  let kwArray = rawKwEn
+      .replace(/,/g, ' ') // Ubah semua koma jadi spasi dulu
+      .split(/\s+/) // Pecah otomatis kalau ada spasi (Misal "baju merah" jadi "baju", "merah")
+      .map((k: string) => k.trim().toLowerCase()) // Bersihkan dan kecilkan huruf
+      .filter((k: string) => k.length > 2); // Buang kata sampah yang cuma 1-2 huruf
 
-  if (settings.negativeMetadata) {
-      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
-      kwArray = kwArray.filter((k: string) => !negWords.some(nw => k.includes(nw)));
-  }
+  // Hapus kata terlarang otomatis
+  if (settings.negativeMetadata) {
+      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
+      kwArray = kwArray.filter((k: string) => !negWords.some(nw => k.includes(nw)));
+  }
 
-  kwArray = [...new Set(kwArray)];
+  // Hapus kata duplikat
+  kwArray = [...new Set(kwArray)];
 
-  if (kwArray.length > targetK) {
-      kwArray = kwArray.slice(0, targetK); // Potong otomatis kelebihan
-  } else if (kwArray.length < targetK) {
-      errors.push(`Keyword unik kurang (${kwArray.length}/${targetK}). AI butuh revisi.`);
-  }
+  // EKSEKUSI JUMLAH KEYWORD
+  if (kwArray.length > targetK) {
+      // Kalau AI bandel ngasih 60 keyword, langsung TEBAS jadi 40 otomatis!
+      kwArray = kwArray.slice(0, targetK);
+  } else if (kwArray.length < targetK) {
+      // Nah kalau kurang, baru kita marahin AI-nya buat mikir lagi.
+      errors.push(`Keyword Anda hanya ${kwArray.length} setelah dibersihkan. WAJIB tepat ${targetK} keyword tunggal. Tambahkan ${targetK - kwArray.length} keyword relevan lagi!`);
+  }
 
-  parsed.en.keywords = kwArray.join(', ');
+  // Simpan hasil tebasan ke JSON aslinya
+  parsed.en.keywords = kwArray.join(', ');
+  
+  // Sinkronkan jumlah keyword Indonesia biar nggak jomplang
+  if (parsed.ind?.keywords) {
+      let kwIndArray = parsed.ind.keywords.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
+      kwIndArray = [...new Set(kwIndArray)].slice(0, kwArray.length);
+      parsed.ind.keywords = kwIndArray.join(', ');
+  } else {
+      parsed.ind = { ...parsed.ind, keywords: parsed.en.keywords };
+  }
 
-  let kwIndArray: string[] = [];
-  if (parsed.ind?.keywords) {
-      kwIndArray = parsed.ind.keywords.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
-      kwIndArray = [...new Set(kwIndArray)].slice(0, kwArray.length);
-      parsed.ind.keywords = kwIndArray.join(', ');
-  } else {
-      kwIndArray = [...kwArray];
-      parsed.ind = { ...parsed.ind, keywords: parsed.en.keywords };
-  }
+  // 2. CEK PANJANG JUDUL (Nggak bisa ditebas otomatis, AI harus nulis ulang)
+  if (titleEn.length < minT || titleEn.length > maxT) {
+      errors.push(`Panjang Judul (Title) saat ini ${titleEn.length} karakter. Anda WAJIB menulis ulang judul menjadi antara ${minT} hingga ${maxT} karakter.`);
+  }
 
-  // --- 2. CEK JUDUL (Mandor Looping) ---
-  titleEn = titleEn.trim();
-  titleInd = titleInd.trim();
+  // Cek Kata Terlarang di Judul
+  if (settings.negativeMetadata) {
+      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
+      const foundInTitle = negWords.filter(nw => titleEn.toLowerCase().includes(nw));
+      if (foundInTitle.length > 0) {
+          errors.push(`Judul mengandung kata terlarang: "${foundInTitle.join(', ')}". Ganti kata tersebut!`);
+      }
+  }
 
-  // Cek untuk Judul Inggris
-  if (titleEn.length < minT || titleEn.length > maxT) {
-      errors.push(`Panjang Judul English (${titleEn.length}) tidak sesuai standar (${minT}-${maxT}). AI butuh revisi.`);
-  }
-
-  // Cek untuk Judul Indonesia
-  if (titleInd.length < minT || titleInd.length > maxT) {
-      errors.push(`Panjang Judul Indonesia (${titleInd.length}) tidak sesuai standar (${minT}-${maxT}). AI butuh revisi.`);
-  }
-
-  // Cek Kata Terlarang
-  if (settings.negativeMetadata) {
-      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
-      const foundInTitleEn = negWords.filter(nw => titleEn.toLowerCase().includes(nw));
-      if (foundInTitleEn.length > 0) {
-          errors.push(`Judul English mengandung kata terlarang: "${foundInTitleEn.join(', ')}". AI butuh revisi.`);
-      }
-      const foundInTitleInd = negWords.filter(nw => titleInd.toLowerCase().includes(nw));
-      if (foundInTitleInd.length > 0) {
-          errors.push(`Judul Indonesia mengandung kata terlarang: "${foundInTitleInd.join(', ')}". AI butuh revisi.`);
-      }
-  }
-
-  // === 3. FINAL FAILSAFE (JAGAL JUDUL PERMANEN) 💥🔫 ===
-  // Jika 'errors' kosong, berarti judul sudah pas.
-  // Jika 'errors' ada isinya, kita TETAP harus paksa tebas/tambal di sini 
-  // agar hasil finalParsed (di while loop luar) selalu pas angkanya 
-  // sebelum break karena maxAttempts.
-
-  // --- Jagal/Tambal English Title ---
-  if (titleEn.length > maxT) {
-      // Kebanyakan: Potong pinter cari spasi
-      let truncated = titleEn.substring(0, maxT);
-      let lastSpace = truncated.lastIndexOf(' ');
-      titleEn = lastSpace > 0 ? truncated.substring(0, lastSpace).trim() : truncated.trim();
-  } else if (titleEn.length < minT) {
-      // Kekurangan: Tambal pakai array keyword
-      let padKws = [...kwArray];
-      while (titleEn.length < minT && padKws.length > 0) {
-          let nextWord = padKws.shift();
-          if (nextWord && !titleEn.toLowerCase().includes(nextWord)) {
-              titleEn += ` ${nextWord}`;
-          }
-      }
-      if (titleEn.length > maxT) titleEn = titleEn.substring(0, maxT).trim(); // safety cut
-  }
-  parsed.en.title = titleEn;
-
-  // --- Jagal/Tambal Indonesia Title ---
-  if (titleInd.length > maxT) {
-      let truncated = titleInd.substring(0, maxT);
-      let lastSpace = truncated.lastIndexOf(' ');
-      titleInd = lastSpace > 0 ? truncated.substring(0, lastSpace).trim() : truncated.trim();
-  } else if (titleInd.length < minT) {
-      let padKwsInd = [...kwIndArray];
-      while (titleInd.length < minT && padKwsInd.length > 0) {
-          let nextWord = padKwsInd.shift();
-          if (nextWord && !titleInd.toLowerCase().includes(nextWord)) {
-              titleInd += ` ${nextWord}`;
-          }
-      }
-      if (titleInd.length > maxT) titleInd = titleInd.substring(0, maxT).trim(); // safety cut
-  }
-  parsed.ind.title = titleInd;
-
-  return { errors, fixedParsed: parsed };
+  return { errors, fixedParsed: parsed };
 };
 
 const SUPREME_METADATA_PROTOCOL = `
@@ -223,7 +176,7 @@ STEP 1: VISUAL IDENTITY LOCK (MANDATORY)
 - Metadata WAJIB berakar HANYA dari observasi objek nyata ini.
 
 STEP 2: RUMUS PENULISAN JUDUL
-- FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Kondisi Komersial].
+- FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Konteks Komersial].
 - KATA PERTAMA: Harus berupa nama objek literal (Subjek Utama).
 - NO OPINIONS: Dilarang keras kata-kata seperti "beautiful, stunning, amazing, best quality".
 - DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur.
@@ -248,382 +201,382 @@ Anda WAJIB memberikan DUA jenis kategori untuk 2 platform yang berbeda secara be
 `;
 
 export const generateMetadataForFile = async (
-  fileItem: FileItem,
-  settings: AppSettings,
-  providedApiKey: string, 
-  mode: AppMode = 'metadata'
+  fileItem: FileItem,
+  settings: AppSettings,
+  providedApiKey: string, 
+  mode: AppMode = 'metadata'
 ): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; qcResult?: QcResult; }> => {
-  
-  const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
-  const actualApiKey = isCanvasMode 
-      ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
-      : providedApiKey;
+  
+  const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
+  const actualApiKey = isCanvasMode 
+      ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
+      : providedApiKey;
 
-  if (!isCanvasMode && !actualApiKey) {
-      throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
-  }
+  if (!isCanvasMode && !actualApiKey) {
+      throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
+  }
 
-  let targetModel = settings.geminiModel || 'gemini-2.5-flash';
-  if (isCanvasMode && targetModel === 'auto') {
-      targetModel = 'gemini-2.5-flash'; 
-  }
-  
-  try {
-    let systemInstruction = "";
-    let promptText = "";
-    let temperature = 0.1;
-    let outputSchema: any;
+  let targetModel = settings.geminiModel || 'gemini-2.5-flash';
+  if (isCanvasMode && targetModel === 'auto') {
+      targetModel = 'gemini-2.5-flash'; 
+  }
+  
+  try {
+    let systemInstruction = "";
+    let promptText = "";
+    let temperature = 0.1;
+    let outputSchema: any;
 
-    if (mode === 'metadata') {
-        
-        const listAdobe = CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
-        const listShutter = (fileItem.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES).map(c => `"${c.id}" = ${c.en}`).join('\n');
-        
-        const minChars = settings.titleMin || 50;
-        const maxChars = settings.titleMax || 150;
-        const kwTotal = settings.slideKeyword || 40;
+    if (mode === 'metadata') {
+        
+        const listAdobe = CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
+        const listShutter = (fileItem.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES).map(c => `"${c.id}" = ${c.en}`).join('\n');
+        
+        const minChars = settings.titleMin || 50;
+        const maxChars = settings.titleMax || 150;
+        const kwTotal = settings.slideKeyword || 40;
 
-        systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
-            .replace('[KW_COUNT]', kwTotal.toString());
+        systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
+            .replace('[KW_COUNT]', kwTotal.toString());
 
-        systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
-        
-        promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
-        
-        promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
-        promptText += `- PANJANG JUDUL (TITLE): WAJIB berukuran antara ${minChars} huruf hingga maksimal ${maxChars} huruf. Dilarang kurang dari ${minChars} dan dilarang lebih dari ${maxChars}!\n`;
-        promptText += `- JUMLAH KEYWORD: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
-        promptText += `- FORMAT KEYWORD: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
+        systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
+        
+        promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
+        
+        promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
+        promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
+        promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
+        promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
 
-        if (settings.customTitle || settings.customKeyword) {
-            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
-        }
-        if (settings.negativeMetadata) {
-            promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
-        }
+        if (settings.customTitle || settings.customKeyword) {
+            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
+        }
+        if (settings.negativeMetadata) {
+            promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
+        }
 
-        outputSchema = {
-          type: Type.OBJECT,
-          properties: {
-            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-            categoryAdobe: { type: Type.STRING }, 
-            categoryShutter: { type: Type.STRING } 
-          },
-          required: ["en", "ind", "categoryAdobe", "categoryShutter"]
-        };
+        outputSchema = {
+          type: Type.OBJECT,
+          properties: {
+            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
+            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
+            categoryAdobe: { type: Type.STRING }, 
+            categoryShutter: { type: Type.STRING } 
+          },
+          required: ["en", "ind", "categoryAdobe", "categoryShutter"]
+        };
 
-    } else if (mode === 'idea') {
-        temperature = 0.9;
-        outputSchema = {
-           type: Type.OBJECT,
-           properties: {
-              en_idea: { type: Type.STRING }, 
-              ind_idea: { type: Type.STRING }
-           },
-           required: ["en_idea", "ind_idea"]
-        };
+    } else if (mode === 'idea') {
+        temperature = 0.9;
+        outputSchema = {
+           type: Type.OBJECT,
+           properties: {
+              en_idea: { type: Type.STRING }, 
+              ind_idea: { type: Type.STRING }
+           },
+           required: ["en_idea", "ind_idea"]
+        };
 
-        const kategoriDipilih = settings.ideaCategory;
-        const instruksiPengguna = settings.ideaCustomInstruction;
+        const kategoriDipilih = settings.ideaCategory;
+        const instruksiPengguna = settings.ideaCustomInstruction;
 
-        systemInstruction = `Bertindak sebagai Senior Microstock Analyst. Berikan 1 ide konsep visual bernilai komersial tinggi.
-        TEMA/KATEGORI: ${kategoriDipilih}
-        ATURAN MUTLAK:
-        1. Output HANYA berupa kalimat ide yang sangat singkat (1 baris, maksimal 5-10 kata).
-        2. JANGAN sertakan judul, deskripsi panjang, atau keyword.
-        3. Hasilkan dalam field JSON 'en_idea' dan 'ind_idea'.`;
+        systemInstruction = `Bertindak sebagai Senior Microstock Analyst. Berikan 1 ide konsep visual bernilai komersial tinggi.
+        TEMA/KATEGORI: ${kategoriDipilih}
+        ATURAN MUTLAK:
+        1. Output HANYA berupa kalimat ide yang sangat singkat (1 baris, maksimal 5-10 kata).
+        2. JANGAN sertakan judul, deskripsi panjang, atau keyword.
+        3. Hasilkan dalam field JSON 'en_idea' dan 'ind_idea'.`;
 
-        promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Buat konsep serealistis mungkin."}"`;
-    
-    } else if (mode === 'prompt') {
-        temperature = 0.8;
-        outputSchema = {
-           type: Type.OBJECT,
-           properties: {
-              en_prompt: { type: Type.STRING }, 
-              ind_prompt: { type: Type.STRING }
-           },
-           required: ["en_prompt", "ind_prompt"]
-        };
+        promptText = `INSTRUKSI TAMBAHAN DARI PENGGUNA: \n"${instruksiPengguna ? instruksiPengguna : "Buat konsep serealistis mungkin."}"`;
+    
+    } else if (mode === 'prompt') {
+        temperature = 0.8;
+        outputSchema = {
+           type: Type.OBJECT,
+           properties: {
+              en_prompt: { type: Type.STRING }, 
+              ind_prompt: { type: Type.STRING }
+           },
+           required: ["en_prompt", "ind_prompt"]
+        };
 
-        const instruksiTambahan = settings.promptDescription ? `\nInstruksi Tambahan dari User: ${settings.promptDescription}` : "";
-        
-        if (settings.promptPlatform === 'text') {
-            systemInstruction = `Bertindak sebagai AI Prompt Engineer profesional. Tugas Anda adalah mengembangkan ide pendek menjadi sebuah prompt gambar/video yang sangat detail, spesifik, dan memukau untuk AI Image Generator (seperti Midjourney atau Stable Diffusion).
-            
-            ATURAN:
-            1. Buat prompt deskriptif yang mencakup subjek utama, pencahayaan, suasana (mood), sudut pandang kamera, dan gaya visual.
-            2. Jangan menambahkan penjelasan apapun di luar prompt.
-            3. Hasilkan dalam bahasa Inggris ('en_prompt') dan terjemahan akuratnya dalam bahasa Indonesia ('ind_prompt').`;
-            
-            promptText = `Kembangkan ide berikut menjadi sebuah prompt gambar yang sangat detail: "${settings.promptIdea}" ${instruksiTambahan}`;
-        } else {
-            systemInstruction = `Bertindak sebagai AI Vision Expert. Tugas Anda adalah menganalisa gambar/video ini dan mengubahnya menjadi sebuah prompt teks (reverse-prompting) yang sangat detail, agar AI Image Generator lain bisa membuat ulang gambar yang mirip.
-            
-            ATURAN:
-            1. Deskripsikan secara detail: Subjek utama, lingkungan/latar belakang, pencahayaan, warna dominan, dan gaya estetik (apakah foto realistis, vektor, ilustrasi, dll).
-            2. Jika ada instruksi tambahan dari user, gabungkan instruksi tersebut ke dalam prompt akhir.
-            3. Hasilkan dalam bahasa Inggris ('en_prompt') dan terjemahan akuratnya dalam bahasa Indonesia ('ind_prompt').`;
+        const instruksiTambahan = settings.promptDescription ? `\nInstruksi Tambahan dari User: ${settings.promptDescription}` : "";
+        
+        if (settings.promptPlatform === 'text') {
+            systemInstruction = `Bertindak sebagai AI Prompt Engineer profesional. Tugas Anda adalah mengembangkan ide pendek menjadi sebuah prompt gambar/video yang sangat detail, spesifik, dan memukau untuk AI Image Generator (seperti Midjourney atau Stable Diffusion).
+            
+            ATURAN:
+            1. Buat prompt deskriptif yang mencakup subjek utama, pencahayaan, suasana (mood), sudut pandang kamera, dan gaya visual.
+            2. Jangan menambahkan penjelasan apapun di luar prompt.
+            3. Hasilkan dalam bahasa Inggris ('en_prompt') dan terjemahan akuratnya dalam bahasa Indonesia ('ind_prompt').`;
+            
+            promptText = `Kembangkan ide berikut menjadi sebuah prompt gambar yang sangat detail: "${settings.promptIdea}" ${instruksiTambahan}`;
+        } else {
+            systemInstruction = `Bertindak sebagai AI Vision Expert. Tugas Anda adalah menganalisa gambar/video ini dan mengubahnya menjadi sebuah prompt teks (reverse-prompting) yang sangat detail, agar AI Image Generator lain bisa membuat ulang gambar yang mirip.
+            
+            ATURAN:
+            1. Deskripsikan secara detail: Subjek utama, lingkungan/latar belakang, pencahayaan, warna dominan, dan gaya estetik (apakah foto realistis, vektor, ilustrasi, dll).
+            2. Jika ada instruksi tambahan dari user, gabungkan instruksi tersebut ke dalam prompt akhir.
+            3. Hasilkan dalam bahasa Inggris ('en_prompt') dan terjemahan akuratnya dalam bahasa Indonesia ('ind_prompt').`;
 
-            promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
-        }
-    
-    } else if (mode === 'qc') {
-        temperature = 0.2; 
-        
-        systemInstruction = `Anda adalah Kurator dan Reviewer Agensi Microstock Galak (seperti Adobe Stock atau Shutterstock). Tugas Anda adalah mengkurasi kelayakan komersial, teknis, dan legal dari aset visual yang dikirim.
-        
-        ATURAN PENILAIAN STRICT:
-        1. score: Nilai 1-100 (Seberapa laku dan layak aset ini dijual).
-        2. status: Harus salah satu dari "Pass" (Lolos tanpa masalah), "Warning" (Ada catatan kecil), atau "Fail" (Ditolak mutlak karena cacat/melanggar).
-        3. technicalIssues: Array string. Sebutkan jika ada blur, noise parah, overexposed, pencahayaan buruk, atau cacat anatomi AI (jari aneh, dll). KOSONGKAN array jika kualitas teknis sempurna.
-        4. ipIssues: Array string. Sebutkan JIKA ADA PELANGGARAN HAK CIPTA/TRADEMARK (logo Nike, desain Apple, botol Coca-Cola, plat nomor mobil, atau wajah orang yang butuh rilis model). KOSONGKAN array jika murni aman.
-        5. commercialAdvice: 1-2 kalimat saran komersial dalam Bahasa Indonesia. Apa nilai jual gambar ini atau peringatan mengapa gambar ini akan ditolak kurator.`;
+            promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
+        }
+    
+    } else if (mode === 'qc') {
+        temperature = 0.2; 
+        
+        systemInstruction = `Anda adalah Kurator dan Reviewer Agensi Microstock Galak (seperti Adobe Stock atau Shutterstock). Tugas Anda adalah mengkurasi kelayakan komersial, teknis, dan legal dari aset visual yang dikirim.
+        
+        ATURAN PENILAIAN STRICT:
+        1. score: Nilai 1-100 (Seberapa laku dan layak aset ini dijual).
+        2. status: Harus salah satu dari "Pass" (Lolos tanpa masalah), "Warning" (Ada catatan kecil), atau "Fail" (Ditolak mutlak karena cacat/melanggar).
+        3. technicalIssues: Array string. Sebutkan jika ada blur, noise parah, overexposed, pencahayaan buruk, atau cacat anatomi AI (jari aneh, dll). KOSONGKAN array jika kualitas teknis sempurna.
+        4. ipIssues: Array string. Sebutkan JIKA ADA PELANGGARAN HAK CIPTA/TRADEMARK (logo Nike, desain Apple, botol Coca-Cola, plat nomor mobil, atau wajah orang yang butuh rilis model). KOSONGKAN array jika murni aman.
+        5. commercialAdvice: 1-2 kalimat saran komersial dalam Bahasa Indonesia. Apa nilai jual gambar ini atau peringatan mengapa gambar ini akan ditolak kurator.`;
 
-        promptText = `Analisis gambar/video ini secara mendalam seperti seorang kurator galak. Periksa cacat teknis, cacat AI, potensi pelanggaran hak cipta, dan nilai komersialnya.`;
+        promptText = `Analisis gambar/video ini secara mendalam seperti seorang kurator galak. Periksa cacat teknis, cacat AI, potensi pelanggaran hak cipta, dan nilai komersialnya.`;
 
-        outputSchema = {
-          type: Type.OBJECT,
-          properties: {
-            score: { type: Type.INTEGER },
-            status: { type: Type.STRING },
-            technicalIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
-            ipIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
-            commercialAdvice: { type: Type.STRING }
-          },
-          required: ["score", "status", "technicalIssues", "ipIssues", "commercialAdvice"]
-        };
-    }
+        outputSchema = {
+          type: Type.OBJECT,
+          properties: {
+            score: { type: Type.INTEGER },
+            status: { type: Type.STRING },
+            technicalIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
+            ipIssues: { type: Type.ARRAY, items: { type: Type.STRING } },
+            commercialAdvice: { type: Type.STRING }
+          },
+          required: ["score", "status", "technicalIssues", "ipIssues", "commercialAdvice"]
+        };
+    }
 
-    let attempt = 0;
-    let maxAttempts = 3; 
-    let finalParsed: any = null;
-    let activePromptText = promptText;
+    let attempt = 0;
+    let maxAttempts = 3; // Naik jadi 3x percobaan buat AI yang lelet mikir
+    let finalParsed: any = null;
+    let activePromptText = promptText;
 
-    while (attempt < maxAttempts) {
-        let parts: any[] = [];
-        
-        if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-          parts = [{ text: activePromptText }];
-        } else {
-          if (fileItem.type === FileType.Video) {
-            const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
-            parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-            parts.push({ text: activePromptText });
-          } else {
-            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-              : await compressImage(fileItem.file);
-            parts = [mediaPart, { text: activePromptText }];
-          }
-        }
+    while (attempt < maxAttempts) {
+        let parts: any[] = [];
+        
+        if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+          parts = [{ text: activePromptText }];
+        } else {
+          if (fileItem.type === FileType.Video) {
+            const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
+            parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+            parts.push({ text: activePromptText });
+          } else {
+            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+              : await compressImage(fileItem.file);
+            parts = [mediaPart, { text: activePromptText }];
+          }
+        }
 
-        let parsed: any;
+        let parsed: any;
 
-        if (settings.apiProvider === 'GROQ API') {
-            const messages = [];
-            
-            let expectedJsonSchema = "";
-            if (mode === 'metadata') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
-            } else if (mode === 'idea') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
-            } else if (mode === 'prompt') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
-            } else if (mode === 'qc') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
-            }
-            
-            const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
-            
-            if (systemInstruction) {
-                messages.push({ role: "system", content: groqSystemInstruction });
-            }
-            
-            let hasImage = false;
-            const userContent: any[] = [];
-            
-            for (const part of parts) {
-                if (part.text) {
-                    userContent.push({ type: "text", text: part.text });
-                } else if (part.inlineData) {
-                    hasImage = true;
-                    userContent.push({
-                        type: "image_url",
-                        image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
-                    });
-                }
-            }
-            
-            messages.push({ role: "user", content: hasImage ? userContent : activePromptText });
+        if (settings.apiProvider === 'GROQ API') {
+            const messages = [];
+            
+            let expectedJsonSchema = "";
+            if (mode === 'metadata') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
+            } else if (mode === 'idea') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
+            } else if (mode === 'prompt') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
+            } else if (mode === 'qc') {
+                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
+            }
+            
+            const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
+            
+            if (systemInstruction) {
+                messages.push({ role: "system", content: groqSystemInstruction });
+            }
+            
+            let hasImage = false;
+            const userContent: any[] = [];
+            
+            for (const part of parts) {
+                if (part.text) {
+                    userContent.push({ type: "text", text: part.text });
+                } else if (part.inlineData) {
+                    hasImage = true;
+                    userContent.push({
+                        type: "image_url",
+                        image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+                    });
+                }
+            }
+            
+            messages.push({ role: "user", content: hasImage ? userContent : activePromptText });
 
-            const payload = {
-                model: targetModel,
-                messages: messages,
-                temperature: temperature,
-                response_format: { type: "json_object" }
-            };
+            const payload = {
+                model: targetModel,
+                messages: messages,
+                temperature: temperature,
+                response_format: { type: "json_object" }
+            };
 
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${actualApiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${actualApiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
-            }
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
+            }
 
-            const data = await response.json();
-            const textResponse = data.choices[0].message.content;
-            
-            const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-            parsed = JSON.parse(cleanJson);
+            const data = await response.json();
+            const textResponse = data.choices[0].message.content;
+            
+            const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+            parsed = JSON.parse(cleanJson);
 
-        } else {
-            const ai = new GoogleGenAI({ apiKey: actualApiKey });
-            const response: any = await ai.models.generateContent({
-              model: targetModel,
-              contents: { parts },
-              config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
-            });
-            
-            parsed = JSON.parse(response.text);
-        }
+        } else {
+            const ai = new GoogleGenAI({ apiKey: actualApiKey });
+            const response: any = await ai.models.generateContent({
+              model: targetModel,
+              contents: { parts },
+              config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
+            });
+            
+            parsed = JSON.parse(response.text);
+        }
 
-        // === PENGECEKAN & PENJAGALAN OLEH MANDOR ===
-        if (mode === 'metadata') {
-            const { errors, fixedParsed } = validateAndFixMetadata(parsed, settings);
-            finalParsed = fixedParsed; // Update dengan versi yang udah ditebas otomatis
-            
-            if (errors.length === 0 || attempt === maxAttempts - 1) {
-                break; // Lolos tanpa cela ATAU nyerah karena udah 3x percobaan (minimal keyword udah ditebas sempurna)
-            } else {
-                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI SEKARANG JUGA! Hasilkan ulang sesuai standar!`;
-                attempt++;
-                console.warn(`Auto-correction triggered (Attempt ${attempt}). Errors:`, errors);
-            }
-        } else {
-            finalParsed = parsed;
-            break;
-        }
-    }
+        // === PENGECEKAN & PENJAGALAN OLEH MANDOR ===
+        if (mode === 'metadata') {
+            const { errors, fixedParsed } = validateAndFixMetadata(parsed, settings);
+            finalParsed = fixedParsed; // Update dengan versi yang udah ditebas otomatis
+            
+            if (errors.length === 0 || attempt === maxAttempts - 1) {
+                break; // Lolos tanpa cela ATAU nyerah karena udah 3x percobaan (minimal keyword udah ditebas sempurna)
+            } else {
+                activePromptText = promptText + `\n\n[SYSTEM REJECTION: JSON SEBELUMNYA GAGAL!]\nSistem menolak metadata Anda karena kesalahan berikut:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI SEKARANG JUGA! Hasilkan ulang sesuai standar!`;
+                attempt++;
+                console.warn(`Auto-correction triggered (Attempt ${attempt}). Errors:`, errors);
+            }
+        } else {
+            finalParsed = parsed;
+            break;
+        }
+    }
 
-    if (mode === 'idea') {
-        return {
-            metadata: {
-                en: { title: finalParsed.en_idea, keywords: "" },
-                ind: { title: finalParsed.ind_idea, keywords: "" },
-                category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
-            }
-        };
-    } else if (mode === 'prompt') {
-        return {
-            metadata: {
-                en: { title: finalParsed.en_prompt, keywords: "" },
-                ind: { title: finalParsed.ind_prompt, keywords: "" },
-                category: 'Prompt'
-            }
-        };
-    } else if (mode === 'qc') {
-        return {
-            metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, 
-            qcResult: {
-                score: finalParsed.score,
-                status: finalParsed.status,
-                technicalIssues: finalParsed.technicalIssues || [],
-                ipIssues: finalParsed.ipIssues || [],
-                commercialAdvice: finalParsed.commercialAdvice
-            }
-        };
-    }
+    if (mode === 'idea') {
+        return {
+            metadata: {
+                en: { title: finalParsed.en_idea, keywords: "" },
+                ind: { title: finalParsed.ind_idea, keywords: "" },
+                category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
+            }
+        };
+    } else if (mode === 'prompt') {
+        return {
+            metadata: {
+                en: { title: finalParsed.en_prompt, keywords: "" },
+                ind: { title: finalParsed.ind_prompt, keywords: "" },
+                category: 'Prompt'
+            }
+        };
+    } else if (mode === 'qc') {
+        return {
+            metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, 
+            qcResult: {
+                score: finalParsed.score,
+                status: finalParsed.status,
+                technicalIssues: finalParsed.technicalIssues || [],
+                ipIssues: finalParsed.ipIssues || [],
+                commercialAdvice: finalParsed.commercialAdvice
+            }
+        };
+    }
 
-    return {
-      metadata: { 
-        en: { title: finalParsed.en?.title || "", keywords: finalParsed.en?.keywords || "" }, 
-        ind: { title: finalParsed.ind?.title || "", keywords: finalParsed.ind?.keywords || "" }, 
-        category: finalParsed.categoryAdobe || "2", 
-        categoryShutter: finalParsed.categoryShutter || "" 
-      }
-    };
-  } catch (error: any) {
-    throw error;
-  }
+    return {
+      metadata: { 
+        en: { title: finalParsed.en?.title || "", keywords: finalParsed.en?.keywords || "" }, 
+        ind: { title: finalParsed.ind?.title || "", keywords: finalParsed.ind?.keywords || "" }, 
+        category: finalParsed.categoryAdobe || "2", 
+        categoryShutter: finalParsed.categoryShutter || "" 
+      }
+    };
+  } catch (error: any) {
+    throw error;
+  }
 };
 
 export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = "", apiProvider: string = 'GEMINI CANVAS', groqModel: string = 'qwen/qwen3-32b'): Promise<{ title: string; keywords: string }> => {
-  const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
-  
-  if (!actualApiKey) {
-      console.warn("Translation skipped: No API Key available");
-      return content; 
-  }
+  const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
+  
+  if (!actualApiKey) {
+      console.warn("Translation skipped: No API Key available");
+      return content; 
+  }
 
-  const instruction = `Translate the following text to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}. Return ONLY valid JSON: {"title": "translated string"}. Text: "${content.title}"`;
+  const instruction = `Translate the following text to ${sourceLanguage === 'ENG' ? 'Indonesian' : 'English'}. Return ONLY valid JSON: {"title": "translated string"}. Text: "${content.title}"`;
 
-  if (apiProvider === 'GROQ API') {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${actualApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              model: groqModel,
-              messages: [{ role: "user", content: instruction }],
-              temperature: 0.1,
-              response_format: { type: "json_object" }
-          })
-      });
-      if (response.ok) {
-          const data = await response.json();
-          const cleanJson = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
-          return { title: JSON.parse(cleanJson).title, keywords: content.keywords };
-      }
-      return content;
-  } else {
-      const ai = new GoogleGenAI({ apiKey: actualApiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash', 
-        contents: instruction,
-        config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
-      });
-      return { title: JSON.parse(response.text).title, keywords: content.keywords };
-  }
+  if (apiProvider === 'GROQ API') {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${actualApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              model: groqModel,
+              messages: [{ role: "user", content: instruction }],
+              temperature: 0.1,
+              response_format: { type: "json_object" }
+          })
+      });
+      if (response.ok) {
+          const data = await response.json();
+          const cleanJson = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
+          return { title: JSON.parse(cleanJson).title, keywords: content.keywords };
+      }
+      return content;
+  } else {
+      const ai = new GoogleGenAI({ apiKey: actualApiKey });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash', 
+        contents: instruction,
+        config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
+      });
+      return { title: JSON.parse(response.text).title, keywords: content.keywords };
+  }
 };
 
 export const translateText = async (text: string, targetLang: string, settings: AppSettings, providedApiKey: string = ""): Promise<string> => {
-    const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
-    const actualApiKey = isCanvasMode 
-        ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
-        : providedApiKey;
-        
-    if (!actualApiKey) return text;
+    const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
+    const actualApiKey = isCanvasMode 
+        ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
+        : providedApiKey;
+        
+    if (!actualApiKey) return text;
 
-    if (settings.apiProvider === 'GROQ API') {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${actualApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: settings.geminiModel || 'qwen/qwen3-32b',
-                messages: [{ role: "user", content: `Translate text to ${targetLang}: ${text}` }],
-                temperature: 0.1
-            })
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.choices[0].message.content || text;
-        }
-        return text;
-    } else {
-        const ai = new GoogleGenAI({ apiKey: actualApiKey });
-        const response = await ai.models.generateContent({
-          model: settings.geminiModel || 'gemini-2.5-flash',
-          contents: `Translate text to ${targetLang}: ${text}`,
-          config: { temperature: 0.1 }
-        });
-        return response.text || text;
-    }
+    if (settings.apiProvider === 'GROQ API') {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${actualApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: settings.geminiModel || 'qwen/qwen3-32b',
+                messages: [{ role: "user", content: `Translate text to ${targetLang}: ${text}` }],
+                temperature: 0.1
+            })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.choices[0].message.content || text;
+        }
+        return text;
+    } else {
+        const ai = new GoogleGenAI({ apiKey: actualApiKey });
+        const response = await ai.models.generateContent({
+          model: settings.geminiModel || 'gemini-2.5-flash',
+          contents: `Translate text to ${targetLang}: ${text}`,
+          config: { temperature: 0.1 }
+        });
+        return response.text || text;
+    }
 };
