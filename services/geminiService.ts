@@ -105,63 +105,110 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
 // === FUNGSI JAGAL OTOMATIS & MANDOR PENGECEK (HARD-CODED FIXER) 💥 ===
 const validateAndFixMetadata = (parsed: any, settings: AppSettings) => {
   const errors: string[] = [];
-  const titleEn = parsed.en?.title || "";
-  const rawKwEn = parsed.en?.keywords || "";
+  let titleEn = parsed.en?.title || "";
+  let titleInd = parsed.ind?.title || "";
+  let rawKwEn = parsed.en?.keywords || "";
   
   const minT = settings.titleMin || 50;
   const maxT = settings.titleMax || 150;
   const targetK = settings.slideKeyword || 40;
 
-  // 1. TUKANG JAGAL KEYWORD (Otomatis benerin tanpa nanya AI)
-  let kwArray = rawKwEn
-      .replace(/,/g, ' ') // Ubah semua koma jadi spasi dulu
-      .split(/\s+/) // Pecah otomatis kalau ada spasi (Misal "baju merah" jadi "baju", "merah")
-      .map((k: string) => k.trim().toLowerCase()) // Bersihkan dan kecilkan huruf
-      .filter((k: string) => k.length > 2); // Buang kata sampah yang cuma 1-2 huruf
+  // --- 1. TUKANG JAGAL KEYWORD (Otomatis benerin) ---
+  let kwArray = rawKwEn.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
 
-  // Hapus kata terlarang otomatis
   if (settings.negativeMetadata) {
       const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
       kwArray = kwArray.filter((k: string) => !negWords.some(nw => k.includes(nw)));
   }
 
-  // Hapus kata duplikat
   kwArray = [...new Set(kwArray)];
 
-  // EKSEKUSI JUMLAH KEYWORD
   if (kwArray.length > targetK) {
-      // Kalau AI bandel ngasih 60 keyword, langsung TEBAS jadi 40 otomatis!
-      kwArray = kwArray.slice(0, targetK);
+      kwArray = kwArray.slice(0, targetK); // Potong otomatis kelebihan
   } else if (kwArray.length < targetK) {
-      // Nah kalau kurang, baru kita marahin AI-nya buat mikir lagi.
-      errors.push(`Keyword Anda hanya ${kwArray.length} setelah dibersihkan. WAJIB tepat ${targetK} keyword tunggal. Tambahkan ${targetK - kwArray.length} keyword relevan lagi!`);
+      errors.push(`Keyword unik kurang (${kwArray.length}/${targetK}). AI butuh revisi.`);
   }
 
-  // Simpan hasil tebasan ke JSON aslinya
   parsed.en.keywords = kwArray.join(', ');
-  
-  // Sinkronkan jumlah keyword Indonesia biar nggak jomplang
+
+  let kwIndArray: string[] = [];
   if (parsed.ind?.keywords) {
-      let kwIndArray = parsed.ind.keywords.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
+      kwIndArray = parsed.ind.keywords.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
       kwIndArray = [...new Set(kwIndArray)].slice(0, kwArray.length);
       parsed.ind.keywords = kwIndArray.join(', ');
   } else {
+      kwIndArray = [...kwArray];
       parsed.ind = { ...parsed.ind, keywords: parsed.en.keywords };
   }
 
-  // 2. CEK PANJANG JUDUL (Nggak bisa ditebas otomatis, AI harus nulis ulang)
+  // --- 2. CEK JUDUL (Mandor Looping) ---
+  titleEn = titleEn.trim();
+  titleInd = titleInd.trim();
+
+  // Cek untuk Judul Inggris
   if (titleEn.length < minT || titleEn.length > maxT) {
-      errors.push(`Panjang Judul (Title) saat ini ${titleEn.length} karakter. Anda WAJIB menulis ulang judul menjadi antara ${minT} hingga ${maxT} karakter.`);
+      errors.push(`Panjang Judul English (${titleEn.length}) tidak sesuai standar (${minT}-${maxT}). AI butuh revisi.`);
   }
 
-  // Cek Kata Terlarang di Judul
+  // Cek untuk Judul Indonesia
+  if (titleInd.length < minT || titleInd.length > maxT) {
+      errors.push(`Panjang Judul Indonesia (${titleInd.length}) tidak sesuai standar (${minT}-${maxT}). AI butuh revisi.`);
+  }
+
+  // Cek Kata Terlarang
   if (settings.negativeMetadata) {
       const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
-      const foundInTitle = negWords.filter(nw => titleEn.toLowerCase().includes(nw));
-      if (foundInTitle.length > 0) {
-          errors.push(`Judul mengandung kata terlarang: "${foundInTitle.join(', ')}". Ganti kata tersebut!`);
+      const foundInTitleEn = negWords.filter(nw => titleEn.toLowerCase().includes(nw));
+      if (foundInTitleEn.length > 0) {
+          errors.push(`Judul English mengandung kata terlarang: "${foundInTitleEn.join(', ')}". AI butuh revisi.`);
+      }
+      const foundInTitleInd = negWords.filter(nw => titleInd.toLowerCase().includes(nw));
+      if (foundInTitleInd.length > 0) {
+          errors.push(`Judul Indonesia mengandung kata terlarang: "${foundInTitleInd.join(', ')}". AI butuh revisi.`);
       }
   }
+
+  // === 3. FINAL FAILSAFE (JAGAL JUDUL PERMANEN) 💥🔫 ===
+  // Jika 'errors' kosong, berarti judul sudah pas.
+  // Jika 'errors' ada isinya, kita TETAP harus paksa tebas/tambal di sini 
+  // agar hasil finalParsed (di while loop luar) selalu pas angkanya 
+  // sebelum break karena maxAttempts.
+
+  // --- Jagal/Tambal English Title ---
+  if (titleEn.length > maxT) {
+      // Kebanyakan: Potong pinter cari spasi
+      let truncated = titleEn.substring(0, maxT);
+      let lastSpace = truncated.lastIndexOf(' ');
+      titleEn = lastSpace > 0 ? truncated.substring(0, lastSpace).trim() : truncated.trim();
+  } else if (titleEn.length < minT) {
+      // Kekurangan: Tambal pakai array keyword
+      let padKws = [...kwArray];
+      while (titleEn.length < minT && padKws.length > 0) {
+          let nextWord = padKws.shift();
+          if (nextWord && !titleEn.toLowerCase().includes(nextWord)) {
+              titleEn += ` ${nextWord}`;
+          }
+      }
+      if (titleEn.length > maxT) titleEn = titleEn.substring(0, maxT).trim(); // safety cut
+  }
+  parsed.en.title = titleEn;
+
+  // --- Jagal/Tambal Indonesia Title ---
+  if (titleInd.length > maxT) {
+      let truncated = titleInd.substring(0, maxT);
+      let lastSpace = truncated.lastIndexOf(' ');
+      titleInd = lastSpace > 0 ? truncated.substring(0, lastSpace).trim() : truncated.trim();
+  } else if (titleInd.length < minT) {
+      let padKwsInd = [...kwIndArray];
+      while (titleInd.length < minT && padKwsInd.length > 0) {
+          let nextWord = padKwsInd.shift();
+          if (nextWord && !titleInd.toLowerCase().includes(nextWord)) {
+              titleInd += ` ${nextWord}`;
+          }
+      }
+      if (titleInd.length > maxT) titleInd = titleInd.substring(0, maxT).trim(); // safety cut
+  }
+  parsed.ind.title = titleInd;
 
   return { errors, fixedParsed: parsed };
 };
@@ -176,7 +223,7 @@ STEP 1: VISUAL IDENTITY LOCK (MANDATORY)
 - Metadata WAJIB berakar HANYA dari observasi objek nyata ini.
 
 STEP 2: RUMUS PENULISAN JUDUL
-- FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Konteks Komersial].
+- FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Kondisi Komersial].
 - KATA PERTAMA: Harus berupa nama objek literal (Subjek Utama).
 - NO OPINIONS: Dilarang keras kata-kata seperti "beautiful, stunning, amazing, best quality".
 - DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur.
@@ -244,9 +291,9 @@ export const generateMetadataForFile = async (
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
         promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
-        promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
-        promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
-        promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
+        promptText += `- PANJANG JUDUL (TITLE): WAJIB berukuran antara ${minChars} huruf hingga maksimal ${maxChars} huruf. Dilarang kurang dari ${minChars} dan dilarang lebih dari ${maxChars}!\n`;
+        promptText += `- JUMLAH KEYWORD: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
+        promptText += `- FORMAT KEYWORD: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
 
         if (settings.customTitle || settings.customKeyword) {
             promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
@@ -350,7 +397,7 @@ export const generateMetadataForFile = async (
     }
 
     let attempt = 0;
-    let maxAttempts = 3; // Naik jadi 3x percobaan buat AI yang lelet mikir
+    let maxAttempts = 3; 
     let finalParsed: any = null;
     let activePromptText = promptText;
 
