@@ -102,7 +102,7 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
   });
 };
 
-// === FUNGSI JAGAL KEYWORD & MANDOR JUDUL (HYBRID) 💥 ===
+// === FUNGSI JAGAL KEYWORD & MANDOR JUDUL (KHUSUS UNTUK GROQ API) 💥 ===
 const validateAndFixMetadata = (parsed: any, settings: AppSettings) => {
   const errors: string[] = [];
   const titleEn = parsed.en?.title || "";
@@ -212,6 +212,7 @@ export const generateMetadataForFile = async (
 ): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; qcResult?: QcResult; }> => {
   
   const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
+  const isGroq = settings.apiProvider === 'GROQ API'; // Deteksi jika menggunakan Groq
   const actualApiKey = isCanvasMode 
       ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
       : providedApiKey;
@@ -220,9 +221,9 @@ export const generateMetadataForFile = async (
       throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
   }
 
-  let targetModel = settings.geminiModel || 'gemini-2.5-flash';
+  let targetModel = settings.geminiModel || 'gemini-3.1-pro';
   if (isCanvasMode && targetModel === 'auto') {
-      targetModel = 'gemini-2.5-flash'; 
+      targetModel = 'gemini-3.1-pro'; 
   }
   
   try {
@@ -232,31 +233,37 @@ export const generateMetadataForFile = async (
     let outputSchema: any;
 
     if (mode === 'metadata') {
-        
         const listAdobe = CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
         const listShutter = (fileItem.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES).map(c => `"${c.id}" = ${c.en}`).join('\n');
         
         const minChars = settings.titleMin || 50;
         const maxChars = settings.titleMax || 150;
         const kwTotal = settings.slideKeyword || 40;
-        const kwTargetAI = kwTotal + 15; // Minta berlebih biar dipotong mandor pas sesuai target!
 
-        systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`;
+        // Jika Groq, minta stok keyword dilebihkan
+        const kwTargetAI = isGroq ? kwTotal + 15 : kwTotal;
 
+        systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
+            .replace('[KW_COUNT]', kwTargetAI.toString());
+
+        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.`;
         systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
-        promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
-        promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
-        promptText += `- KEYWORD COUNT: Kami butuh stok kata! Hasilkan minimal ${kwTargetAI} kata kunci (dipisah koma).\n`;
-        promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
+        // Khusus Groq, kita perketat prompt-nya agar natural dan nggak perlu motong-motong
+        if (isGroq) {
+            promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
+            promptText += `- TITLE LENGTH: WAJIB sangat detail (gabungkan Objek Utama + Aksi + Latar Belakang + Pencahayaan) agar panjang kalimat pasti masuk di antara ${minChars} hingga ${maxChars} karakter.\n`;
+            promptText += `- KEYWORD COUNT: Kami butuh stok kata! WAJIB hasilkan minimal ${kwTargetAI} kata kunci (dipisah koma).\n`;
+            promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
+        }
 
         if (settings.customTitle || settings.customKeyword) {
-            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
+            promptText += `\n\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
         }
         if (settings.negativeMetadata) {
-            promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
+            promptText += `\n\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
         }
 
         outputSchema = {
@@ -325,7 +332,6 @@ export const generateMetadataForFile = async (
 
             promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
         }
-    
     } else if (mode === 'qc') {
         temperature = 0.2; 
         
@@ -353,32 +359,34 @@ export const generateMetadataForFile = async (
         };
     }
 
-    let attempt = 0;
-    let maxAttempts = 3; 
     let finalParsed: any = null;
-    let activePromptText = promptText;
 
-    while (attempt < maxAttempts) {
-        let parts: any[] = [];
-        
-        if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-          parts = [{ text: activePromptText }];
-        } else {
-          if (fileItem.type === FileType.Video) {
-            const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
-            parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-            parts.push({ text: activePromptText });
-          } else {
-            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-              : await compressImage(fileItem.file);
-            parts = [mediaPart, { text: activePromptText }];
-          }
-        }
+    // ==========================================
+    // JALUR 1: JALUR KHUSUS GROQ API (Pakai Looping & Mandor)
+    // ==========================================
+    if (isGroq) {
+        let attempt = 0;
+        let maxAttempts = 3; 
+        let activePromptText = promptText;
 
-        let parsed: any;
+        while (attempt < maxAttempts) {
+            let parts: any[] = [];
+            
+            if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+              parts = [{ text: activePromptText }];
+            } else {
+              if (fileItem.type === FileType.Video) {
+                const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
+                parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+                parts.push({ text: activePromptText });
+              } else {
+                const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+                  ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+                  : await compressImage(fileItem.file);
+                parts = [mediaPart, { text: activePromptText }];
+              }
+            }
 
-        if (settings.apiProvider === 'GROQ API') {
             const messages = [];
             
             let expectedJsonSchema = "";
@@ -438,39 +446,60 @@ export const generateMetadataForFile = async (
 
             const data = await response.json();
             const textResponse = data.choices[0].message.content;
-            
             const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-            parsed = JSON.parse(cleanJson);
+            let parsed = JSON.parse(cleanJson);
 
-        } else {
-            const ai = new GoogleGenAI({ apiKey: actualApiKey });
-            const response: any = await ai.models.generateContent({
-              model: targetModel,
-              contents: { parts },
-              config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
-            });
-            
-            parsed = JSON.parse(response.text);
-        }
-
-        // === PENGECEKAN HYBRID OLEH MANDOR ===
-        if (mode === 'metadata') {
-            const { errors, fixedParsed } = validateAndFixMetadata(parsed, settings);
-            finalParsed = fixedParsed; // Keywords dipotong, tapi Judul dibiarkan kalau salah biar AI disuruh ngulang
-            
-            if (errors.length === 0 || attempt === maxAttempts - 1) {
-                break; 
+            // PENGECEKAN MANDOR (KHUSUS GROQ)
+            if (mode === 'metadata') {
+                const { errors, fixedParsed } = validateAndFixMetadata(parsed, settings);
+                finalParsed = fixedParsed; 
+                
+                if (errors.length === 0 || attempt === maxAttempts - 1) {
+                    break; 
+                } else {
+                    activePromptText = promptText + `\n\n[SYSTEM REJECTION: HASIL SEBELUMNYA DITOLAK!]\nMetadata Anda ditolak karena:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI SEKARANG JUGA SESUAI ATURAN!`;
+                    attempt++;
+                    console.warn(`Groq Auto-correction triggered (Attempt ${attempt}). Errors:`, errors);
+                }
             } else {
-                activePromptText = promptText + `\n\n[SYSTEM REJECTION: HASIL SEBELUMNYA DITOLAK!]\nMetadata Anda ditolak karena:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI SEKARANG JUGA SESUAI ATURAN!`;
-                attempt++;
-                console.warn(`Auto-correction triggered (Attempt ${attempt}). Errors:`, errors);
+                finalParsed = parsed;
+                break;
             }
-        } else {
-            finalParsed = parsed;
-            break;
         }
+    } 
+    // ==========================================
+    // JALUR 2: JALUR ASLI GEMINI (Lancar & Polos)
+    // ==========================================
+    else {
+        let parts: any[] = [];
+        
+        if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+          parts = [{ text: promptText }];
+        } else {
+          if (fileItem.type === FileType.Video) {
+            const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
+            parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+            parts.push({ text: promptText });
+          } else {
+            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+              : await compressImage(fileItem.file);
+            parts = [mediaPart, { text: promptText }];
+          }
+        }
+
+        const ai = new GoogleGenAI({ apiKey: actualApiKey });
+        const response: any = await ai.models.generateContent({
+          model: targetModel,
+          contents: { parts },
+          config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
+        });
+        
+        finalParsed = JSON.parse(response.text);
+        // GEMINI TIDAK DI CEK MANDOR, KARENA SUDAH PINTAR
     }
 
+    // === RETURN SESUAI FORMAT ===
     if (mode === 'idea') {
         return {
             metadata: {
@@ -513,7 +542,13 @@ export const generateMetadataForFile = async (
   }
 };
 
-export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = "", apiProvider: string = 'GEMINI CANVAS', groqModel: string = 'qwen/qwen3-32b'): Promise<{ title: string; keywords: string }> => {
+export const translateMetadataContent = async (
+  content: { title: string; keywords: string }, 
+  sourceLanguage: Language, 
+  providedApiKey: string = "",
+  apiProvider: string = 'GEMINI CANVAS', 
+  groqModel: string = 'qwen/qwen3-32b'
+): Promise<{ title: string; keywords: string }> => {
   const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
   
   if (!actualApiKey) {
@@ -543,7 +578,7 @@ export const translateMetadataContent = async (content: { title: string; keyword
   } else {
       const ai = new GoogleGenAI({ apiKey: actualApiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash', 
+        model: 'gemini-3.1-flash', 
         contents: instruction,
         config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
       });
@@ -577,7 +612,7 @@ export const translateText = async (text: string, targetLang: string, settings: 
     } else {
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
         const response = await ai.models.generateContent({
-          model: settings.geminiModel || 'gemini-2.5-flash',
+          model: settings.geminiModel || 'gemini-3.1-flash',
           contents: `Translate text to ${targetLang}: ${text}`,
           config: { temperature: 0.1 }
         });
