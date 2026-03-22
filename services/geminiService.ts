@@ -102,74 +102,6 @@ const compressImage = async (file: File): Promise<{ inlineData: { data: string; 
   });
 };
 
-// === FUNGSI JAGAL KEYWORD & MANDOR JUDUL (KHUSUS UNTUK GROQ API) 💥 ===
-const validateAndFixMetadata = (parsed: any, settings: AppSettings) => {
-  const errors: string[] = [];
-  const titleEn = parsed.en?.title || "";
-  const titleInd = parsed.ind?.title || "";
-  const rawKwEn = parsed.en?.keywords || "";
-  
-  const minT = settings.titleMin || 50;
-  const maxT = settings.titleMax || 150;
-  const targetK = settings.slideKeyword || 40;
-
-  // 1. TUKANG JAGAL KEYWORD (Otomatis benerin spasi & potong kelebihan, tanpa nambah)
-  let kwArray = rawKwEn
-      .replace(/,/g, ' ') 
-      .split(/\s+/) 
-      .map((k: string) => k.trim().toLowerCase()) 
-      .filter((k: string) => k.length > 2); 
-
-  if (settings.negativeMetadata) {
-      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
-      kwArray = kwArray.filter((k: string) => !negWords.some(nw => k.includes(nw)));
-  }
-
-  kwArray = [...new Set(kwArray)]; // Hapus duplikat
-
-  // EKSEKUSI JUMLAH KEYWORD
-  if (kwArray.length > targetK) {
-      kwArray = kwArray.slice(0, targetK); // Potong otomatis kelebihan
-  } else if (kwArray.length < targetK) {
-      // AI gagal ngasih stok berlebih, disuruh ulang
-      errors.push(`Keyword Anda hanya ${kwArray.length} setelah dibersihkan. WAJIB tepat ${targetK} keyword tunggal. Berikan stok keyword yang lebih banyak!`);
-  }
-
-  parsed.en.keywords = kwArray.join(', ');
-  
-  // Sinkronkan jumlah keyword Indonesia
-  if (parsed.ind?.keywords) {
-      let kwIndArray = parsed.ind.keywords.replace(/,/g, ' ').split(/\s+/).map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 2);
-      kwIndArray = [...new Set(kwIndArray)].slice(0, kwArray.length);
-      parsed.ind.keywords = kwIndArray.join(', ');
-  } else {
-      parsed.ind = { ...parsed.ind, keywords: parsed.en.keywords };
-  }
-
-  // 2. MANDOR JUDUL (Nggak potong/nambah, murni nyuruh ulang kalau salah)
-  if (titleEn.length < minT || titleEn.length > maxT) {
-      errors.push(`Panjang Judul English saat ini ${titleEn.length} karakter. Anda WAJIB menyesuaikan ulang judul menjadi antara ${minT} hingga ${maxT} karakter.`);
-  }
-  if (titleInd.length > 0 && (titleInd.length < minT || titleInd.length > maxT)) {
-      errors.push(`Panjang Judul Indonesia saat ini ${titleInd.length} karakter. Anda WAJIB menyesuaikan ulang judul menjadi antara ${minT} hingga ${maxT} karakter.`);
-  }
-
-  // Cek Kata Terlarang di Judul
-  if (settings.negativeMetadata) {
-      const negWords = settings.negativeMetadata.split(',').map((w: string) => w.trim().toLowerCase()).filter((w: string) => w.length > 0);
-      const foundInTitleEn = negWords.filter(nw => titleEn.toLowerCase().includes(nw));
-      if (foundInTitleEn.length > 0) {
-          errors.push(`Judul English mengandung kata terlarang: "${foundInTitleEn.join(', ')}". Ganti kata tersebut!`);
-      }
-      const foundInTitleInd = negWords.filter(nw => titleInd.toLowerCase().includes(nw));
-      if (foundInTitleInd.length > 0) {
-          errors.push(`Judul Indonesia mengandung kata terlarang: "${foundInTitleInd.join(', ')}". Ganti kata tersebut!`);
-      }
-  }
-
-  return { errors, fixedParsed: parsed };
-};
-
 const SUPREME_METADATA_PROTOCOL = `
 ### SUPREME STOCK METADATA SEO PROTOCOL (LITERAL ANALYSIS ONLY) ###
 Anda adalah Analis SEO Microstock Elit. Ikuti protokol ketat ini:
@@ -186,8 +118,8 @@ STEP 2: RUMUS PENULISAN JUDUL
 - DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur.
 
 STEP 3: LOGIKA KATA KUNCI (SEO HIERARCHY)
-- TOTAL: Berikan stok kata kunci melebihi target yang diminta (cadangan jika ada yang ditolak sistem).
-- TOP 20 SEO: 20 kata kunci pertama WAJIB merupakan kata kunci pokok yang paling relevan.
+- TOTAL: Tepat [KW_COUNT] kata kunci.
+- TOP 20 SEO: 20 kata kunci pertama WAJIB merupakan kata kunci pokok yang paling relevan, akurat sesuai visual, dan memiliki pencarian/nilai komersial tertinggi.
 - WAJIB 1 KATA: Setiap kata kunci HANYA BOLEH 1 KATA. Dilarang keras menggunakan frasa (2 kata atau lebih).
 - UNIQUE / ANTI-REDUNDANT: DILARANG mengulang kata yang sama. Setiap kata harus 100% unik.
 - ZERO HALLUCINATION: Jangan tulis objek yang tidak ada di dalam aset.
@@ -210,9 +142,7 @@ export const generateMetadataForFile = async (
   providedApiKey: string, 
   mode: AppMode = 'metadata'
 ): Promise<{ metadata: FileMetadata; thumbnail?: string; generatedImageUrl?: string; qcResult?: QcResult; }> => {
-  
   const isCanvasMode = settings.apiProvider === 'GEMINI CANVAS';
-  const isGroq = settings.apiProvider === 'GROQ API'; // Deteksi jika menggunakan Groq
   const actualApiKey = isCanvasMode 
       ? (process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key') 
       : providedApiKey;
@@ -221,9 +151,10 @@ export const generateMetadataForFile = async (
       throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
   }
 
-  let targetModel = settings.geminiModel || 'gemini-3.1-pro';
+  // DEFAULT DIUBAH MENJADI GEMINI 2.5 FLASH
+  let targetModel = settings.geminiModel || 'gemini-2.5-flash';
   if (isCanvasMode && targetModel === 'auto') {
-      targetModel = 'gemini-3.1-pro'; 
+      targetModel = 'gemini-2.5-flash'; 
   }
   
   try {
@@ -240,25 +171,14 @@ export const generateMetadataForFile = async (
         const maxChars = settings.titleMax || 150;
         const kwTotal = settings.slideKeyword || 40;
 
-        // Jika Groq, minta stok keyword dilebihkan
-        const kwTargetAI = isGroq ? kwTotal + 15 : kwTotal;
-
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
-            .replace('[KW_COUNT]', kwTargetAI.toString());
+            .replace('[KW_COUNT]', kwTotal.toString());
 
         systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.`;
         systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
         
-        // Khusus Groq, kita perketat prompt-nya agar natural dan nggak perlu motong-motong
-        if (isGroq) {
-            promptText += `\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
-            promptText += `- TITLE LENGTH: WAJIB sangat detail (gabungkan Objek Utama + Aksi + Latar Belakang + Pencahayaan) agar panjang kalimat pasti masuk di antara ${minChars} hingga ${maxChars} karakter.\n`;
-            promptText += `- KEYWORD COUNT: Kami butuh stok kata! WAJIB hasilkan minimal ${kwTargetAI} kata kunci (dipisah koma).\n`;
-            promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
-        }
-
         if (settings.customTitle || settings.customKeyword) {
             promptText += `\n\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
         }
@@ -332,6 +252,7 @@ export const generateMetadataForFile = async (
 
             promptText = `Buatlah prompt detail berdasarkan gambar/video ini. ${instruksiTambahan}`;
         }
+    
     } else if (mode === 'qc') {
         temperature = 0.2; 
         
@@ -359,135 +280,94 @@ export const generateMetadataForFile = async (
         };
     }
 
-    let finalParsed: any = null;
+    let parts: any[] = [];
+    
+    if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
+      parts = [{ text: promptText }];
+    } else {
+      if (fileItem.type === FileType.Video) {
+        const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
+        parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
+        parts.push({ text: promptText });
+      } else {
+        const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
+          ? await convertSvgToWhiteBgJpeg(fileItem.file) 
+          : await compressImage(fileItem.file);
+        parts = [mediaPart, { text: promptText }];
+      }
+    }
 
-    // ==========================================
-    // JALUR 1: JALUR KHUSUS GROQ API (Pakai Looping & Mandor)
-    // ==========================================
-    if (isGroq) {
-        let attempt = 0;
-        let maxAttempts = 3; 
-        let activePromptText = promptText;
+    let parsed: any;
 
-        while (attempt < maxAttempts) {
-            let parts: any[] = [];
-            
-            if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-              parts = [{ text: activePromptText }];
-            } else {
-              if (fileItem.type === FileType.Video) {
-                const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
-                parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-                parts.push({ text: activePromptText });
-              } else {
-                const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-                  ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-                  : await compressImage(fileItem.file);
-                parts = [mediaPart, { text: activePromptText }];
-              }
-            }
-
-            const messages = [];
-            
-            let expectedJsonSchema = "";
-            if (mode === 'metadata') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
-            } else if (mode === 'idea') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
-            } else if (mode === 'prompt') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
-            } else if (mode === 'qc') {
-                expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
-            }
-            
-            const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
-            
-            if (systemInstruction) {
-                messages.push({ role: "system", content: groqSystemInstruction });
-            }
-            
-            let hasImage = false;
-            const userContent: any[] = [];
-            
-            for (const part of parts) {
-                if (part.text) {
-                    userContent.push({ type: "text", text: part.text });
-                } else if (part.inlineData) {
-                    hasImage = true;
-                    userContent.push({
-                        type: "image_url",
-                        image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
-                    });
-                }
-            }
-            
-            messages.push({ role: "user", content: hasImage ? userContent : activePromptText });
-
-            const payload = {
-                model: targetModel,
-                messages: messages,
-                temperature: temperature,
-                response_format: { type: "json_object" }
-            };
-
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${actualApiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
-            }
-
-            const data = await response.json();
-            const textResponse = data.choices[0].message.content;
-            const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-            let parsed = JSON.parse(cleanJson);
-
-            // PENGECEKAN MANDOR (KHUSUS GROQ)
-            if (mode === 'metadata') {
-                const { errors, fixedParsed } = validateAndFixMetadata(parsed, settings);
-                finalParsed = fixedParsed; 
-                
-                if (errors.length === 0 || attempt === maxAttempts - 1) {
-                    break; 
-                } else {
-                    activePromptText = promptText + `\n\n[SYSTEM REJECTION: HASIL SEBELUMNYA DITOLAK!]\nMetadata Anda ditolak karena:\n` + errors.map(e => `- ${e}`).join('\n') + `\n\nPERBAIKI SEKARANG JUGA SESUAI ATURAN!`;
-                    attempt++;
-                    console.warn(`Groq Auto-correction triggered (Attempt ${attempt}). Errors:`, errors);
-                }
-            } else {
-                finalParsed = parsed;
-                break;
-            }
-        }
-    } 
-    // ==========================================
-    // JALUR 2: JALUR ASLI GEMINI (Lancar & Polos)
-    // ==========================================
-    else {
-        let parts: any[] = [];
+    // === JALUR KHUSUS GROQ API (OPENAI COMPATIBLE) ===
+    if (settings.apiProvider === 'GROQ API') {
+        const messages = [];
         
-        if ((mode === 'prompt' && settings.promptPlatform === 'text') || (mode === 'idea' && settings.ideaCategory !== 'file')) {
-          parts = [{ text: promptText }];
-        } else {
-          if (fileItem.type === FileType.Video) {
-            const frames = await extractVideoFrames(fileItem.file, settings.videoFrameCount || 3);
-            parts = frames.map(f => ({ inlineData: { mimeType: 'image/jpeg', data: f } }));
-            parts.push({ text: promptText });
-          } else {
-            const mediaPart = (fileItem.type === FileType.Vector && fileItem.file.type === 'image/svg+xml') 
-              ? await convertSvgToWhiteBgJpeg(fileItem.file) 
-              : await compressImage(fileItem.file);
-            parts = [mediaPart, { text: promptText }];
-          }
+        // OBAT JSON GROQ (Penting biar metadata masuk laci)
+        let expectedJsonSchema = "";
+        if (mode === 'metadata') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
+        } else if (mode === 'idea') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
+        } else if (mode === 'prompt') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_prompt": "string",\n  "ind_prompt": "string"\n}`;
+        } else if (mode === 'qc') {
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "score": number,\n  "status": "string",\n  "technicalIssues": ["string"],\n  "ipIssues": ["string"],\n  "commercialAdvice": "string"\n}`;
+        }
+        
+        const groqSystemInstruction = systemInstruction + expectedJsonSchema + `\n\nIMPORTANT: You MUST return ONLY a valid JSON object matching the exact keys and structure above. Do NOT wrap it in markdown code blocks.`;
+        
+        if (systemInstruction) {
+            messages.push({ role: "system", content: groqSystemInstruction });
+        }
+        
+        let hasImage = false;
+        const userContent: any[] = [];
+        
+        for (const part of parts) {
+            if (part.text) {
+                userContent.push({ type: "text", text: part.text });
+            } else if (part.inlineData) {
+                hasImage = true;
+                userContent.push({
+                    type: "image_url",
+                    image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+                });
+            }
+        }
+        
+        messages.push({ role: "user", content: hasImage ? userContent : promptText });
+
+        const payload = {
+            model: targetModel,
+            messages: messages,
+            temperature: temperature,
+            response_format: { type: "json_object" }
+        };
+
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${actualApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(`Groq Error: ${errData.error?.message || response.statusText}`);
         }
 
+        const data = await response.json();
+        const textResponse = data.choices[0].message.content;
+        
+        // PEMBERSIH MARKDOWN GROQ
+        const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsed = JSON.parse(cleanJson);
+
+    } else {
+        // === JALUR GEMINI API & CANVAS ===
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
         const response: any = await ai.models.generateContent({
           model: targetModel,
@@ -495,24 +375,22 @@ export const generateMetadataForFile = async (
           config: { systemInstruction, responseMimeType: "application/json", responseSchema: outputSchema, temperature }
         });
         
-        finalParsed = JSON.parse(response.text);
-        // GEMINI TIDAK DI CEK MANDOR, KARENA SUDAH PINTAR
+        parsed = JSON.parse(response.text);
     }
 
-    // === RETURN SESUAI FORMAT ===
     if (mode === 'idea') {
         return {
             metadata: {
-                en: { title: finalParsed.en_idea, keywords: "" },
-                ind: { title: finalParsed.ind_idea, keywords: "" },
+                en: { title: parsed.en_idea, keywords: "" },
+                ind: { title: parsed.ind_idea, keywords: "" },
                 category: settings.ideaCategory === 'auto' ? 'Idea' : settings.ideaCategory
             }
         };
     } else if (mode === 'prompt') {
         return {
             metadata: {
-                en: { title: finalParsed.en_prompt, keywords: "" },
-                ind: { title: finalParsed.ind_prompt, keywords: "" },
+                en: { title: parsed.en_prompt, keywords: "" },
+                ind: { title: parsed.ind_prompt, keywords: "" },
                 category: 'Prompt'
             }
         };
@@ -520,21 +398,21 @@ export const generateMetadataForFile = async (
         return {
             metadata: { en: { title: "", keywords: "" }, ind: { title: "", keywords: "" }, category: "" }, 
             qcResult: {
-                score: finalParsed.score,
-                status: finalParsed.status,
-                technicalIssues: finalParsed.technicalIssues || [],
-                ipIssues: finalParsed.ipIssues || [],
-                commercialAdvice: finalParsed.commercialAdvice
+                score: parsed.score,
+                status: parsed.status,
+                technicalIssues: parsed.technicalIssues || [],
+                ipIssues: parsed.ipIssues || [],
+                commercialAdvice: parsed.commercialAdvice
             }
         };
     }
 
     return {
       metadata: { 
-        en: { title: finalParsed.en?.title || "", keywords: finalParsed.en?.keywords || "" }, 
-        ind: { title: finalParsed.ind?.title || "", keywords: finalParsed.ind?.keywords || "" }, 
-        category: finalParsed.categoryAdobe || "2", 
-        categoryShutter: finalParsed.categoryShutter || "" 
+        en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
+        ind: { title: parsed.ind?.title || "", keywords: parsed.ind?.keywords || "" }, 
+        category: parsed.categoryAdobe || "2", 
+        categoryShutter: parsed.categoryShutter || "" 
       }
     };
   } catch (error: any) {
@@ -542,13 +420,7 @@ export const generateMetadataForFile = async (
   }
 };
 
-export const translateMetadataContent = async (
-  content: { title: string; keywords: string }, 
-  sourceLanguage: Language, 
-  providedApiKey: string = "",
-  apiProvider: string = 'GEMINI CANVAS', 
-  groqModel: string = 'qwen/qwen3-32b'
-): Promise<{ title: string; keywords: string }> => {
+export const translateMetadataContent = async (content: { title: string; keywords: string }, sourceLanguage: Language, providedApiKey: string = "", apiProvider: string = 'GEMINI CANVAS', groqModel: string = 'qwen/qwen3-32b'): Promise<{ title: string; keywords: string }> => {
   const actualApiKey = providedApiKey || process.env.API_KEY || process.env.GEMINI_API_KEY || 'internal_canvas_key';
   
   if (!actualApiKey) {
@@ -571,6 +443,7 @@ export const translateMetadataContent = async (
       });
       if (response.ok) {
           const data = await response.json();
+          // PEMBERSIH MARKDOWN GROQ DI TRANSLASI
           const cleanJson = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
           return { title: JSON.parse(cleanJson).title, keywords: content.keywords };
       }
@@ -578,7 +451,7 @@ export const translateMetadataContent = async (
   } else {
       const ai = new GoogleGenAI({ apiKey: actualApiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash', 
+        model: 'gemini-2.5-flash', 
         contents: instruction,
         config: { responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { title: { type: Type.STRING } } } }
       });
@@ -612,7 +485,7 @@ export const translateText = async (text: string, targetLang: string, settings: 
     } else {
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
         const response = await ai.models.generateContent({
-          model: settings.geminiModel || 'gemini-3.1-flash',
+          model: settings.geminiModel || 'gemini-2.5-flash',
           contents: `Translate text to ${targetLang}: ${text}`,
           config: { temperature: 0.1 }
         });
