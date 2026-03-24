@@ -7,7 +7,8 @@ import { getCategoryName } from '../utils/helpers';
 interface Props {
   item: FileItem;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, field: 'title' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => void; 
+  // KITA TAMBAH 'description' KE DAFTAR ONUPDATE BIAR BISA DISAVE
+  onUpdate: (id: string, field: 'title' | 'description' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => void; 
   onRetry: (id: string) => void;
   onPreview: (item: FileItem) => void;
   language: Language;
@@ -31,17 +32,23 @@ const FileCard: React.FC<Props> = ({
   
   const isShutterstock = platform === 'Shutterstock';
   const usesCategory = ['Adobe Stock', 'Shutterstock'].includes(platform);
-  const usesDescription = ['Shutterstock', 'Dreamstime', 'Vecteezy', 'Arabstock'].includes(platform);
   
-  // === DETEKTOR GRUP 1 (Title + Keyword Aja) ===
+  // === DETEKTOR KELOMPOK PLATFORM ===
   const isGroup1 = ['Freepik', 'MiriCanvas'].includes(platform);
+  const isGroup2 = ['Dreamstime', 'Vecteezy', 'Arabstock'].includes(platform);
+  // Group 2 butuh Description, Shutterstock juga butuh (tapi Shutterstock gak butuh Title)
+  const usesDescription = ['Shutterstock', ...['Dreamstime', 'Vecteezy', 'Arabstock']].includes(platform);
   
   const [editTitle, setEditTitle] = useState('');
+  // LACI MEMORI BARU UNTUK DESKRIPSI
+  const [editDescription, setEditDescription] = useState('');
   const [editKeywords, setEditKeywords] = useState('');
   const [editCategory1, setEditCategory1] = useState('');
   const [editCategory2, setEditCategory2] = useState('');
   
   const currentTitle = language === 'ENG' ? item.metadata.en.title : item.metadata.ind.title;
+  // TARIK DATA DESCRIPTION DARI HASIL AI
+  const currentDescription = language === 'ENG' ? (item.metadata.en.description || '') : (item.metadata.ind.description || '');
   const currentKeywords = language === 'ENG' ? item.metadata.en.keywords : item.metadata.ind.keywords;
   
   const keywordCount = currentKeywords ? currentKeywords.split(',').filter(k => k.trim().length > 0).length : 0;
@@ -58,6 +65,7 @@ const FileCard: React.FC<Props> = ({
 
   useEffect(() => {
     setEditTitle(currentTitle);
+    setEditDescription(currentDescription); // Update state deskripsi
     setEditKeywords(currentKeywords);
     
     if (isShutterstock) {
@@ -67,11 +75,13 @@ const FileCard: React.FC<Props> = ({
         setEditCategory1(displayCats[0] || '');
         setEditCategory2('');
     }
-  }, [item.metadata, language, isEditing, isShutterstock, currentCategory]);
+  }, [item.metadata, language, isEditing, isShutterstock, currentCategory, currentDescription]);
 
   const toggleEdit = () => {
     if (isEditing) {
       if (editTitle !== currentTitle) onUpdate(item.id, 'title', editTitle, language);
+      // SIMPAN JIKA DESKRIPSI DIEDIT
+      if (editDescription !== currentDescription) onUpdate(item.id, 'description', editDescription, language);
       if (editKeywords !== currentKeywords) onUpdate(item.id, 'keywords', editKeywords, language);
       
       const newCategory = isShutterstock 
@@ -150,24 +160,69 @@ const FileCard: React.FC<Props> = ({
       {/* 3. Metadata Content */}
       <div className="flex flex-col gap-1 px-3 pb-3 flex-1">
          
-         <div className="flex gap-2 items-start">
-           <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>{usesDescription ? 'DESC' : 'TITLE'}</span>
-           {/* RUANG TITLE: Melar kalau Grup 1, Normal kalau bukan */}
-           <div className={`w-full relative ${isGroup1 ? 'h-[4.25rem]' : 'h-10'}`}>
-              {isEditing ? (
-                 <textarea value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`${textBaseClass} ${editClass} h-full`} spellCheck={false} />
-              ) : (
-                 <div className={`${viewContainerClass} h-full`}>
-                    <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 block whitespace-normal`}>
-                      {currentTitle}
-                    </div>
+         {/* ==== APARTEMEN LANTAI 1 & 2 (UNTUK GRUP 2) ==== */}
+         {isGroup2 ? (
+            // JIKA GRUP 2 (Dreamstime, dkk): Tampilkan 50:50 Title dan Description
+            <div className="flex flex-col gap-1 w-full h-[4.25rem]">
+               {/* LANTAI 1 (TITLE) */}
+               <div className="flex gap-2 items-start h-1/2">
+                 <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>TITLE</span>
+                 <div className="w-full relative h-full">
+                    {isEditing ? (
+                       <textarea value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0`} spellCheck={false} />
+                    ) : (
+                       <div className={`${viewContainerClass} h-full !py-0`}>
+                          <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 flex items-center overflow-hidden`}>
+                            {currentTitle}
+                          </div>
+                       </div>
+                    )}
                  </div>
-              )}
-           </div>
-         </div>
+               </div>
+               
+               {/* LANTAI 2 (DESCRIPTION) */}
+               <div className="flex gap-2 items-start h-1/2">
+                 <span className={`${labelClass} bg-amber-50 text-amber-600 border-amber-200`}>DESC</span>
+                 <div className="w-full relative h-full">
+                    {isEditing ? (
+                       <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0`} spellCheck={false} />
+                    ) : (
+                       <div className={`${viewContainerClass} h-full !py-0`}>
+                          <div className={`${textBaseClass} ${viewClass} h-full text-gray-600 !border-0 !p-0 flex items-center overflow-hidden text-[11px]`}>
+                            {currentDescription || 'No description generated.'}
+                          </div>
+                       </div>
+                    )}
+                 </div>
+               </div>
+            </div>
+         ) : (
+            // BUKAN GRUP 2: Tampilkan kotak biasa (Melar untuk Grup 1, Normal untuk yang lain)
+            <div className="flex gap-2 items-start">
+              <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>
+                 {isShutterstock ? 'DESC' : 'TITLE'}
+              </span>
+              <div className={`w-full relative ${isGroup1 ? 'h-[4.25rem]' : 'h-10'}`}>
+                 {isEditing ? (
+                    <textarea 
+                       value={isShutterstock ? editDescription : editTitle} 
+                       onChange={(e) => isShutterstock ? setEditDescription(e.target.value) : setEditTitle(e.target.value)} 
+                       className={`${textBaseClass} ${editClass} h-full`} 
+                       spellCheck={false} 
+                    />
+                 ) : (
+                    <div className={`${viewContainerClass} h-full`}>
+                       <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 block whitespace-normal`}>
+                         {isShutterstock ? currentDescription : currentTitle}
+                       </div>
+                    </div>
+                 )}
+              </div>
+            </div>
+         )}
          
-         {/* KOTAK KATEGORI: Sembunyikan jika Grup 1 (Freepik & MiriCanvas) */}
-         {!isGroup1 && (
+         {/* KOTAK KATEGORI: Sembunyikan jika Grup 1 atau Grup 2 */}
+         {!isGroup1 && !isGroup2 && (
              <div className="flex gap-2 items-center">
                <span className={`${labelClass} ${usesCategory ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>CATEGORY</span>
                <div className={`h-6 w-full relative ${isShutterstock && usesCategory ? 'flex gap-1' : ''}`}>
