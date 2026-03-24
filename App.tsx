@@ -565,7 +565,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleUpdateMetadata = async (id: string, field: 'title' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => {
+  const handleUpdateMetadata = async (id: string, field: 'title' | 'description' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => {
     if (activeTab === 'logs' || activeTab === 'apikeys' || activeTab === 'quran') return;
     
     setFilesMap(prev => ({
@@ -602,10 +602,11 @@ const App: React.FC = () => {
           [activeDataKey]: prev[activeDataKey].map(f => {
             if (f.id !== id) return f;
             const newMeta = { ...f.metadata };
+            // FIX: Gunakan spread operator biar data 'description' tidak terhapus saat auto-translate!
             if (language === 'ENG') {
-              newMeta.ind = translated;
+              newMeta.ind = { ...newMeta.ind, title: translated.title, keywords: translated.keywords };
             } else {
-              newMeta.en = translated;
+              newMeta.en = { ...newMeta.en, title: translated.title, keywords: translated.keywords };
             }
             return { ...f, metadata: newMeta };
           })
@@ -615,7 +616,7 @@ const App: React.FC = () => {
       }
     }
   };
-
+  
   const handleToggleLanguage = (id: string) => {
     setFileLanguages(prev => ({
       ...prev,
