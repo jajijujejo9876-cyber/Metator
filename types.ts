@@ -13,10 +13,13 @@ export enum ProcessingStatus {
 
 export type ApiProvider = 'GEMINI CANVAS' | 'GEMINI API' | 'GROQ API';
 
+// === LACI MEMORI BARU (DITAMBAH DESCRIPTION) ===
 export interface LocalizedContent {
   title: string;
+  description?: string; // <--- INI LACI BARUNYA LEK!
   keywords: string;
 }
+// ===============================================
 
 export interface FileMetadata {
   en: LocalizedContent;
@@ -98,7 +101,7 @@ export interface AppSettings {
   workerCount: number; 
   apiDelay: number;
   ideaMode: 'free' | 'paid';
-  ideaQuantity: number;       
+  ideaQuantity: number;        
   ideaCategory: IdeaCategory;
   ideaCustomInput: string;   
   ideaCustomInstruction: string; 
