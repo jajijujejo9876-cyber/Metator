@@ -189,7 +189,7 @@ const FileCard: React.FC<Props> = ({
                     ) : (
                        <div className={`${viewContainerClass} h-full !py-0`}>
                           <div className={`${textBaseClass} ${viewClass} h-full text-gray-600 !border-0 !p-0 flex items-center overflow-hidden text-[11px]`}>
-                            {currentDescription || 'No description generated.'}
+                            {currentDescription || ''}
                           </div>
                        </div>
                     )}
