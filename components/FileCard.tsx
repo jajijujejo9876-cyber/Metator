@@ -126,8 +126,10 @@ const FileCard: React.FC<Props> = ({
       </div>
 
       {/* 2. Filename Row */}
-      <div className="px-3 py-2 flex items-center gap-2 border-b border-blue-100 mb-1">
-         <div className="shrink-0">
+      {/* Tambahkan h-10 untuk mengunci tinggi baris agar tidak goyang saat loading */}
+      <div className="px-3 h-10 flex items-center gap-2 border-b border-blue-100 mb-1">
+         {/* Tambahkan w-5 flex justify-center agar posisi ikon tetap di tengah dan tidak bergeser */}
+         <div className="shrink-0 w-5 flex justify-center items-center">
             {isProcessing ? (
               <Loader2 className="animate-spin text-blue-500" size={16} />
             ) : isFailed ? (
