@@ -199,7 +199,7 @@ const FileCard: React.FC<Props> = ({
          ) : (
             // BUKAN GRUP 2: Tampilkan kotak biasa (Melar untuk Grup 1, Normal untuk yang lain)
             <div className="flex gap-2 items-start">
-              <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>
+              <span className={`${labelClass} ${isShutterstock ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>
                  {isShutterstock ? 'DESC' : 'TITLE'}
               </span>
               <div className={`w-full relative ${isGroup1 ? 'h-[4.25rem]' : 'h-10'}`}>
