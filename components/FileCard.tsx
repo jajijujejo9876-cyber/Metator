@@ -33,6 +33,9 @@ const FileCard: React.FC<Props> = ({
   const usesCategory = ['Adobe Stock', 'Shutterstock'].includes(platform);
   const usesDescription = ['Shutterstock', 'Dreamstime', 'Vecteezy', 'Arabstock'].includes(platform);
   
+  // === DETEKTOR GRUP 1 (Title + Keyword Aja) ===
+  const isGroup1 = ['Freepik', 'MiriCanvas'].includes(platform);
+  
   const [editTitle, setEditTitle] = useState('');
   const [editKeywords, setEditKeywords] = useState('');
   const [editCategory1, setEditCategory1] = useState('');
@@ -41,7 +44,6 @@ const FileCard: React.FC<Props> = ({
   const currentTitle = language === 'ENG' ? item.metadata.en.title : item.metadata.ind.title;
   const currentKeywords = language === 'ENG' ? item.metadata.en.keywords : item.metadata.ind.keywords;
   
-  // === JURUS MENGHITUNG KEYWORDS OTOMATIS ===
   const keywordCount = currentKeywords ? currentKeywords.split(',').filter(k => k.trim().length > 0).length : 0;
 
   const currentCategory = isShutterstock ? (item.metadata.categoryShutter || '') : (item.metadata.category || '');
@@ -126,9 +128,7 @@ const FileCard: React.FC<Props> = ({
       </div>
 
       {/* 2. Filename Row */}
-      {/* Tambahkan h-10 untuk mengunci tinggi baris agar tidak goyang saat loading */}
-      <div className="px-3 h-10 flex items-center gap-2 border-b border-blue-100 mb-1">
-         {/* Tambahkan w-5 flex justify-center agar posisi ikon tetap di tengah dan tidak bergeser */}
+      <div className="px-3 h-8 flex items-center gap-2 border-b border-blue-100 mb-1">
          <div className="shrink-0 w-5 flex justify-center items-center">
             {isProcessing ? (
               <Loader2 className="animate-spin text-blue-500" size={16} />
@@ -152,7 +152,8 @@ const FileCard: React.FC<Props> = ({
          
          <div className="flex gap-2 items-start">
            <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>{usesDescription ? 'DESC' : 'TITLE'}</span>
-           <div className="h-10 w-full relative">
+           {/* RUANG TITLE: Melar kalau Grup 1, Normal kalau bukan */}
+           <div className={`w-full relative ${isGroup1 ? 'h-[4.25rem]' : 'h-10'}`}>
               {isEditing ? (
                  <textarea value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`${textBaseClass} ${editClass} h-full`} spellCheck={false} />
               ) : (
@@ -165,69 +166,72 @@ const FileCard: React.FC<Props> = ({
            </div>
          </div>
          
-         <div className="flex gap-2 items-center">
-           <span className={`${labelClass} ${usesCategory ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>CATEGORY</span>
-           <div className={`h-6 w-full relative ${isShutterstock && usesCategory ? 'flex gap-1' : ''}`}>
-              {!usesCategory ? (
-                  <div className={`${viewContainerClass} h-full w-full !p-0 px-1 bg-gray-50/50 border-gray-200 opacity-60`}>
-                     <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center text-gray-400 !py-0 !border-0 !p-0 text-[10px] uppercase tracking-widest font-bold`}>
-                        AUTO / NOT REQUIRED
-                     </div>
-                  </div>
-              ) : isEditing ? (
-                 isShutterstock ? (
-                    <>
-                       <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled hidden style={{ display: 'none' }}></option>
-                         {activeCategories.map(cat => (
-                           <option key={cat.id} value={cat.id}>
-                             {language === 'ENG' ? cat.en : cat.id_lang}
-                           </option>
-                         ))}
-                       </select>
-                       <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                         <option value="" disabled hidden style={{ display: 'none' }}></option>
-                         {activeCategories.map(cat => (
-                           <option key={cat.id} value={cat.id}>
-                             {language === 'ENG' ? cat.en : cat.id_lang}
-                           </option>
-                         ))}
-                       </select>
-                    </>
-                 ) : (
-                    <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
-                       <option value="" disabled hidden style={{ display: 'none' }}></option>
-                       {activeCategories.map(cat => (
-                         <option key={cat.id} value={cat.id}>
-                           {language === 'ENG' ? cat.en : cat.id_lang}
-                         </option>
-                       ))}
-                    </select>
-                 )
-              ) : (
-                 isShutterstock ? (
-                    <>
-                       <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                            {cat1Name || ''}
-                          </div>
-                       </div>
-                       <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                            {cat2Name || ''}
-                          </div>
-                       </div>
-                    </>
-                 ) : (
-                    <div className={`${viewContainerClass} h-full w-full !p-0 px-1`}>
-                       <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                         {cat1Name || ''}
-                       </div>
-                    </div>
-                 )
-              )}
-           </div>
-         </div>
+         {/* KOTAK KATEGORI: Sembunyikan jika Grup 1 (Freepik & MiriCanvas) */}
+         {!isGroup1 && (
+             <div className="flex gap-2 items-center">
+               <span className={`${labelClass} ${usesCategory ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>CATEGORY</span>
+               <div className={`h-6 w-full relative ${isShutterstock && usesCategory ? 'flex gap-1' : ''}`}>
+                  {!usesCategory ? (
+                      <div className={`${viewContainerClass} h-full w-full !p-0 px-1 bg-gray-50/50 border-gray-200 opacity-60`}>
+                         <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center text-gray-400 !py-0 !border-0 !p-0 text-[10px] uppercase tracking-widest font-bold`}>
+                            AUTO / NOT REQUIRED
+                         </div>
+                      </div>
+                  ) : isEditing ? (
+                     isShutterstock ? (
+                        <>
+                           <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                             <option value="" disabled hidden style={{ display: 'none' }}></option>
+                             {activeCategories.map(cat => (
+                               <option key={cat.id} value={cat.id}>
+                                 {language === 'ENG' ? cat.en : cat.id_lang}
+                               </option>
+                             ))}
+                           </select>
+                           <select value={editCategory2} onChange={(e) => setEditCategory2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                             <option value="" disabled hidden style={{ display: 'none' }}></option>
+                             {activeCategories.map(cat => (
+                               <option key={cat.id} value={cat.id}>
+                                 {language === 'ENG' ? cat.en : cat.id_lang}
+                               </option>
+                             ))}
+                           </select>
+                        </>
+                     ) : (
+                        <select value={editCategory1} onChange={(e) => setEditCategory1(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                           <option value="" disabled hidden style={{ display: 'none' }}></option>
+                           {activeCategories.map(cat => (
+                             <option key={cat.id} value={cat.id}>
+                               {language === 'ENG' ? cat.en : cat.id_lang}
+                             </option>
+                           ))}
+                        </select>
+                     )
+                  ) : (
+                     isShutterstock ? (
+                        <>
+                           <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
+                              <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
+                                {cat1Name || ''}
+                              </div>
+                           </div>
+                           <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
+                              <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
+                                {cat2Name || ''}
+                              </div>
+                           </div>
+                        </>
+                     ) : (
+                        <div className={`${viewContainerClass} h-full w-full !p-0 px-1`}>
+                           <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
+                             {cat1Name || ''}
+                           </div>
+                        </div>
+                     )
+                  )}
+               </div>
+             </div>
+         )}
 
          <div className="flex flex-col gap-1 flex-1">
             <span className={`${labelClassFull} bg-violet-50 text-violet-600 border-violet-200`}>
