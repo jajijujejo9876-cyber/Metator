@@ -111,8 +111,9 @@ STEP 1: VISUAL IDENTITY LOCK (MANDATORY)
 - Identifikasi warna asli, lingkungan, dan aksi fisik.
 - Metadata WAJIB berakar HANYA dari observasi objek nyata ini.
 
-STEP 2: RUMUS PENULISAN JUDUL
-- FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Konteks Komersial].
+STEP 2: RUMUS PENULISAN JUDUL & DESKRIPSI
+- TITLE FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Konteks Komersial].
+- DESCRIPTION FORMULA: WAJIB berupa PARAFRASE atau sinonim dari Title. Maknanya harus sama persis, tapi susunan kata/kosakatanya harus berbeda. HARAM hukumnya menyalin Title 100% menjadi Description.
 - KATA PERTAMA: Harus berupa nama objek literal (Subjek Utama).
 - NO OPINIONS: Dilarang keras kata-kata seperti "beautiful, stunning, amazing, best quality".
 - DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur.
@@ -181,29 +182,32 @@ export const generateMetadataForFile = async (
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
 
         if (isGroq) {
-            // PROMPT GROQ: Taktik Kalimat Alami Panjang
-            promptText += `- TITLE LENGTH: WAJIB sangat detail (gabungkan Objek Utama + Aksi + Latar Belakang + Pencahayaan/Suasana) agar panjang kalimat pasti tembus antara ${minChars} hingga ${maxChars} karakter.\n`;
+            // PROMPT GROQ
+            promptText += `- TITLE LENGTH: WAJIB detail agar panjang kalimat antara ${minChars} hingga ${maxChars} karakter.\n`;
+            promptText += `- DESCRIPTION LENGTH: Wajib berupa parafrase dari Title, dengan panjang kalimat yang SAMA, yaitu antara ${minChars} hingga ${maxChars} karakter.\n`;
             promptText += `- KEYWORD COUNT: Kami butuh stok kata! WAJIB hasilkan minimal ${kwTargetAI} kata kunci tunggal (dipisah koma).\n`;
         } else {
-            // PROMPT GEMINI: Akurasi Normal
+            // PROMPT GEMINI
             promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
+            promptText += `- DESCRIPTION LENGTH: Wajib berupa parafrase dari Title, dan panjangnya WAJIB mengikuti aturan Title, yaitu antara ${minChars} sampai ${maxChars} karakter.\n`;
             promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci tunggal (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
         }
 
         promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
 
         if (settings.customTitle || settings.customKeyword) {
-            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
+            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle/Description Base: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
         }
         if (settings.negativeMetadata) {
             promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
         }
 
+        // UPDATE SCHEMA AGAR AI MENGHASILKAN DESCRIPTION
         outputSchema = {
           type: Type.OBJECT,
           properties: {
-            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
-            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "keywords"] },
+            en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "description", "keywords"] },
+            ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "description", "keywords"] },
             categoryAdobe: { type: Type.STRING }, 
             categoryShutter: { type: Type.STRING } 
           },
@@ -317,7 +321,8 @@ export const generateMetadataForFile = async (
         
         let expectedJsonSchema = "";
         if (mode === 'metadata') {
-            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
+            // UPDATE JSON EXPECTATION GROQ BIAR TIDAK ERROR
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "description": "string", "keywords": "string" },\n  "ind": { "title": "string", "description": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
         } else if (mode === 'idea') {
             expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
         } else if (mode === 'prompt') {
@@ -443,8 +448,17 @@ export const generateMetadataForFile = async (
 
     return {
       metadata: { 
-        en: { title: parsed.en?.title || "", keywords: parsed.en?.keywords || "" }, 
-        ind: { title: parsed.ind?.title || "", keywords: parsed.ind?.keywords || "" }, 
+        // PASTIKAN DESCRIPTION DIKIRIM KE LACI
+        en: { 
+            title: parsed.en?.title || "", 
+            description: parsed.en?.description || "", 
+            keywords: parsed.en?.keywords || "" 
+        }, 
+        ind: { 
+            title: parsed.ind?.title || "", 
+            description: parsed.ind?.description || "", 
+            keywords: parsed.ind?.keywords || "" 
+        }, 
         category: parsed.categoryAdobe || "2", 
         categoryShutter: parsed.categoryShutter || "" 
       }
