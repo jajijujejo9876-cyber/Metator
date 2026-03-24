@@ -124,18 +124,26 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
      rows = files.map(f => {
         let finalFilename = f.file.name;
         
+        // JURUS NINJA EPS
         if (settings?.epsMode) {
             finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
         }
 
-        // JURUS NINJA DREAMSTIME: Ganti akhiran video jadi .jpg
-        if (platform === 'Dreamstime' && /\.(mp4|mov)$/i.test(finalFilename)) {
-            finalFilename = finalFilename.replace(/\.(mp4|mov)$/i, '.jpg');
+        // PERBAIKAN FORMAT .JPG (HURUF BESAR) KHUSUS DREAMSTIME
+        if (platform === 'Dreamstime') {
+            // Ubah akhiran video atau jpg kecil menjadi .JPG kapital semua
+            finalFilename = finalFilename.replace(/\.(mp4|mov|jpg|jpeg)$/i, '.JPG');
         }
         
-        const title = `"${f.metadata.en.title.replace(/"/g, '""')}"`;
+        // AMBIL TITLE & DESCRIPTION DARI HASIL AI
+        // (Jika AI gagal generate description, fallback ke title untuk jaga-jaga)
+        const titleClean = f.metadata.en.title.replace(/"/g, '""');
+        const descClean = (f.metadata.en.description || f.metadata.en.title).replace(/"/g, '""');
         
-        // AUTO-SLICE KEYWORD: Potong sesuai limit yang dihitung di atas
+        const title = `"${titleClean}"`;
+        const description = `"${descClean}"`;
+        
+        // AUTO-SLICE KEYWORD
         const rawKeywords = f.metadata.en.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k !== "");
         const uniqueKeywords = Array.from(new Set(rawKeywords)).slice(0, finalKeywordLimit).join(', ');
         const keywords = `"${uniqueKeywords.replace(/"/g, '""')}"`;
@@ -144,21 +152,28 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
         const categoryName = `"${getCategoryName(targetCat || '', 'ENG', platform)}"`;
         const isIllustration = (f.type === 'Vector' || settings?.epsMode) ? 'yes' : 'no';
 
-        // 4. Susun Baris Sesuai Platform
+        // 4. SUSUN BARIS SESUAI KEBUTUHAN SPESIFIK PLATFORM
         if (platform === 'Shutterstock') {
-            return [finalFilename, title, keywords, categoryName, 'no', 'no', isIllustration].join(separator);
+            // Shutterstock hanya butuh Description
+            return [finalFilename, description, keywords, categoryName, 'no', 'no', isIllustration].join(separator);
         } else if (platform === 'Dreamstime') {
-            return [finalFilename, title, title, keywords].join(separator); // Title di-copy ke Deskripsi
+            // Dreamstime butuh Title & Description (Keduanya diisi beda sesuai hasil AI)
+            return [finalFilename, title, description, keywords].join(separator); 
         } else if (platform === 'Freepik') {
+            // Freepik hanya butuh Title
             return [finalFilename, title, keywords, '""', '""'].join(separator);
         } else if (platform === 'MiriCanvas') {
+            // MiriCanvas hanya butuh Title
             return [finalFilename, title, keywords, '""', 'Premium', 'Y'].join(separator);
         } else if (platform === 'Vecteezy') {
-            return [finalFilename, title, title, keywords, 'Free'].join(separator);
+            // Vecteezy butuh Title & Description
+            return [finalFilename, title, description, keywords, 'Free'].join(separator);
         } else if (platform === 'Arabstock') {
-            return [finalFilename, title, title, keywords].join(separator);
+            // Arabstock butuh Title & Description
+            return [finalFilename, title, description, keywords].join(separator);
         } else {
-            return [finalFilename, title, keywords, categoryName].join(separator); // Default: Adobe Stock
+            // Default: Adobe Stock hanya butuh Title
+            return [finalFilename, title, keywords, categoryName].join(separator); 
         }
      });
   }
@@ -220,7 +235,9 @@ export const downloadTXT = (files: FileItem[], customFilename?: string): string 
      }
   } else {
      content = files.map(f => {
-        return `Filename: ${f.file.name}\nTitle/Prompt: ${f.metadata.en.title}\nKeywords/Params: ${f.metadata.en.keywords}\nCategory: ${getCategoryName(f.metadata.category, 'ENG')}\n----------------------------------------\n`;
+        // Tampilkan juga Description di hasil TXT jika ada
+        const descText = f.metadata.en.description ? `\nDescription: ${f.metadata.en.description}` : '';
+        return `Filename: ${f.file.name}\nTitle/Prompt: ${f.metadata.en.title}${descText}\nKeywords/Params: ${f.metadata.en.keywords}\nCategory: ${getCategoryName(f.metadata.category, 'ENG')}\n----------------------------------------\n`;
       }).join('\n');
   }
 
