@@ -171,7 +171,7 @@ export const generateMetadataForFile = async (
         const kwTotal = settings.slideKeyword || 40;
         
         const isGroq = settings.apiProvider === 'GROQ API';
-        const kwTargetAI = isGroq ? kwTotal + 15 : kwTotal; // Taktik Groq minta stok lebih 15
+        const kwTargetAI = isGroq ? kwTotal + 15 : kwTotal; // Minta lebih untuk Groq
 
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
             .replace('[KW_COUNT]', kwTargetAI.toString());
@@ -179,16 +179,17 @@ export const generateMetadataForFile = async (
         systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
-        
+
         if (isGroq) {
-            // Taktik 5W1H khusus Groq biar judul alami panjang
-            promptText += `- TITLE LENGTH: WAJIB sangat detail (gabungkan Objek Utama + Aksi + Latar Belakang + Pencahayaan) agar panjang kalimat pasti tembus antara ${minChars} hingga ${maxChars} karakter.\n`;
-            promptText += `- KEYWORD COUNT: Kami butuh stok kata melimpah! WAJIB hasilkan minimal ${kwTargetAI} kata kunci (dipisah koma).\n`;
+            // PROMPT GROQ: Taktik Kalimat Alami Panjang
+            promptText += `- TITLE LENGTH: WAJIB sangat detail (gabungkan Objek Utama + Aksi + Latar Belakang + Pencahayaan/Suasana) agar panjang kalimat pasti tembus antara ${minChars} hingga ${maxChars} karakter.\n`;
+            promptText += `- KEYWORD COUNT: Kami butuh stok kata! WAJIB hasilkan minimal ${kwTargetAI} kata kunci tunggal (dipisah koma).\n`;
         } else {
+            // PROMPT GEMINI: Akurasi Normal
             promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
-            promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
+            promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci tunggal (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
         }
-        
+
         promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
 
         if (settings.customTitle || settings.customKeyword) {
@@ -386,7 +387,6 @@ export const generateMetadataForFile = async (
     }
 
     // === PISAU CUKUR KEYWORD (SILENT SLICER) ===
-    // Memotong kelebihan keyword secara diam-diam tanpa memotong judul
     if (mode === 'metadata' && parsed) {
         const targetK = settings.slideKeyword || 40;
         
@@ -399,8 +399,8 @@ export const generateMetadataForFile = async (
                 arr = arr.filter(k => !negWords.some(nw => k.includes(nw)));
             }
             
-            arr = [...new Set(arr)]; // Hapus kata duplikat
-            if (arr.length > targetK) arr = arr.slice(0, targetK); // TEBAS kalau lebih
+            arr = [...new Set(arr)]; 
+            if (arr.length > targetK) arr = arr.slice(0, targetK); 
             return arr.join(', ');
         };
 
