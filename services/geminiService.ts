@@ -151,7 +151,6 @@ export const generateMetadataForFile = async (
       throw new Error(`API Key kosong. Masukkan API Key di pengaturan untuk mode ${settings.apiProvider}.`);
   }
 
-  // DEFAULT DIUBAH MENJADI GEMINI 2.5 FLASH
   let targetModel = settings.geminiModel || 'gemini-2.5-flash';
   if (isCanvasMode && targetModel === 'auto') {
       targetModel = 'gemini-2.5-flash'; 
@@ -170,20 +169,33 @@ export const generateMetadataForFile = async (
         const minChars = settings.titleMin || 50;
         const maxChars = settings.titleMax || 150;
         const kwTotal = settings.slideKeyword || 40;
+        
+        const isGroq = settings.apiProvider === 'GROQ API';
+        const kwTargetAI = isGroq ? kwTotal + 15 : kwTotal; // Taktik Groq minta stok lebih 15
 
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
-            .replace('[KW_COUNT]', kwTotal.toString());
+            .replace('[KW_COUNT]', kwTargetAI.toString());
 
-        systemInstruction += `\n\nATURAN PANJANG JUDUL: Minimum ${minChars} karakter, Maksimum ${maxChars} karakter.`;
         systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
         
-        promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.`;
+        promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
         
+        if (isGroq) {
+            // Taktik 5W1H khusus Groq biar judul alami panjang
+            promptText += `- TITLE LENGTH: WAJIB sangat detail (gabungkan Objek Utama + Aksi + Latar Belakang + Pencahayaan) agar panjang kalimat pasti tembus antara ${minChars} hingga ${maxChars} karakter.\n`;
+            promptText += `- KEYWORD COUNT: Kami butuh stok kata melimpah! WAJIB hasilkan minimal ${kwTargetAI} kata kunci (dipisah koma).\n`;
+        } else {
+            promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
+            promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
+        }
+        
+        promptText += `- KEYWORD FORMAT: WAJIB 1 KATA TUNGGAL PER KEYWORD. Dilarang keras menggunakan spasi di dalam keyword!\n`;
+
         if (settings.customTitle || settings.customKeyword) {
-            promptText += `\n\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
+            promptText += `\nINFO TAMBAHAN DARI USER (Gunakan jika relevan): \nTitle: ${settings.customTitle}\nKeywords: ${settings.customKeyword}`;
         }
         if (settings.negativeMetadata) {
-            promptText += `\n\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
+            promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
         }
 
         outputSchema = {
@@ -299,11 +311,9 @@ export const generateMetadataForFile = async (
 
     let parsed: any;
 
-    // === JALUR KHUSUS GROQ API (OPENAI COMPATIBLE) ===
     if (settings.apiProvider === 'GROQ API') {
         const messages = [];
         
-        // OBAT JSON GROQ (Penting biar metadata masuk laci)
         let expectedJsonSchema = "";
         if (mode === 'metadata') {
             expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "keywords": "string" },\n  "ind": { "title": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
@@ -361,13 +371,10 @@ export const generateMetadataForFile = async (
 
         const data = await response.json();
         const textResponse = data.choices[0].message.content;
-        
-        // PEMBERSIH MARKDOWN GROQ
         const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
         parsed = JSON.parse(cleanJson);
 
     } else {
-        // === JALUR GEMINI API & CANVAS ===
         const ai = new GoogleGenAI({ apiKey: actualApiKey });
         const response: any = await ai.models.generateContent({
           model: targetModel,
@@ -376,6 +383,33 @@ export const generateMetadataForFile = async (
         });
         
         parsed = JSON.parse(response.text);
+    }
+
+    // === PISAU CUKUR KEYWORD (SILENT SLICER) ===
+    // Memotong kelebihan keyword secara diam-diam tanpa memotong judul
+    if (mode === 'metadata' && parsed) {
+        const targetK = settings.slideKeyword || 40;
+        
+        const cleanAndSliceKeywords = (rawKws: string) => {
+            if (!rawKws) return "";
+            let arr = rawKws.replace(/,/g, ' ').split(/\s+/).map(k => k.trim().toLowerCase()).filter(k => k.length > 2);
+            
+            if (settings.negativeMetadata) {
+                const negWords = settings.negativeMetadata.split(',').map(w => w.trim().toLowerCase()).filter(w => w.length > 0);
+                arr = arr.filter(k => !negWords.some(nw => k.includes(nw)));
+            }
+            
+            arr = [...new Set(arr)]; // Hapus kata duplikat
+            if (arr.length > targetK) arr = arr.slice(0, targetK); // TEBAS kalau lebih
+            return arr.join(', ');
+        };
+
+        if (parsed.en && parsed.en.keywords) {
+            parsed.en.keywords = cleanAndSliceKeywords(parsed.en.keywords);
+        }
+        if (parsed.ind && parsed.ind.keywords) {
+            parsed.ind.keywords = cleanAndSliceKeywords(parsed.ind.keywords);
+        }
     }
 
     if (mode === 'idea') {
@@ -443,7 +477,6 @@ export const translateMetadataContent = async (content: { title: string; keyword
       });
       if (response.ok) {
           const data = await response.json();
-          // PEMBERSIH MARKDOWN GROQ DI TRANSLASI
           const cleanJson = data.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
           return { title: JSON.parse(cleanJson).title, keywords: content.keywords };
       }
