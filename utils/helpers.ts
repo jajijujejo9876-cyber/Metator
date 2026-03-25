@@ -108,9 +108,9 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
      if (platform === 'Shutterstock') {
          header = ['Filename', 'Description', 'Keywords', 'Categories', 'Editorial', 'Mature content', 'illustration'];
      } else if (platform === 'Dreamstime') {
-         header = ['File Name', 'Title', 'Description', 'Keywords'];
+         header = ['FileName', 'Title', 'Description', 'Keywords'];
      } else if (platform === 'Freepik') {
-         header = ['File name', 'Title', 'Keywords', 'Prompt', 'Model'];
+         header = ['Filename', 'Title', 'Keywords', 'Prompt', 'Model'];
      } else if (platform === 'MiriCanvas') {
          header = ['fileName', 'name', 'keywords', 'Content Type', 'License', 'AI generated Image'];
      } else if (platform === 'Vecteezy') {
@@ -118,7 +118,7 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
      } else if (platform === 'Arabstock') {
          header = ['Filename', 'Title', 'Description', 'Keywords'];
      } else {
-         header = ['filename', 'title', 'keywords', 'category']; // Default: Adobe Stock
+         header = ['Filename', 'Title', 'Keywords', 'Category']; // Default: Adobe Stock
      }
 
      rows = files.map(f => {
