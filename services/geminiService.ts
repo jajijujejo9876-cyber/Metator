@@ -113,7 +113,7 @@ STEP 1: VISUAL IDENTITY LOCK (MANDATORY)
 
 STEP 2: RUMUS PENULISAN JUDUL & DESKRIPSI
 - TITLE FORMULA: [Nama Objek Utama] + [Setting/Kondisi Visual Langsung] + [Tujuan/Konteks Komersial].
-- DESCRIPTION FORMULA: WAJIB berupa PARAFRASE atau sinonim dari Title. Maknanya harus sama persis, tapi susunan kata/kosakatanya harus berbeda. HARAM hukumnya menyalin Title 100% menjadi Description.
+- DESCRIPTION FORMULA (MANDATORY RULE): DESCRIPTION WAJIB berupa PARAFRASE dari TITLE. Maknanya harus sama persis, TETAPI DILARANG KERAS MENYALIN KATA-KATA TITLE! Anda WAJIB menggunakan sinonim dan mengubah struktur tata bahasanya. Jika Title Anda berbunyi "Pria tersenyum di taman", maka Description BISA berbunyi "Seorang laki-laki menunjukkan ekspresi bahagia saat berada di area terbuka hijau". ZERO COPY-PASTE ALLOWED!
 - KATA PERTAMA: Harus berupa nama objek literal (Subjek Utama).
 - NO OPINIONS: Dilarang keras kata-kata seperti "beautiful, stunning, amazing, best quality".
 - DESKRIPSI TEKNIS: Fokus pada material, pencahayaan, dan tekstur.
@@ -184,12 +184,12 @@ export const generateMetadataForFile = async (
         if (isGroq) {
             // PROMPT GROQ
             promptText += `- TITLE LENGTH: WAJIB detail agar panjang kalimat antara ${minChars} hingga ${maxChars} karakter.\n`;
-            promptText += `- DESCRIPTION LENGTH: Wajib berupa parafrase dari Title, dengan panjang kalimat yang SAMA, yaitu antara ${minChars} hingga ${maxChars} karakter.\n`;
+            promptText += `- DESCRIPTION RULE: Field Description WAJIB diisi. Isinya WAJIB merupakan parafrase (sinonim) dari kalimat Title. Panjang kalimatnya juga WAJIB sama dengan Title, yaitu antara ${minChars} hingga ${maxChars} karakter. HARAM MENYALIN TEKS TITLE SECARA IDENTIK!\n`;
             promptText += `- KEYWORD COUNT: Kami butuh stok kata! WAJIB hasilkan minimal ${kwTargetAI} kata kunci tunggal (dipisah koma).\n`;
         } else {
             // PROMPT GEMINI
             promptText += `- TITLE LENGTH: WAJIB antara ${minChars} sampai ${maxChars} karakter.\n`;
-            promptText += `- DESCRIPTION LENGTH: Wajib berupa parafrase dari Title, dan panjangnya WAJIB mengikuti aturan Title, yaitu antara ${minChars} sampai ${maxChars} karakter.\n`;
+            promptText += `- DESCRIPTION RULE: Field Description WAJIB diisi. Isinya WAJIB merupakan parafrase (sinonim) dari kalimat Title. Panjang kalimatnya juga WAJIB sama dengan Title, yaitu antara ${minChars} sampai ${maxChars} karakter. HARAM MENYALIN TEKS TITLE SECARA IDENTIK!\n`;
             promptText += `- KEYWORD COUNT: WAJIB menghasilkan tepat ${kwTotal} kata kunci tunggal (dipisah koma). Dilarang kurang, dilarang lebih!\n`;
         }
 
