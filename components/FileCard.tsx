@@ -163,16 +163,16 @@ const FileCard: React.FC<Props> = ({
          {/* ==== APARTEMEN LANTAI 1 & 2 (UNTUK GRUP 2) ==== */}
          {isGroup2 ? (
             // JIKA GRUP 2 (Dreamstime, dkk): Tampilkan 50:50 Title dan Description
-            <div className="flex flex-col gap-1 w-full h-[4.25rem]">
+            <div className="flex flex-col gap-1 w-full h-[4.25rem] shrink-0">
                {/* LANTAI 1 (TITLE) */}
-               <div className="flex gap-2 items-start h-1/2">
+               <div className="flex gap-2 items-start h-[2rem]">
                  <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>TITLE</span>
                  <div className="w-full relative h-full">
                     {isEditing ? (
-                       <textarea value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0`} spellCheck={false} />
+                       <textarea value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0.5 text-[11px] leading-tight`} spellCheck={false} />
                     ) : (
-                       <div className={`${viewContainerClass} h-full !py-0`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 flex items-center overflow-hidden`}>
+                       <div className={`${viewContainerClass} h-full !py-0.5 overflow-hidden`}>
+                          <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 block whitespace-normal text-[11px] leading-tight`}>
                             {currentTitle}
                           </div>
                        </div>
@@ -181,14 +181,14 @@ const FileCard: React.FC<Props> = ({
                </div>
                
                {/* LANTAI 2 (DESCRIPTION) */}
-               <div className="flex gap-2 items-start h-1/2">
+               <div className="flex gap-2 items-start h-[2rem]">
                  <span className={`${labelClass} bg-amber-50 text-amber-600 border-amber-200`}>DESC</span>
                  <div className="w-full relative h-full">
                     {isEditing ? (
-                       <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0`} spellCheck={false} />
+                       <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className={`${textBaseClass} ${editClass} h-full py-0.5 text-[11px] leading-tight`} spellCheck={false} />
                     ) : (
-                       <div className={`${viewContainerClass} h-full !py-0`}>
-                          <div className={`${textBaseClass} ${viewClass} h-full text-gray-600 !border-0 !p-0 flex items-center overflow-hidden text-[11px]`}>
+                       <div className={`${viewContainerClass} h-full !py-0.5 overflow-hidden`}>
+                          <div className={`${textBaseClass} ${viewClass} h-full text-gray-600 !border-0 !p-0 block whitespace-normal text-[11px] leading-tight`}>
                             {currentDescription || ''}
                           </div>
                        </div>
