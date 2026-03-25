@@ -47,6 +47,10 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
   let header: string[] = [];
   let rows: string[] = [];
   let separator = ',';
+  
+  // Deteksi cerdas apakah batch ini isinya video
+  const isVideoFile = (f: FileItem) => f.file.type.startsWith('video/') || f.file.name.toLowerCase().endsWith('.mp4') || f.file.name.toLowerCase().endsWith('.mov');
+  const hasVideoInBatch = files.some(isVideoFile);
 
   if (isPromptMode) {
      header = ['Row_ID', 'Prompt_EN', 'Prompt_IND'];
@@ -108,7 +112,12 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
      if (platform === 'Shutterstock') {
          header = ['Filename', 'Description', 'Keywords', 'Categories', 'Editorial', 'Mature content', 'illustration'];
      } else if (platform === 'Dreamstime') {
-         header = ['FileName', 'Title', 'Description', 'Keywords'];
+         // Cek apakah pakai template Video atau Image
+         if (hasVideoInBatch) {
+             header = ['Filename', 'Video Name', 'Description', 'Category 1', 'Category 2', 'Category 3', 'keywords', 'W-EL', 'SR-EL', 'SR-Price', 'Editorial', 'MR doc Ids', 'Pr Docs'];
+         } else {
+             header = ['Filename', 'Image Name', 'Description', 'Category 1', 'Category 2', 'Category 3', 'keywords', 'Free', 'W-EL', 'P-EL', 'SR-EL', 'SR-Price', 'Editorial', 'MR doc Ids', 'Pr Docs'];
+         }
      } else if (platform === 'Freepik') {
          header = ['Filename', 'Title', 'Keywords', 'Prompt', 'Model'];
      } else if (platform === 'MiriCanvas') {
@@ -123,16 +132,19 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
 
      rows = files.map(f => {
         let finalFilename = f.file.name;
+        const isCurrentFileVideo = isVideoFile(f);
         
         // JURUS NINJA EPS
         if (settings?.epsMode) {
             finalFilename = finalFilename.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.eps';
         }
 
-        // PERBAIKAN FORMAT .JPG (HURUF BESAR) KHUSUS DREAMSTIME
+        // PERBAIKAN FORMAT KHUSUS DREAMSTIME (JANGAN GANGGU VIDEO!)
         if (platform === 'Dreamstime') {
-            // Ubah akhiran video atau jpg kecil menjadi .JPG kapital semua
-            finalFilename = finalFilename.replace(/\.(mp4|mov|jpg|jpeg)$/i, '.JPG');
+            if (!isCurrentFileVideo && !finalFilename.toLowerCase().endsWith('.eps')) {
+                // Pastikan akhiran foto adalah .jpg bukan .jpeg, dan jangan paksa jadi kapital .JPG
+                finalFilename = finalFilename.replace(/\.jpeg$/i, '.jpg');
+            }
         }
         
         // AMBIL TITLE & DESCRIPTION DARI HASIL AI
@@ -157,8 +169,14 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
             // Shutterstock hanya butuh Description
             return [finalFilename, description, keywords, categoryName, 'no', 'no', isIllustration].join(separator);
         } else if (platform === 'Dreamstime') {
-            // Dreamstime butuh Title & Description (Keduanya diisi beda sesuai hasil AI)
-            return [finalFilename, title, description, keywords].join(separator); 
+            // Dreamstime butuh Title & Description (Plus kolom lisensi dikosongkan "")
+            if (hasVideoInBatch) {
+               // Template Video (13 Kolom)
+               return [finalFilename, title, description, '""', '""', '""', keywords, '""', '""', '""', '""', '""', '""'].join(separator);
+            } else {
+               // Template Image (15 Kolom)
+               return [finalFilename, title, description, '""', '""', '""', keywords, '""', '""', '""', '""', '""', '""', '""', '""'].join(separator);
+            }
         } else if (platform === 'Freepik') {
             // Freepik hanya butuh Title
             return [finalFilename, title, keywords, '""', '""'].join(separator);
@@ -383,14 +401,14 @@ export const extractSlugFromUrl = (url: string): string => {
         break;
     }
     
-    if (!bestSegment) return url;
+    if (!bestSegment) return cleanUrl;
 
     bestSegment = bestSegment.replace(/\.(jpg|jpeg|png|eps|ai|svg|mp4|html|php|htm|zip|7z)$/i, '');
     bestSegment = bestSegment.replace(/[-_]\d{5,15}$/, '');
     bestSegment = bestSegment.replace(/[-_+]/g, ' ');
     bestSegment = bestSegment.replace(/\s+/g, ' ').trim();
     
-    return bestSegment || url;
+    return bestSegment || cleanUrl;
   } catch (e) {
     return url;
   }
