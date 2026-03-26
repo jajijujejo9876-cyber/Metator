@@ -169,13 +169,23 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
             // Shutterstock hanya butuh Description
             return [finalFilename, description, keywords, categoryName, 'no', 'no', isIllustration].join(separator);
         } else if (platform === 'Dreamstime') {
-            // Dreamstime butuh Title & Description (Plus kolom lisensi dikosongkan TOTAL tanpa kutip)
+            // --- LOGIKA PECAH KATEGORI DREAMSTIME ---
+            // Ambil string dari laci memori (Misal: "112, 145, 105" atau kosong)
+            const rawCatDream = f.metadata.categoryDream || "";
+            // Belah berdasarkan koma, lalu bersihkan spasi
+            const catArr = rawCatDream.split(',').map(c => c.trim());
+            
+            // Siapkan 3 laci khusus untuk di-ekspor (Kalau kosong atau kurang dari 3, diisi default 0.0)
+            const cat1 = catArr[0] || "112"; // Kasih fallback default biar gak error
+            const cat2 = catArr[1] || "0.0";
+            const cat3 = catArr[2] || "0.0";
+
             if (hasVideoInBatch) {
-               // Template Video (13 Kolom)
-               return [finalFilename, title, description, '', '', '', keywords, '', '', '', '', '', ''].join(separator);
+               // Template Video (13 Kolom): Kolom 4, 5, 6 adalah Kategori
+               return [finalFilename, title, description, cat1, cat2, cat3, keywords, '', '', '', '', '', ''].join(separator);
             } else {
-               // Template Image (15 Kolom)
-               return [finalFilename, title, description, '', '', '', keywords, '', '', '', '', '', '', '', ''].join(separator);
+               // Template Image (15 Kolom): Kolom 4, 5, 6 adalah Kategori
+               return [finalFilename, title, description, cat1, cat2, cat3, keywords, '', '', '', '', '', '', '', ''].join(separator);
             }
         } else if (platform === 'Freepik') {
             // Freepik hanya butuh Title
