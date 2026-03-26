@@ -88,9 +88,9 @@ const FileCard: React.FC<Props> = ({
 
     if (isDreamstime) {
         // Fallback angka jika masih kosong
-        setEditCategoryDream1(dreamCats[0] || '112');
-        setEditCategoryDream2(dreamCats[1] || '145');
-        setEditCategoryDream3(dreamCats[2] || '105');
+        setEditCategoryDream1(dreamCats[0] || '');
+        setEditCategoryDream2(dreamCats[1] || '');
+        setEditCategoryDream3(dreamCats[2] || '');
     }
   }, [item.metadata, language, isEditing, isShutterstock, isDreamstime, currentCategory, currentCategoryDream, currentDescription]);
 
@@ -250,17 +250,17 @@ const FileCard: React.FC<Props> = ({
                            {/* Waktu dilihat (View): Cuma Muncul Angkanya Aja */}
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                 {dreamCats[0] || '112'}
+                                 {dreamCats[0] || ''}
                               </div>
                            </div>
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                 {dreamCats[1] || '145'}
+                                 {dreamCats[1] || ''}
                               </div>
                            </div>
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                 {dreamCats[2] || '105'}
+                                 {dreamCats[2] || ''}
                               </div>
                            </div>
                         </>
