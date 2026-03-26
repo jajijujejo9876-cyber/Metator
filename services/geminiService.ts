@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppSettings, FileItem, FileMetadata, FileType, Language, AppMode, QcResult } from "../types";
-import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES } from "../constants";
+// IMPORT DAFTAR DREAMSTIME DARI CONSTANTS
+import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES, DREAMSTIME_CATEGORIES } from "../constants";
 import { extractVideoFrames } from "../utils/helpers";
 
 const fileToPart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
@@ -131,10 +132,11 @@ STEP 4: BLACKLIST (STRICT PROHIBITION)
 - DILARANG menulis nama brand, logo, atau tokoh publik.
 - DILARANG menggunakan template umum.
 
-STEP 5: ASSIGN DUAL CATEGORY (MANDATORY)
-Anda WAJIB memberikan DUA jenis kategori untuk 2 platform yang berbeda secara bersamaan:
+STEP 5: ASSIGN TRIPLE CATEGORY (MANDATORY)
+Anda WAJIB memberikan TIGA jenis kategori untuk 3 platform yang berbeda secara bersamaan:
 1. 'categoryAdobe': Pilih TEPAT 1 Kategori yang paling akurat dari DAFTAR ADOBE.
-2. 'categoryShutter': Pilih TEPAT 2 Kategori yang paling akurat dari DAFTAR SHUTTERSTOCK. Pisahkan dengan koma (contoh: "1, 4").
+2. 'categoryShutter': Pilih TEPAT 2 Kategori (ID TEKS) yang paling akurat dari DAFTAR SHUTTERSTOCK. Pisahkan dengan koma (contoh: "Abstract, Nature").
+3. 'categoryDream': Pilih TEPAT 3 Kategori (ANGKA ID) yang paling akurat dari DAFTAR DREAMSTIME. Pisahkan dengan koma (contoh: "112, 145, 105"). DILARANG KOSONG!
 `;
 
 export const generateMetadataForFile = async (
@@ -166,6 +168,8 @@ export const generateMetadataForFile = async (
     if (mode === 'metadata') {
         const listAdobe = CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
         const listShutter = (fileItem.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES).map(c => `"${c.id}" = ${c.en}`).join('\n');
+        // TAMBAHKAN DAFTAR DREAMSTIME
+        const listDream = DREAMSTIME_CATEGORIES.map(c => `"${c.id}" = ${c.en}`).join('\n');
         
         const minChars = settings.titleMin || 50;
         const maxChars = settings.titleMax || 150;
@@ -177,7 +181,8 @@ export const generateMetadataForFile = async (
         systemInstruction = `LANGUAGE: Hasilkan field 'en' dalam Bahasa Inggris dan field 'ind' dalam Bahasa Indonesia yang merupakan terjemahan profesionalnya.\n\n${SUPREME_METADATA_PROTOCOL}`
             .replace('[KW_COUNT]', kwTargetAI.toString());
 
-        systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}`;
+        // MASUKKAN 3 DAFTAR KE OTAK AI
+        systemInstruction += `\n\nDAFTAR ADOBE:\n${listAdobe}\n\nDAFTAR SHUTTERSTOCK:\n${listShutter}\n\nDAFTAR DREAMSTIME:\n${listDream}`;
         
         promptText = `ANALISIS MANDATORI: Perhatikan aset ini. JANGAN menebak. Identifikasi objek, material, dan warna yang eksak. Tulis metadata yang 100% literal dan SEO-optimized sesuai protokol Supreme.\n\n!!! CRITICAL INSTRUCTIONS (MUST OBEY) !!!\n`;
 
@@ -202,16 +207,17 @@ export const generateMetadataForFile = async (
             promptText += `\nNEGATIVE CONTEXT (Hindari kata-kata ini): ${settings.negativeMetadata}`;
         }
 
-        // UPDATE SCHEMA AGAR AI MENGHASILKAN DESCRIPTION
+        // UPDATE SCHEMA AGAR AI MENGHASILKAN categoryDream
         outputSchema = {
           type: Type.OBJECT,
           properties: {
             en: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "description", "keywords"] },
             ind: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, description: { type: Type.STRING }, keywords: { type: Type.STRING } }, required: ["title", "description", "keywords"] },
             categoryAdobe: { type: Type.STRING }, 
-            categoryShutter: { type: Type.STRING } 
+            categoryShutter: { type: Type.STRING },
+            categoryDream: { type: Type.STRING } // <--- LACI BARU MINTA KE AI
           },
-          required: ["en", "ind", "categoryAdobe", "categoryShutter"]
+          required: ["en", "ind", "categoryAdobe", "categoryShutter", "categoryDream"]
         };
 
     } else if (mode === 'idea') {
@@ -321,8 +327,8 @@ export const generateMetadataForFile = async (
         
         let expectedJsonSchema = "";
         if (mode === 'metadata') {
-            // UPDATE JSON EXPECTATION GROQ BIAR TIDAK ERROR
-            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "description": "string", "keywords": "string" },\n  "ind": { "title": "string", "description": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string"\n}`;
+            // UPDATE JSON EXPECTATION GROQ 
+            expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en": { "title": "string", "description": "string", "keywords": "string" },\n  "ind": { "title": "string", "description": "string", "keywords": "string" },\n  "categoryAdobe": "string",\n  "categoryShutter": "string",\n  "categoryDream": "string"\n}`;
         } else if (mode === 'idea') {
             expectedJsonSchema = `\n\nEXPECTED JSON FORMAT:\n{\n  "en_idea": "string",\n  "ind_idea": "string"\n}`;
         } else if (mode === 'prompt') {
@@ -448,7 +454,6 @@ export const generateMetadataForFile = async (
 
     return {
       metadata: { 
-        // PASTIKAN DESCRIPTION DIKIRIM KE LACI
         en: { 
             title: parsed.en?.title || "", 
             description: parsed.en?.description || "", 
@@ -460,7 +465,9 @@ export const generateMetadataForFile = async (
             keywords: parsed.ind?.keywords || "" 
         }, 
         category: parsed.categoryAdobe || "2", 
-        categoryShutter: parsed.categoryShutter || "" 
+        categoryShutter: parsed.categoryShutter || "",
+        // SIMPAN JAWABAN 3 KATEGORI DREAMSTIME DARI AI
+        categoryDream: parsed.categoryDream || "112, 145, 105" // Fallback aman
       }
     };
   } catch (error: any) {
