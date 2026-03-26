@@ -1,14 +1,15 @@
 import React, { useState, useEffect, memo } from 'react';
 import { Edit2, Check, RefreshCw, Eye, Trash2, Loader2, Video as VideoIcon, Image as ImageIcon, PenTool, Languages } from 'lucide-react';
 import { FileItem, Language, ProcessingStatus, FileType } from '../types';
-import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES } from '../constants';
+// IMPORT KAMUS DREAMSTIME
+import { CATEGORIES, SHUTTERSTOCK_CATEGORIES, SHUTTERSTOCK_VIDEO_CATEGORIES, DREAMSTIME_CATEGORIES } from '../constants';
 import { getCategoryName } from '../utils/helpers';
 
 interface Props {
   item: FileItem;
   onDelete: (id: string) => void;
-  // KITA TAMBAH 'description' KE DAFTAR ONUPDATE BIAR BISA DISAVE
-  onUpdate: (id: string, field: 'title' | 'description' | 'keywords' | 'category' | 'categoryShutter', value: string, language: Language) => void; 
+  // TAMBAHAN: Masukkan 'categoryDream' agar bisa di-save
+  onUpdate: (id: string, field: 'title' | 'description' | 'keywords' | 'category' | 'categoryShutter' | 'categoryDream', value: string, language: Language) => void; 
   onRetry: (id: string) => void;
   onPreview: (item: FileItem) => void;
   language: Language;
@@ -31,33 +32,42 @@ const FileCard: React.FC<Props> = ({
   const [isEditing, setIsEditing] = useState(false);
   
   const isShutterstock = platform === 'Shutterstock';
+  const isDreamstime = platform === 'Dreamstime';
   const usesCategory = ['Adobe Stock', 'Shutterstock'].includes(platform);
   
   // === DETEKTOR KELOMPOK PLATFORM ===
   const isGroup1 = ['Freepik', 'MiriCanvas'].includes(platform);
   const isGroup2 = ['Dreamstime', 'Vecteezy', 'Arabstock'].includes(platform);
-  // Group 2 butuh Description, Shutterstock juga butuh (tapi Shutterstock gak butuh Title)
   const usesDescription = ['Shutterstock', ...['Dreamstime', 'Vecteezy', 'Arabstock']].includes(platform);
   
   const [editTitle, setEditTitle] = useState('');
-  // LACI MEMORI BARU UNTUK DESKRIPSI
   const [editDescription, setEditDescription] = useState('');
   const [editKeywords, setEditKeywords] = useState('');
+  
+  // LACI UNTUK SHUTTER / ADOBE
   const [editCategory1, setEditCategory1] = useState('');
   const [editCategory2, setEditCategory2] = useState('');
   
+  // LACI KHUSUS DREAMSTIME (3 Kotak)
+  const [editCategoryDream1, setEditCategoryDream1] = useState('');
+  const [editCategoryDream2, setEditCategoryDream2] = useState('');
+  const [editCategoryDream3, setEditCategoryDream3] = useState('');
+  
   const currentTitle = language === 'ENG' ? item.metadata.en.title : item.metadata.ind.title;
-  // TARIK DATA DESCRIPTION DARI HASIL AI
   const currentDescription = language === 'ENG' ? (item.metadata.en.description || '') : (item.metadata.ind.description || '');
   const currentKeywords = language === 'ENG' ? item.metadata.en.keywords : item.metadata.ind.keywords;
   
   const keywordCount = currentKeywords ? currentKeywords.split(',').filter(k => k.trim().length > 0).length : 0;
 
   const currentCategory = isShutterstock ? (item.metadata.categoryShutter || '') : (item.metadata.category || '');
+  const currentCategoryDream = item.metadata.categoryDream || '';
 
   const displayCats = currentCategory ? currentCategory.split(',').map(c => c.trim()) : [];
   const cat1Name = displayCats[0] ? getCategoryName(displayCats[0], language, platform) : "";
   const cat2Name = displayCats[1] ? getCategoryName(displayCats[1], language, platform) : "";
+
+  // Pecah angka Dreamstime (Misal: "112, 145, 105")
+  const dreamCats = currentCategoryDream ? currentCategoryDream.split(',').map(c => c.trim()) : [];
 
   const activeCategories = isShutterstock 
       ? (item.type === FileType.Video ? SHUTTERSTOCK_VIDEO_CATEGORIES : SHUTTERSTOCK_CATEGORIES) 
@@ -65,7 +75,7 @@ const FileCard: React.FC<Props> = ({
 
   useEffect(() => {
     setEditTitle(currentTitle);
-    setEditDescription(currentDescription); // Update state deskripsi
+    setEditDescription(currentDescription);
     setEditKeywords(currentKeywords);
     
     if (isShutterstock) {
@@ -75,12 +85,18 @@ const FileCard: React.FC<Props> = ({
         setEditCategory1(displayCats[0] || '');
         setEditCategory2('');
     }
-  }, [item.metadata, language, isEditing, isShutterstock, currentCategory, currentDescription]);
+
+    if (isDreamstime) {
+        // Fallback angka jika masih kosong
+        setEditCategoryDream1(dreamCats[0] || '112');
+        setEditCategoryDream2(dreamCats[1] || '145');
+        setEditCategoryDream3(dreamCats[2] || '105');
+    }
+  }, [item.metadata, language, isEditing, isShutterstock, isDreamstime, currentCategory, currentCategoryDream, currentDescription]);
 
   const toggleEdit = () => {
     if (isEditing) {
       if (editTitle !== currentTitle) onUpdate(item.id, 'title', editTitle, language);
-      // SIMPAN JIKA DESKRIPSI DIEDIT
       if (editDescription !== currentDescription) onUpdate(item.id, 'description', editDescription, language);
       if (editKeywords !== currentKeywords) onUpdate(item.id, 'keywords', editKeywords, language);
       
@@ -90,6 +106,14 @@ const FileCard: React.FC<Props> = ({
 
       if (newCategory !== currentCategory && usesCategory) {
           onUpdate(item.id, isShutterstock ? 'categoryShutter' : 'category', newCategory, language);
+      }
+
+      // SIMPAN KATEGORI DREAMSTIME
+      if (isDreamstime) {
+          const newDreamCategory = [editCategoryDream1, editCategoryDream2, editCategoryDream3].join(', ');
+          if (newDreamCategory !== currentCategoryDream) {
+              onUpdate(item.id, 'categoryDream', newDreamCategory, language);
+          }
       }
       
       setIsEditing(false);
@@ -160,10 +184,11 @@ const FileCard: React.FC<Props> = ({
       {/* 3. Metadata Content */}
       <div className="flex flex-col gap-1 px-3 pb-3 flex-1">
          
-         {/* ==== APARTEMEN LANTAI 1 & 2 (UNTUK GRUP 2) ==== */}
+         {/* ==== APARTEMEN LANTAI 1, 2, (& 3 KHUSUS DREAMSTIME) ==== */}
          {isGroup2 ? (
-            // JIKA GRUP 2 (Dreamstime, dkk): Tampilkan 50:50 Title dan Description
-            <div className="flex flex-col gap-1 w-full h-[4.25rem] shrink-0">
+            // JIKA GRUP 2: Tinggi melar dikit kalau Dreamstime
+            <div className={`flex flex-col gap-1 w-full ${isDreamstime ? 'h-[5.75rem]' : 'h-[4.25rem]'} shrink-0`}>
+               
                {/* LANTAI 1 (TITLE) */}
                <div className="flex gap-2 items-start h-[2rem]">
                  <span className={`${labelClass} bg-blue-50 text-blue-600 border-blue-200`}>TITLE</span>
@@ -195,6 +220,54 @@ const FileCard: React.FC<Props> = ({
                     )}
                  </div>
                </div>
+
+               {/* LANTAI 3 (KATEGORI KHUSUS DREAMSTIME DIBELAH 3) */}
+               {isDreamstime && (
+                 <div className="flex gap-2 items-center h-[1.5rem]">
+                   <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>CAT (3)</span>
+                   <div className="h-full w-full relative flex gap-1">
+                     {isEditing ? (
+                        <>
+                           {/* Waktu di-edit: Muncul Teks Lengkap */}
+                           <select value={editCategoryDream1} onChange={(e) => setEditCategoryDream1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                              {DREAMSTIME_CATEGORIES.map(cat => (
+                                 <option key={cat.id} value={cat.id}>{cat.id} - {language === 'ENG' ? cat.en : cat.id_lang}</option>
+                              ))}
+                           </select>
+                           <select value={editCategoryDream2} onChange={(e) => setEditCategoryDream2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                              {DREAMSTIME_CATEGORIES.map(cat => (
+                                 <option key={cat.id} value={cat.id}>{cat.id} - {language === 'ENG' ? cat.en : cat.id_lang}</option>
+                              ))}
+                           </select>
+                           <select value={editCategoryDream3} onChange={(e) => setEditCategoryDream3(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                              {DREAMSTIME_CATEGORIES.map(cat => (
+                                 <option key={cat.id} value={cat.id}>{cat.id} - {language === 'ENG' ? cat.en : cat.id_lang}</option>
+                              ))}
+                           </select>
+                        </>
+                     ) : (
+                        <>
+                           {/* Waktu dilihat (View): Cuma Muncul Angkanya Aja */}
+                           <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
+                              <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
+                                 {dreamCats[0] || '112'}
+                              </div>
+                           </div>
+                           <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
+                              <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
+                                 {dreamCats[1] || '145'}
+                              </div>
+                           </div>
+                           <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
+                              <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
+                                 {dreamCats[2] || '105'}
+                              </div>
+                           </div>
+                        </>
+                     )}
+                   </div>
+                 </div>
+               )}
             </div>
          ) : (
             // BUKAN GRUP 2: Tampilkan kotak biasa (Melar untuk Grup 1, Normal untuk yang lain)
@@ -221,7 +294,7 @@ const FileCard: React.FC<Props> = ({
             </div>
          )}
          
-         {/* KOTAK KATEGORI: Sembunyikan jika Grup 1 atau Grup 2 */}
+         {/* KOTAK KATEGORI (ADOBE & SHUTTERSTOCK): Sembunyikan jika Grup 1 atau Grup 2 */}
          {!isGroup1 && !isGroup2 && (
              <div className="flex gap-2 items-center">
                <span className={`${labelClass} ${usesCategory ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>CATEGORY</span>
@@ -288,11 +361,12 @@ const FileCard: React.FC<Props> = ({
              </div>
          )}
 
+         {/* LANTAI TERAKHIR: KEYWORDS (Dipangkas otomatis kalau mode Dreamstime biar tingginya rata) */}
          <div className="flex flex-col gap-1 flex-1">
             <span className={`${labelClassFull} bg-violet-50 text-violet-600 border-violet-200`}>
                 KEYWORDS = {keywordCount}
             </span>
-            <div className="h-[5.5rem] w-full relative">
+            <div className={`w-full relative ${isDreamstime ? 'h-[4rem]' : 'h-[5.5rem]'}`}>
                 {isEditing ? (
                   <textarea value={editKeywords} onChange={(e) => setEditKeywords(e.target.value)} className={`${textBaseClass} ${editClass} h-full`} spellCheck={false} />
                 ) : (
