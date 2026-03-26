@@ -26,6 +26,8 @@ export interface FileMetadata {
   ind: LocalizedContent;
   category: string; 
   categoryShutter?: string;
+  // LACI MEMORI BARU KHUSUS DREAMSTIME (Format isi: "112,145,105")
+  categoryDream?: string; 
 }
 
 // === STRUKTUR RAPOR QC ===
