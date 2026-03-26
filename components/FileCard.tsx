@@ -224,7 +224,7 @@ const FileCard: React.FC<Props> = ({
                {/* LANTAI 3 (KATEGORI KHUSUS DREAMSTIME DIBELAH 3) */}
                {isDreamstime && (
                  <div className="flex gap-2 items-center h-[1.5rem]">
-                   <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>CAT (3)</span>
+                   <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>CATEGORY</span>
                    <div className="h-full w-full relative flex gap-1">
                      {isEditing ? (
                         <>
