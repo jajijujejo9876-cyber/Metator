@@ -169,13 +169,13 @@ export const downloadCSV = (files: FileItem[], customFilename?: string, platform
             // Shutterstock hanya butuh Description
             return [finalFilename, description, keywords, categoryName, 'no', 'no', isIllustration].join(separator);
         } else if (platform === 'Dreamstime') {
-            // Dreamstime butuh Title & Description (Plus kolom lisensi dikosongkan "")
+            // Dreamstime butuh Title & Description (Plus kolom lisensi dikosongkan TOTAL tanpa kutip)
             if (hasVideoInBatch) {
                // Template Video (13 Kolom)
-               return [finalFilename, title, description, '""', '""', '""', keywords, '""', '""', '""', '""', '""', '""'].join(separator);
+               return [finalFilename, title, description, '', '', '', keywords, '', '', '', '', '', ''].join(separator);
             } else {
                // Template Image (15 Kolom)
-               return [finalFilename, title, description, '""', '""', '""', keywords, '""', '""', '""', '""', '""', '""', '""', '""'].join(separator);
+               return [finalFilename, title, description, '', '', '', keywords, '', '', '', '', '', '', '', ''].join(separator);
             }
         } else if (platform === 'Freepik') {
             // Freepik hanya butuh Title
