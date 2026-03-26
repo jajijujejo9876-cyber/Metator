@@ -87,7 +87,7 @@ const FileCard: React.FC<Props> = ({
     }
 
     if (isDreamstime) {
-        // Fallback angka jika masih kosong
+        // SETTING DARI USER: Kosongkan jika tidak ada
         setEditCategoryDream1(dreamCats[0] || '');
         setEditCategoryDream2(dreamCats[1] || '');
         setEditCategoryDream3(dreamCats[2] || '');
@@ -110,7 +110,9 @@ const FileCard: React.FC<Props> = ({
 
       // SIMPAN KATEGORI DREAMSTIME
       if (isDreamstime) {
-          const newDreamCategory = [editCategoryDream1, editCategoryDream2, editCategoryDream3].join(', ');
+          // Bersihkan item kosong sebelum di-join
+          const newDreamCategory = [editCategoryDream1, editCategoryDream2, editCategoryDream3]
+                                      .filter(Boolean).join(', ');
           if (newDreamCategory !== currentCategoryDream) {
               onUpdate(item.id, 'categoryDream', newDreamCategory, language);
           }
@@ -224,22 +226,26 @@ const FileCard: React.FC<Props> = ({
                {/* LANTAI 3 (KATEGORI KHUSUS DREAMSTIME DIBELAH 3) */}
                {isDreamstime && (
                  <div className="flex gap-2 items-center h-[1.5rem]">
+                   {/* LABEL DIGANTI JADI CATEGORY SESUAI REQUEST PENGGUNA */}
                    <span className={`${labelClass} bg-green-50 text-green-600 border-green-200`}>CATEGORY</span>
                    <div className="h-full w-full relative flex gap-1">
                      {isEditing ? (
                         <>
-                           {/* Waktu di-edit: Muncul Teks Lengkap */}
+                           {/* Waktu di-edit: Muncul Teks Lengkap dengan opsi siluman */}
                            <select value={editCategoryDream1} onChange={(e) => setEditCategoryDream1(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                              <option value="" disabled hidden style={{ display: 'none' }}></option>
                               {DREAMSTIME_CATEGORIES.map(cat => (
                                  <option key={cat.id} value={cat.id}>{cat.id} - {language === 'ENG' ? cat.en : cat.id_lang}</option>
                               ))}
                            </select>
                            <select value={editCategoryDream2} onChange={(e) => setEditCategoryDream2(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                              <option value="" disabled hidden style={{ display: 'none' }}></option>
                               {DREAMSTIME_CATEGORIES.map(cat => (
                                  <option key={cat.id} value={cat.id}>{cat.id} - {language === 'ENG' ? cat.en : cat.id_lang}</option>
                               ))}
                            </select>
                            <select value={editCategoryDream3} onChange={(e) => setEditCategoryDream3(e.target.value)} className={`flex-1 ${textBaseClass} ${editClass} h-full py-0 pl-1 text-[10px]`}>
+                              <option value="" disabled hidden style={{ display: 'none' }}></option>
                               {DREAMSTIME_CATEGORIES.map(cat => (
                                  <option key={cat.id} value={cat.id}>{cat.id} - {language === 'ENG' ? cat.en : cat.id_lang}</option>
                               ))}
@@ -247,7 +253,7 @@ const FileCard: React.FC<Props> = ({
                         </>
                      ) : (
                         <>
-                           {/* Waktu dilihat (View): Cuma Muncul Angkanya Aja */}
+                           {/* Waktu dilihat (View): Cuma Muncul Angkanya Aja, KOSONG jika string kosong */}
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
                                  {dreamCats[0] || ''}
