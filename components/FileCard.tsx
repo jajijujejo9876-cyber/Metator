@@ -189,7 +189,7 @@ const FileCard: React.FC<Props> = ({
          {/* ==== APARTEMEN LANTAI 1, 2, (& 3 KHUSUS DREAMSTIME) ==== */}
          {isGroup2 ? (
             // JIKA GRUP 2: Tinggi melar dikit kalau Dreamstime
-            <div className={`flex flex-col gap-1 w-full ${isDreamstime ? 'h-[5.75rem]' : 'h-[4.25rem]'} shrink-0`}>
+            <div className={`flex flex-col gap-1 w-full ${isDreamstime ? 'h-[6rem]' : 'h-[4.25rem]'} shrink-0`}>
                
                {/* LANTAI 1 (TITLE) */}
                <div className="flex gap-2 items-start h-[2rem]">
@@ -200,7 +200,7 @@ const FileCard: React.FC<Props> = ({
                     ) : (
                        <div className={`${viewContainerClass} h-full !py-0.5 overflow-hidden`}>
                           <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 block whitespace-normal text-[11px] leading-tight`}>
-                            {currentTitle}
+                            {currentTitle || '\u00A0'}
                           </div>
                        </div>
                     )}
@@ -216,7 +216,7 @@ const FileCard: React.FC<Props> = ({
                     ) : (
                        <div className={`${viewContainerClass} h-full !py-0.5 overflow-hidden`}>
                           <div className={`${textBaseClass} ${viewClass} h-full text-gray-600 !border-0 !p-0 block whitespace-normal text-[11px] leading-tight`}>
-                            {currentDescription || ''}
+                            {currentDescription || '\u00A0'}
                           </div>
                        </div>
                     )}
@@ -256,17 +256,17 @@ const FileCard: React.FC<Props> = ({
                            {/* Waktu dilihat (View): Cuma Muncul Angkanya Aja, KOSONG jika string kosong */}
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                 {dreamCats[0] || ''}
+                                 {dreamCats[0] || '\u00A0'}
                               </div>
                            </div>
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                 {dreamCats[1] || ''}
+                                 {dreamCats[1] || '\u00A0'}
                               </div>
                            </div>
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center justify-center font-bold !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                 {dreamCats[2] || ''}
+                                 {dreamCats[2] || '\u00A0'}
                               </div>
                            </div>
                         </>
@@ -292,7 +292,7 @@ const FileCard: React.FC<Props> = ({
                  ) : (
                     <div className={`${viewContainerClass} h-full`}>
                        <div className={`${textBaseClass} ${viewClass} h-full font-medium text-gray-800 !border-0 !p-0 block whitespace-normal`}>
-                         {isShutterstock ? currentDescription : currentTitle}
+                         {isShutterstock ? (currentDescription || '\u00A0') : (currentTitle || '\u00A0')}
                        </div>
                     </div>
                  )}
@@ -346,19 +346,19 @@ const FileCard: React.FC<Props> = ({
                         <>
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                {cat1Name || ''}
+                                {cat1Name || '\u00A0'}
                               </div>
                            </div>
                            <div className={`flex-1 ${viewContainerClass} h-full !p-0 px-1 overflow-hidden`}>
                               <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                                {cat2Name || ''}
+                                {cat2Name || '\u00A0'}
                               </div>
                            </div>
                         </>
                      ) : (
                         <div className={`${viewContainerClass} h-full w-full !p-0 px-1`}>
                            <div className={`${textBaseClass} ${viewClass} h-full flex items-center !py-0 !border-0 !p-0 truncate text-[10px] text-gray-600`}>
-                             {cat1Name || ''}
+                             {cat1Name || '\u00A0'}
                            </div>
                         </div>
                      )
@@ -378,7 +378,7 @@ const FileCard: React.FC<Props> = ({
                 ) : (
                   <div className={`${viewContainerClass} h-full`}>
                       <div className={`${textBaseClass} ${viewClass} h-full text-gray-500 whitespace-normal break-words !border-0 !p-0`}>
-                        {currentKeywords}
+                        {currentKeywords || '\u00A0'}
                       </div>
                   </div>
                 )}
